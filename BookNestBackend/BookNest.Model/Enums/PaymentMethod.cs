@@ -4,11 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BookNest.Services.Database.Entities.Enums
+namespace BookNest.Model.Enums
 {
-    public enum EventType
+    public enum PaymentMethod
     {
-        Online,
-        InPerson
+        CashOnDelivery,
+        Card
     }
 }

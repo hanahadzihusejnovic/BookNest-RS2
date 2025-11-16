@@ -34,5 +34,6 @@ namespace BookNest.Services.Database
         public DbSet<Shipping> Shippings { get; set; }
         public DbSet<TBRList> TBRLists { get; set; }
         public DbSet<User> Users { get; set; }
+        public DbSet<UserRole> UserRoles { get; set; }
     }
 }
