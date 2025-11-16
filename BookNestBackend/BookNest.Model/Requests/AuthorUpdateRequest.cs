@@ -5,13 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BookNest.Services.Database.Entities
+namespace BookNest.Model.Requests
 {
-    public class Author
+    public class AuthorUpdateRequest
     {
-        [Key]
-        public int Id { get; set; }
-
         [Required]
         [MaxLength(50)]
         public string FirstName { get; set; } = string.Empty;
@@ -30,8 +27,5 @@ namespace BookNest.Services.Database.Entities
         public string Biography { get; set; } = string.Empty;
 
         public string? ImageUrl { get; set; }
-        
-        public ICollection<Book> Books { get; set; } = new List<Book>();
-
     }
 }

@@ -5,17 +5,16 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BookNest.Services.Database.Entities
+namespace BookNest.Model.Requests
 {
-    public class Role
+    public class EventCategoryInsertRequest
     {
-        [Key]
-        public int Id { get; set; }
-
         [Required]
         [MaxLength(50)]
         public string Name { get; set; } = string.Empty;
 
-        public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+        [Required]
+        [MaxLength(500)]
+        public string Description { get; set; } = string.Empty;
     }
 }

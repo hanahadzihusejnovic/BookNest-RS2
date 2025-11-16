@@ -1,4 +1,4 @@
-﻿using BookNest.Services.Database.Entities.Enums;
+﻿using BookNest.Model.Enums;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;

@@ -34,9 +34,6 @@ namespace BookNest.Services.Database.Entities
         public string PasswordHash { get; set; } = string.Empty;
 
         [Required]
-        public string PasswordSalt { get; set; } = string.Empty;
-
-        [Required]
         public DateTime DateOfBirth { get; set; }
 
         public string? Address { get; set; }
@@ -53,12 +50,7 @@ namespace BookNest.Services.Database.Entities
 
         public Cart Cart { get; set; } = null!;
 
-        [Required]
-        public int RoleId { get; set; }
-
-        [ForeignKey(nameof(RoleId))]
-        public Role Role { get; set; } = null!;
-
+        public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
         public ICollection<Order> Orders { get; set; } = new List<Order>();
         public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
         public ICollection<TBRList> TBRLists { get; set; } = new List<TBRList>();

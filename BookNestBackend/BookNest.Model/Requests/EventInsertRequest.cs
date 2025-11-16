@@ -1,19 +1,17 @@
-﻿using BookNest.Model.Enums;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BookNest.Model.Enums;
+using System.Text.Json.Serialization;
 
-namespace BookNest.Services.Database.Entities
+namespace BookNest.Model.Requests
 {
-    public class Event
+    public class EventInsertRequest
     {
-        [Key]
-        public int Id { get; set; }
-
         [Required]
         [MaxLength(50)]
         public string Name { get; set; } = string.Empty;
@@ -24,14 +22,8 @@ namespace BookNest.Services.Database.Entities
         [Required]
         public int EventCategoryId { get; set; }
 
-        [ForeignKey(nameof(EventCategoryId))]
-        public EventCategory EventCategory { get; set; } = null!;
-
         [Required]
         public int OrganizerId { get; set; }
-
-        [ForeignKey(nameof(OrganizerId))]
-        public Organizer Organizer { get; set; } = null!;
 
         [Required]
         public DateTime EventDate { get; set; }
@@ -40,17 +32,15 @@ namespace BookNest.Services.Database.Entities
         public TimeSpan EventTime { get; set; }
 
         [Required]
-        [Column(TypeName = "nvarchar(50)")]
         public EventType EventType { get; set; }
-        
+
         public string? Address { get; set; }
-        
+
         public string? City { get; set; }
 
         public string? Country { get; set; }
 
         [Required]
-        [Column(TypeName = "decimal(18,2)")]
         public decimal TicketPrice { get; set; }
 
         [Required]
@@ -63,10 +53,5 @@ namespace BookNest.Services.Database.Entities
 
         [Required]
         public int ReservedSeats { get; set; }
-
-        public ICollection<EventReservation> EventReservations { get; set; } = new List<EventReservation>();
-        public ICollection<Review> Reviews { get; set; } = new List<Review>();
-        public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
-        
     }
 }
