@@ -13,7 +13,7 @@ namespace BookNest.Model.Responses
         public string LastName { get; set; } = string.Empty;
         public string FullName => $"{FirstName} {LastName}";
         public string EmailAddress { get; set; } = string.Empty;
-        public string Username {  get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
         public DateTime DateOfBirth { get; set; }
         public string? Address {  get; set; }
         public string? City { get; set; }

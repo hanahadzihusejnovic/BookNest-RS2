@@ -26,6 +26,8 @@ namespace BookNest.Model.Requests
         [MaxLength(100)]
         public string Username { get; set; } = string.Empty;
 
+        public string? Password { get; set; }
+
         [Required]
         public DateTime DateOfBirth { get; set; }
 

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using BookNest.Model.SearchObjects;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,8 +7,9 @@ using System.Threading.Tasks;
 
 namespace BookNest.Services.BaseInterfaces
 {
-    public interface IBaseCRUDService<T, TInsert, TUpdate> : IBaseService<T>
+    public interface IBaseCRUDService<T, TSearch, TInsert, TUpdate> : IBaseService<T, TSearch>
         where T : class
+        where TSearch : BaseSearchObject
         where TInsert : class
         where TUpdate : class
     {

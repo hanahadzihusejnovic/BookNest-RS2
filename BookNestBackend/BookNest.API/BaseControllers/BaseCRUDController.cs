@@ -1,16 +1,20 @@
-﻿using BookNest.Services.BaseInterfaces;
+﻿using BookNest.Model.SearchObjects;
+using BookNest.Services.BaseInterfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookNest.API.BaseControllers
 {
-    public class BaseCRUDController<T, TInsert, TUpdate> : BaseController<T>
+    [ApiController]
+    [Route("api/[controller]")]
+    public class BaseCRUDController<T, TSearch, TInsert, TUpdate> : BaseController<T, TSearch>
         where T : class
+        where TSearch : BaseSearchObject
         where TInsert : class
         where TUpdate : class
     {
-        protected readonly IBaseCRUDService<T, TInsert, TUpdate> _crudService;
+        protected readonly IBaseCRUDService<T, TSearch, TInsert, TUpdate> _crudService;
 
-        public BaseCRUDController(IBaseCRUDService<T, TInsert, TUpdate> crudService) : base(crudService)
+        public BaseCRUDController(IBaseCRUDService<T, TSearch, TInsert, TUpdate> crudService) : base(crudService)
         {
             _crudService = crudService;
         }

@@ -8,6 +8,7 @@ using AutoMapper;
 using BookNest.Services.Mapping;
 using System.Text.Json.Serialization;
 using System.ComponentModel;
+using BookNest.Services.Security;
 
 namespace BookNest.API
 {
@@ -27,6 +28,7 @@ namespace BookNest.API
             builder.Services.AddScoped<IEventService, EventService>();
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ICartService, CartService>();
+            builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
 
             builder.Services.AddAutoMapper(cfg => { },
                 typeof(BookProfile).Assembly,
