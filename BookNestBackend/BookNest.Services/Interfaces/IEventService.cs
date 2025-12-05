@@ -1,5 +1,6 @@
 ﻿using BookNest.Model.Requests;
 using BookNest.Model.Responses;
+using BookNest.Model.SearchObjects;
 using BookNest.Services.BaseInterfaces;
 using System;
 using System.Collections.Generic;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace BookNest.Services.Interfaces
 {
-    public interface IEventService : IBaseCRUDService<EventResponse, EventInsertRequest, EventUpdateRequest>
+    public interface IEventService : IBaseCRUDService<EventResponse, EventSearchObject, EventInsertRequest, EventUpdateRequest>
     {
     }
 }

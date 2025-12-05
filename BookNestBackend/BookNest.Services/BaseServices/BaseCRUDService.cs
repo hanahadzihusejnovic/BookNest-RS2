@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using BookNest.Model.SearchObjects;
 using BookNest.Services.BaseInterfaces;
 using BookNest.Services.Database;
 using System;
@@ -9,15 +10,16 @@ using System.Threading.Tasks;
 
 namespace BookNest.Services.BaseServices
 {
-    public abstract class BaseCRUDService<T, TEntity, TInsert, TUpdate> : BaseService<T, TEntity>, IBaseCRUDService<T, TInsert, TUpdate>
+    public abstract class BaseCRUDService<T, TSearch, TEntity, TInsert, TUpdate> : BaseService<T, TSearch, TEntity>, IBaseCRUDService<T, TSearch, TInsert, TUpdate>
         where T : class
+        where TSearch : BaseSearchObject
         where TEntity : class, new()
         where TInsert : class
         where TUpdate : class
     {
         protected BookNestDbContext _context;
 
-        public BaseCRUDService(BookNestDbContext context, IMapper mapper) : base(context, mapper)
+        public BaseCRUDService(BookNestDbContext context, IMapper mapper) : base(context, mapper) 
         {
             _context = context;
         }
@@ -66,7 +68,7 @@ namespace BookNest.Services.BaseServices
             await Task.CompletedTask;
         }
 
-        protected virtual void  MapUpdateToEntity(TEntity entity, TUpdate request)
+        protected virtual void MapUpdateToEntity(TEntity entity, TUpdate request)
         {
             _mapper.Map(request, entity);
         }

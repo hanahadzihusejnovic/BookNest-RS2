@@ -29,6 +29,9 @@ namespace BookNest.Model.Requests
         public string Username { get; set; } = string.Empty;
 
         [Required]
+        public string Password { get; set; } = string.Empty;
+
+        [Required]
         public DateTime DateOfBirth { get; set; }
 
         public string? Address { get; set; }

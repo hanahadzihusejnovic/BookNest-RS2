@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
+using BookNest.Model.SearchObjects;
 using BookNest.Services.BaseServices;
 using BookNest.Services.Database;
 using BookNest.Services.Database.Entities;
@@ -14,12 +15,84 @@ using System.Threading.Tasks;
 
 namespace BookNest.Services.Services
 {
-    public class BookService : BaseCRUDService<BookResponse, Book, BookInsertRequest, BookUpdateRequest>, IBookService
+    public class BookService : BaseCRUDService<BookResponse, BookSearchObject, Book, BookInsertRequest, BookUpdateRequest>, IBookService
     {
         private readonly BookNestDbContext _dbContext;
         public BookService(BookNestDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
         {
             _dbContext = dbContext;
+        }
+
+        protected override IQueryable<Book> ApplyFilter(IQueryable<Book> query, BookSearchObject search)
+        {
+            if (!string.IsNullOrWhiteSpace(search.Text))
+            {
+                var lower = search.Text.ToLower();
+
+                query = query.Where(b =>
+                    (b.Title != null && b.Title.ToLower().Contains(lower)) ||
+                    (b.Author != null && b.Author.FirstName.ToLower().Contains(lower))
+                    );
+            }
+
+            if (!string.IsNullOrWhiteSpace(search.Title))
+            {
+                query = query.Where(b => b.Title != null &&
+                                         b.Title.ToLower().Contains(search.Title.ToLower()));
+            }
+
+            if (search.AuthorId.HasValue)
+            {
+                query = query.Where(b => b.AuthorId == search.AuthorId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(search.AuthorName))
+            {
+                query = query.Where(b => b.Author != null &&
+                                         b.Author.FirstName.ToLower().Contains(search.AuthorName.ToLower()));
+            }
+
+            if (search.Price.HasValue)
+            {
+                query = query.Where(b => b.Price == search.Price.Value);
+            }
+
+            return query;
+        }
+
+        public override async Task<PagedResult<BookResponse>> GetAsync(BookSearchObject search, CancellationToken cancellationToken)
+        {
+            var query = _dbContext.Books
+                         .Include(b => b.Author)
+                         .Include(b => b.BookCategories)
+                         .ThenInclude(bc => bc.Category)
+                         .AsQueryable();
+
+            query = ApplyFilter(query, search);
+
+            int? totalCount = null;
+            if (search.IncludeTotalCount)
+            {
+                totalCount = await query.CountAsync(cancellationToken);
+            }
+
+            if (!search.RetrieveAll)
+            {
+                int skip = (search.Page ?? 0) * (search.PageSize ?? 20);
+                int take = search.PageSize ?? 20;
+
+                query = query.Skip(skip).Take(take);
+            }
+
+            var list = await query.ToListAsync(cancellationToken);
+
+            var mapped = list.Select(MapToResponse).ToList();
+
+            return new PagedResult<BookResponse>
+            {
+                Items = mapped,
+                TotalCount = totalCount
+            };
         }
 
         public override async Task<BookResponse?> GetByIdAsync(int id, CancellationToken cancellationToken = default)

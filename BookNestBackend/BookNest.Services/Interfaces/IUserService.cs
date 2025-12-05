@@ -1,5 +1,6 @@
 ﻿using BookNest.Model.Requests;
 using BookNest.Model.Responses;
+using BookNest.Model.SearchObjects;
 using BookNest.Services.BaseInterfaces;
 using System;
 using System.Collections.Generic;
@@ -9,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace BookNest.Services.Interfaces
 {
-    public interface IUserService : IBaseCRUDService<UserResponse, UserInsertRequest, UserUpdateRequest>
+    public interface IUserService : IBaseCRUDService<UserResponse, UserSearchObject, UserInsertRequest, UserUpdateRequest>
     {
     }
 }
