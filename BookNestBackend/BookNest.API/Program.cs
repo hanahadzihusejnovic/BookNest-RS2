@@ -63,6 +63,8 @@ namespace BookNest.API
             builder.Services.AddScoped<IUserService, UserService>();
             builder.Services.AddScoped<ICartService, CartService>();
             builder.Services.AddScoped<IOrderService, OrderService>();
+            builder.Services.AddScoped<IFavoriteService, FavoriteService>();
+            builder.Services.AddScoped<ITBRListService, TBRListService>();
             builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
 
             builder.Services.AddAutoMapper(cfg => { },
