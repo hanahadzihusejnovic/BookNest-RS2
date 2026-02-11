@@ -107,7 +107,6 @@ namespace BookNest.Services.Services
 
         public async Task<OrderResponse> CreateOrderFromCartAsync(int userId, OrderInsertRequest request, CancellationToken cancellationToken = default)
         {
-            // 1. Pronađi korpu korisnika sa stavkama
             var cart = await _dbContext.Carts
                 .Include(c => c.CartItems)
                     .ThenInclude(ci => ci.Book)
@@ -118,10 +117,8 @@ namespace BookNest.Services.Services
                 throw new Exception("Cart is empty or does not exist.");
             }
 
-            // 2. Izračunaj ukupnu cijenu
             decimal totalPrice = cart.CartItems.Sum(ci => ci.Price * ci.Quantity);
 
-            // 3. Kreiraj Shipping zapis
             var shipping = new Shipping
             {
                 Address = request.Shipping.Address,
@@ -133,7 +130,6 @@ namespace BookNest.Services.Services
             _dbContext.Shippings.Add(shipping);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            // 4. Kreiraj Order
             var order = new Order
             {
                 UserId = userId,
@@ -146,7 +142,6 @@ namespace BookNest.Services.Services
             _dbContext.Orders.Add(order);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            // 5. Kreiraj OrderItems iz CartItems
             foreach (var cartItem in cart.CartItems)
             {
                 var orderItem = new OrderItem
@@ -160,7 +155,6 @@ namespace BookNest.Services.Services
                 _dbContext.OrderItems.Add(orderItem);
             }
 
-            // 6. Kreiraj Payment zapis
             var payment = new Payment
             {
                 UserId = userId,
@@ -168,19 +162,16 @@ namespace BookNest.Services.Services
                 Amount = totalPrice,
                 OrderId = order.Id,
                 PaymentDate = DateTime.UtcNow,
-                IsSuccessful = true, // Pretpostavljamo da je plaćanje uspješno
+                IsSuccessful = true,
                 TransactionId = request.TransactionId
             };
 
             _dbContext.Payments.Add(payment);
 
-            // 7. Očisti korpu
             _dbContext.CartItems.RemoveRange(cart.CartItems);
 
-            // 8. Sačuvaj sve promjene
             await _dbContext.SaveChangesAsync(cancellationToken);
-
-            // 9. Vrati kreirani Order
+            
             return await GetByIdAsync(order.Id, cancellationToken)
                    ?? throw new Exception("Failed to retrieve created order.");
         }
@@ -209,7 +200,6 @@ namespace BookNest.Services.Services
                 return null;
             }
 
-            // Samo Admin može update-ovati status narudžbe
             order.Status = request.Status;
             order.ShippedDate = request.ShippedDate;
 

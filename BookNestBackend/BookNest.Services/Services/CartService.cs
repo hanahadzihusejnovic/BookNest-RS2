@@ -26,7 +26,6 @@ namespace BookNest.Services.Services
 
         public async Task<CartResponse> GetUserCartAsync(int userId, CancellationToken cancellationToken = default)
         {
-            // Pronađi ili kreiraj korpu za korisnika
             var cart = await _dbContext.Carts
                 .Include(c => c.CartItems)
                     .ThenInclude(ci => ci.Book)
@@ -34,7 +33,6 @@ namespace BookNest.Services.Services
 
             if (cart == null)
             {
-                // Kreiraj novu korpu ako ne postoji
                 cart = new Cart
                 {
                     UserId = userId,
@@ -44,7 +42,6 @@ namespace BookNest.Services.Services
                 _dbContext.Carts.Add(cart);
                 await _dbContext.SaveChangesAsync(cancellationToken);
 
-                // Učitaj ponovo sa related data
                 cart = await _dbContext.Carts
                     .Include(c => c.CartItems)
                         .ThenInclude(ci => ci.Book)
@@ -56,7 +53,6 @@ namespace BookNest.Services.Services
 
         public async Task<CartResponse> AddItemToCartAsync(int userId, CartItemInsertRequest request, CancellationToken cancellationToken = default)
         {
-            // Pronađi ili kreiraj korpu
             var cart = await _dbContext.Carts
                 .Include(c => c.CartItems)
                 .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
@@ -72,24 +68,20 @@ namespace BookNest.Services.Services
                 await _dbContext.SaveChangesAsync(cancellationToken);
             }
 
-            // Provjeri da li knjiga postoji
             var book = await _dbContext.Books.FindAsync(new object[] { request.BookId }, cancellationToken);
             if (book == null)
             {
                 throw new Exception("Book not found.");
             }
 
-            // Provjeri da li knjiga već postoji u korpi
             var existingItem = cart.CartItems.FirstOrDefault(ci => ci.BookId == request.BookId);
 
             if (existingItem != null)
             {
-                // Ažuriraj količinu
                 existingItem.Quantity += request.Quantity;
             }
             else
             {
-                // Dodaj novu stavku
                 var cartItem = new CartItem
                 {
                     CartId = cart.Id,
