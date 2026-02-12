@@ -41,12 +41,11 @@ namespace BookNest.Services.Services
                 .OrderByDescending(t => t.AddedAt)
                 .ToListAsync(cancellationToken);
 
-            return tbrList.Select(MapToTBRListResponse).ToList();
+            return _mapper.Map<List<TBRListResponse>>(tbrList);
         }
 
         public async Task<TBRListResponse> AddToTBRListAsync(int userId, TBRListInsertRequest request, CancellationToken cancellationToken = default)
         {
-            // Provjeri da li knjiga već postoji u TBR listi
             var existing = await _dbContext.TBRLists
                 .FirstOrDefaultAsync(t => t.UserId == userId && t.BookId == request.BookId, cancellationToken);
 
@@ -55,14 +54,12 @@ namespace BookNest.Services.Services
                 throw new Exception("Book is already in TBR list.");
             }
 
-            // Provjeri da li knjiga postoji
             var book = await _dbContext.Books.FindAsync(new object[] { request.BookId }, cancellationToken);
             if (book == null)
             {
                 throw new Exception("Book not found.");
             }
 
-            // Dodaj u TBR listu
             var tbrItem = new TBRList
             {
                 UserId = userId,
@@ -74,13 +71,12 @@ namespace BookNest.Services.Services
             _dbContext.TBRLists.Add(tbrItem);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            // Vrati kreirani item sa Book podacima
             var created = await _dbContext.TBRLists
                 .Include(t => t.Book)
                     .ThenInclude(b => b.Author)
                 .FirstOrDefaultAsync(t => t.Id == tbrItem.Id, cancellationToken);
 
-            return MapToTBRListResponse(created!);
+            return _mapper.Map<TBRListResponse>(created!);
         }
 
         public async Task<TBRListResponse> UpdateTBRListStatusAsync(int userId, int bookId, ReadingStatus status, CancellationToken cancellationToken = default)
@@ -98,7 +94,7 @@ namespace BookNest.Services.Services
             tbrItem.ReadingStatus = status;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            return MapToTBRListResponse(tbrItem);
+            return _mapper.Map<TBRListResponse>(tbrItem);
         }
 
         public async Task<bool> RemoveFromTBRListAsync(int userId, int bookId, CancellationToken cancellationToken = default)
@@ -121,24 +117,6 @@ namespace BookNest.Services.Services
         {
             return await _dbContext.TBRLists
                 .AnyAsync(t => t.UserId == userId && t.BookId == bookId, cancellationToken);
-        }
-
-        private TBRListResponse MapToTBRListResponse(TBRList tbrItem)
-        {
-            var author = tbrItem.Book.Author;
-
-            return new TBRListResponse
-            {
-                Id = tbrItem.Id,
-                UserId = tbrItem.UserId,
-                BookId = tbrItem.BookId,
-                BookTitle = tbrItem.Book.Title,
-                BookAuthor = author != null ? $"{author.FirstName} {author.LastName}" : "Unknown",
-                BookImageUrl = tbrItem.Book.CoverImageUrl ?? string.Empty,
-                BookPrice = tbrItem.Book.Price,
-                ReadingStatus = tbrItem.ReadingStatus,
-                AddedAt = tbrItem.AddedAt
-            };
         }
     }
 }
