@@ -65,6 +65,7 @@ namespace BookNest.API
             builder.Services.AddScoped<IOrderService, OrderService>();
             builder.Services.AddScoped<IFavoriteService, FavoriteService>();
             builder.Services.AddScoped<ITBRListService, TBRListService>();
+            builder.Services.AddScoped<IReviewService, ReviewService>();
             builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
 
             builder.Services.AddAutoMapper(cfg => { },
@@ -76,7 +77,12 @@ namespace BookNest.API
                 typeof(EventProfile).Assembly,
                 typeof(UserProfile).Assembly,
                 typeof(CartProfile).Assembly,
-                typeof(RoleProfile).Assembly);
+                typeof(RoleProfile).Assembly,
+                typeof(OrderProfile).Assembly,     
+                typeof(FavoriteProfile).Assembly,
+                typeof(TBRListProfile).Assembly,  
+                typeof(ReviewProfile).Assembly);     
+
 
             builder.Services.AddDbContext<BookNestDbContext>(options => 
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));

@@ -32,7 +32,7 @@ namespace BookNest.Services.Services
                 .Where(f => f.UserId == userId)
                 .ToListAsync(cancellationToken);
 
-            return favorites.Select(MapToFavoriteResponse).ToList();
+            return _mapper.Map<List<FavoriteResponse>>(favorites);
         }
 
         public async Task<FavoriteResponse> AddToFavoritesAsync(int userId, FavoriteInsertRequest request, CancellationToken cancellationToken = default)
@@ -65,7 +65,7 @@ namespace BookNest.Services.Services
                     .ThenInclude(b => b.Author)
                 .FirstOrDefaultAsync(f => f.Id == favorite.Id, cancellationToken);
 
-            return MapToFavoriteResponse(created!);
+            return _mapper.Map<FavoriteResponse>(created!);
         }
 
         public async Task<bool> RemoveFromFavoritesAsync(int userId, int bookId, CancellationToken cancellationToken = default)
@@ -88,22 +88,6 @@ namespace BookNest.Services.Services
         {
             return await _dbContext.Favorites
                 .AnyAsync(f => f.UserId == userId && f.BookId == bookId, cancellationToken);
-        }
-
-        private FavoriteResponse MapToFavoriteResponse(Favorite favorite)
-        {
-            var author = favorite.Book.Author;
-
-            return new FavoriteResponse
-            {
-                Id = favorite.Id,
-                UserId = favorite.UserId,
-                BookId = favorite.BookId,
-                BookTitle = favorite.Book.Title,
-                BookAuthor = author != null ? $"{author.FirstName} {author.LastName}" : "Unknown",
-                BookImageUrl = favorite.Book.CoverImageUrl ?? string.Empty,
-                BookPrice = favorite.Book.Price
-            };
         }
     }
 }

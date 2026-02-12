@@ -78,7 +78,7 @@ namespace BookNest.Services.Services
 
             var list = await query.ToListAsync(cancellationToken);
 
-            var mapped = list.Select(MapToOrderResponse).ToList();
+            var mapped = _mapper.Map<List<OrderResponse>>(list);
 
             return new PagedResult<OrderResponse>
             {
@@ -102,7 +102,7 @@ namespace BookNest.Services.Services
                 return null;
             }
 
-            return MapToOrderResponse(order);
+            return _mapper.Map<OrderResponse>(order);
         }
 
         public async Task<OrderResponse> CreateOrderFromCartAsync(int userId, OrderInsertRequest request, CancellationToken cancellationToken = default)
@@ -188,7 +188,7 @@ namespace BookNest.Services.Services
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync(cancellationToken);
 
-            return orders.Select(MapToOrderResponse).ToList();
+            return _mapper.Map<List<OrderResponse>>(orders);
         }
 
         public override async Task<OrderResponse?> UpdateAsync(int id, OrderUpdateRequest request, CancellationToken cancellationToken = default)
@@ -206,46 +206,6 @@ namespace BookNest.Services.Services
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return await GetByIdAsync(id, cancellationToken);
-        }
-
-        private OrderResponse MapToOrderResponse(Order order)
-        {
-            return new OrderResponse
-            {
-                Id = order.Id,
-                UserId = order.UserId,
-                UserFullName = $"{order.User.FirstName} {order.User.LastName}",
-                OrderDate = order.OrderDate,
-                ShippedDate = order.ShippedDate,
-                Status = order.Status,
-                TotalPrice = order.TotalPrice,
-                Shipping = new ShippingResponse
-                {
-                    Id = order.Shipping.Id,
-                    Address = order.Shipping.Address,
-                    City = order.Shipping.City,
-                    Country = order.Shipping.Country,
-                    PostalCode = order.Shipping.PostalCode,
-                    ShippedDate = order.Shipping.ShippedDate
-                },
-                Payment = new PaymentResponse
-                {
-                    Id = order.Payment.Id,
-                    PaymentMethod = order.Payment.PaymentMethod,
-                    Amount = order.Payment.Amount,
-                    PaymentDate = order.Payment.PaymentDate,
-                    IsSuccessful = order.Payment.IsSuccessful,
-                    TransactionId = order.Payment.TransactionId
-                },
-                OrderItems = order.OrderItems.Select(oi => new OrderItemResponse
-                {
-                    Id = oi.Id,
-                    BookId = oi.BookId,
-                    BookTitle = oi.Book.Title,
-                    Quantity = oi.Quantity,
-                    Price = oi.Price
-                }).ToList()
-            };
         }
     }
 }
