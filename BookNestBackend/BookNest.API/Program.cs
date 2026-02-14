@@ -66,6 +66,7 @@ namespace BookNest.API
             builder.Services.AddScoped<IFavoriteService, FavoriteService>();
             builder.Services.AddScoped<ITBRListService, TBRListService>();
             builder.Services.AddScoped<IReviewService, ReviewService>();
+            builder.Services.AddScoped<IEventReservationService, EventReservationService>();
             builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
 
             builder.Services.AddAutoMapper(cfg => { },
@@ -81,7 +82,8 @@ namespace BookNest.API
                 typeof(OrderProfile).Assembly,     
                 typeof(FavoriteProfile).Assembly,
                 typeof(TBRListProfile).Assembly,  
-                typeof(ReviewProfile).Assembly);     
+                typeof(ReviewProfile).Assembly,
+                typeof(EventReservationProfile).Assembly);     
 
 
             builder.Services.AddDbContext<BookNestDbContext>(options => 

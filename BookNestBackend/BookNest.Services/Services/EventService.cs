@@ -116,7 +116,7 @@ namespace BookNest.Services.Services
 
             var list = await query.ToListAsync(cancellationToken);
 
-            var mapped = list.Select(MapToResponse).ToList();
+            var mapped = _mapper.Map<List<EventResponse>>(list);
 
             return new PagedResult<EventResponse>
             {
@@ -137,9 +137,19 @@ namespace BookNest.Services.Services
                 return null;
             }
 
-            return MapToResponse(eventt);
-                        
+            return _mapper.Map<EventResponse>(eventt);
+
         }
 
+        public override async Task<EventResponse> CreateAsync(EventInsertRequest request, CancellationToken cancellationToken = default)
+        {
+            var eventEntity = _mapper.Map<Event>(request);
+
+            _dbContext.Events.Add(eventEntity);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return await GetByIdAsync(eventEntity.Id, cancellationToken)
+                   ?? throw new Exception("Failed to retrieve created event.");
+        }
     }
 }

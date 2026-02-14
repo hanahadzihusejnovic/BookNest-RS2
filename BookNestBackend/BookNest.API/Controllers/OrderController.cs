@@ -34,6 +34,12 @@ namespace BookNest.API.Controllers
             return await base.GetById(id);
         }
 
+        [ApiExplorerSettings(IgnoreApi = true)]
+        public override Task<OrderResponse> Create([FromBody] OrderInsertRequest request)
+        {
+            throw new NotSupportedException("Use POST /api/Order/checkout instead.");
+        }
+
         [HttpPost("checkout")]
         public async Task<ActionResult<OrderResponse>> Checkout([FromBody] OrderInsertRequest request)
         {

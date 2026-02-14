@@ -24,11 +24,58 @@ namespace BookNest.Services.Services
             _dbContext = dbContext;
         }
 
+        public override async Task<PagedResult<CartResponse>> GetAsync(BaseSearchObject search, CancellationToken cancellationToken)
+        {
+            var query = _dbContext.Carts
+                         .Include(c => c.CartItems)
+                             .ThenInclude(ci => ci.Book)
+                         .AsQueryable();
+
+            int? totalCount = null;
+            if (search.IncludeTotalCount)
+            {
+                totalCount = await query.CountAsync(cancellationToken);
+            }
+
+            if (!search.RetrieveAll)
+            {
+                int skip = (search.Page ?? 0) * (search.PageSize ?? 20);
+                int take = search.PageSize ?? 20;
+
+                query = query.Skip(skip).Take(take);
+            }
+
+            var list = await query.ToListAsync(cancellationToken);
+
+            var mapped = _mapper.Map<List<CartResponse>>(list);
+
+            return new PagedResult<CartResponse>
+            {
+                Items = mapped,
+                TotalCount = totalCount
+            };
+        }
+
+        public override async Task<CartResponse?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var cart = await _dbContext.Carts
+                               .Include(c => c.CartItems)
+                               .ThenInclude(ci => ci.Book)
+                               .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+            if (cart == null)
+            {
+                return null;
+            }
+
+            return _mapper.Map<CartResponse>(cart);
+        }
+
         public async Task<CartResponse> GetUserCartAsync(int userId, CancellationToken cancellationToken = default)
         {
             var cart = await _dbContext.Carts
                 .Include(c => c.CartItems)
-                    .ThenInclude(ci => ci.Book)
+                .ThenInclude(ci => ci.Book)
                 .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
 
             if (cart == null)
@@ -48,7 +95,7 @@ namespace BookNest.Services.Services
                     .FirstOrDefaultAsync(c => c.Id == cart.Id, cancellationToken);
             }
 
-            return MapToCartResponse(cart!);
+            return _mapper.Map<CartResponse>(cart!);
         }
 
         public async Task<CartResponse> AddItemToCartAsync(int userId, CartItemInsertRequest request, CancellationToken cancellationToken = default)
@@ -166,25 +213,6 @@ namespace BookNest.Services.Services
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return true;
-        }
-
-        private CartResponse MapToCartResponse(Cart cart)
-        {
-            return new CartResponse
-            {
-                Id = cart.Id,
-                UserId = cart.UserId,
-                CreatedAt = cart.CreatedAt,
-                CartItems = cart.CartItems.Select(ci => new CartItemResponse
-                {
-                    Id = ci.Id,
-                    BookId = ci.BookId,
-                    BookTitle = ci.Book.Title,
-                    BookImageUrl = ci.Book.CoverImageUrl ?? string.Empty,
-                    Price = ci.Price,
-                    Quantity = ci.Quantity
-                }).ToList()
-            };
         }
     }
 }
