@@ -86,7 +86,7 @@ namespace BookNest.Services.Services
 
             var list = await query.ToListAsync(cancellationToken);
 
-            var mapped = list.Select(MapToResponse).ToList();
+            var mapped = _mapper.Map<List<BookResponse>>(list);
 
             return new PagedResult<BookResponse>
             {
@@ -108,7 +108,7 @@ namespace BookNest.Services.Services
                 return null;
             }
 
-            return MapToResponse(book);
+            return _mapper.Map<BookResponse>(book);
         }
 
         public override async Task<BookResponse> CreateAsync(BookInsertRequest request, CancellationToken cancellationToken = default)
@@ -189,7 +189,7 @@ namespace BookNest.Services.Services
                 throw new InvalidOperationException("Book not found.");
             }
 
-            var response = MapToResponse(book);
+            var response = _mapper.Map<BookResponse>(book);
 
             response.Categories = book.BookCategories
                 .Select(bc => new CategoryResponse

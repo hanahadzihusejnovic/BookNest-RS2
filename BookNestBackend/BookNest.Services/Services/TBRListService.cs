@@ -25,6 +25,55 @@ namespace BookNest.Services.Services
             _dbContext = dbContext;
         }
 
+        public override async Task<PagedResult<TBRListResponse>> GetAsync(BaseSearchObject search, CancellationToken cancellationToken)
+        {
+            var query = _dbContext.TBRLists
+                         .Include(t => t.Book)
+                         .ThenInclude(b => b.Author)
+                         .AsQueryable();
+
+            int? totalCount = null;
+            if (search.IncludeTotalCount)
+            {
+                totalCount = await query.CountAsync(cancellationToken);
+            }
+
+            if (!search.RetrieveAll)
+            {
+                int skip = (search.Page ?? 0) * (search.PageSize ?? 20);
+                int take = search.PageSize ?? 20;
+
+                query = query.Skip(skip).Take(take);
+            }
+
+            var list = await query
+                .OrderByDescending(t => t.AddedAt)
+                .ToListAsync(cancellationToken);
+
+            var mapped = _mapper.Map<List<TBRListResponse>>(list);
+
+            return new PagedResult<TBRListResponse>
+            {
+                Items = mapped,
+                TotalCount = totalCount
+            };
+        }
+
+        public override async Task<TBRListResponse?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var tbrItem = await _dbContext.TBRLists
+                               .Include(t => t.Book)
+                               .ThenInclude(b => b.Author)
+                               .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
+
+            if (tbrItem == null)
+            {
+                return null;
+            }
+
+            return _mapper.Map<TBRListResponse>(tbrItem);
+        }
+
         public async Task<List<TBRListResponse>> GetUserTBRListAsync(int userId, ReadingStatus? status = null, CancellationToken cancellationToken = default)
         {
             var query = _dbContext.TBRLists

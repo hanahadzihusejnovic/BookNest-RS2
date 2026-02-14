@@ -24,6 +24,53 @@ namespace BookNest.Services.Services
             _dbContext = dbContext;
         }
 
+        public override async Task<PagedResult<FavoriteResponse>> GetAsync(BaseSearchObject search, CancellationToken cancellationToken)
+        {
+            var query = _dbContext.Favorites
+                         .Include(f => f.Book)
+                         .ThenInclude(b => b.Author)
+                         .AsQueryable();
+
+            int? totalCount = null;
+            if (search.IncludeTotalCount)
+            {
+                totalCount = await query.CountAsync(cancellationToken);
+            }
+
+            if (!search.RetrieveAll)
+            {
+                int skip = (search.Page ?? 0) * (search.PageSize ?? 20);
+                int take = search.PageSize ?? 20;
+
+                query = query.Skip(skip).Take(take);
+            }
+
+            var list = await query.ToListAsync(cancellationToken);
+
+            var mapped = _mapper.Map<List<FavoriteResponse>>(list);
+
+            return new PagedResult<FavoriteResponse>
+            {
+                Items = mapped,
+                TotalCount = totalCount
+            };
+        }
+
+        public override async Task<FavoriteResponse?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+        {
+            var favorite = await _dbContext.Favorites
+                               .Include(f => f.Book)
+                               .ThenInclude(b => b.Author)
+                               .FirstOrDefaultAsync(f => f.Id == id, cancellationToken);
+
+            if (favorite == null)
+            {
+                return null;
+            }
+
+            return _mapper.Map<FavoriteResponse>(favorite);
+        }
+
         public async Task<List<FavoriteResponse>> GetUserFavoritesAsync(int userId, CancellationToken cancellationToken = default)
         {
             var favorites = await _dbContext.Favorites

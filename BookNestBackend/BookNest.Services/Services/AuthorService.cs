@@ -54,6 +54,8 @@ namespace BookNest.Services.Services
         {
             var query = _dbContext.Authors
                          .Include(a => a.Books)
+                         .ThenInclude(b => b.BookCategories)
+                         .ThenInclude(bc => bc.Category)
                          .AsQueryable();
 
             query = ApplyFilter(query, search);
@@ -74,7 +76,7 @@ namespace BookNest.Services.Services
 
             var list = await query.ToListAsync(cancellationToken);
 
-            var mapped = list.Select(MapToResponse).ToList();
+            var mapped = _mapper.Map<List<AuthorResponse>>(list);
 
             return new PagedResult<AuthorResponse>
             {
@@ -87,6 +89,8 @@ namespace BookNest.Services.Services
         {
             var author = await _dbContext.Authors
                                .Include(a => a.Books)
+                               .ThenInclude(b => b.BookCategories)
+                               .ThenInclude(bc => bc.Category)
                                .FirstOrDefaultAsync(a => a.Id == id, cancellationToken);
 
             if(author == null)
@@ -94,7 +98,23 @@ namespace BookNest.Services.Services
                 return null;
             }
 
-            return MapToResponse(author);
+            return _mapper.Map<AuthorResponse>(author);
+        }
+
+        public override async Task<AuthorResponse?> UpdateAsync(int id, AuthorUpdateRequest request, CancellationToken cancellationToken = default)
+        {
+            var author = await _dbContext.Authors.FindAsync(new object[] { id }, cancellationToken);
+
+            if (author == null)
+            {
+                return null;
+            }
+
+            _mapper.Map(request, author);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return await GetByIdAsync(id, cancellationToken);
         }
     }
 }

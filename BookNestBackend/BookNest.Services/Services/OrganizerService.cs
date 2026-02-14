@@ -81,7 +81,7 @@ namespace BookNest.Services.Services
 
             var list = await query.ToListAsync(cancellationToken);
 
-            var mapped = list.Select(MapToResponse).ToList();
+            var mapped = _mapper.Map<List<OrganizerResponse>>(list);
 
             return new PagedResult<OrganizerResponse>
             {
@@ -101,7 +101,23 @@ namespace BookNest.Services.Services
                 return null;
             }
 
-            return MapToResponse(organizer);
+            return _mapper.Map<OrganizerResponse>(organizer);
+        }
+
+        public override async Task<OrganizerResponse?> UpdateAsync(int id, OrganizerUpdateRequest request, CancellationToken cancellationToken = default)
+        {
+            var organizer = await _dbContext.Organizers.FindAsync(new object[] { id }, cancellationToken);
+
+            if (organizer == null)
+            {
+                return null;
+            }
+
+            _mapper.Map(request, organizer);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return await GetByIdAsync(id, cancellationToken);
         }
     }
 }

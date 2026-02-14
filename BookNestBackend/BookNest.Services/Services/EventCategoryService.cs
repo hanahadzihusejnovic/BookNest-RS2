@@ -68,7 +68,7 @@ namespace BookNest.Services.Services
 
             var list = await query.ToListAsync(cancellationToken);
 
-            var mapped = list.Select(MapToResponse).ToList();
+            var mapped = _mapper.Map<List<EventCategoryResponse>>(list);
 
             return new PagedResult<EventCategoryResponse>
             {
@@ -88,7 +88,23 @@ namespace BookNest.Services.Services
                 return null;
             }
 
-            return MapToResponse(eventCategory);
+            return _mapper.Map<EventCategoryResponse>(eventCategory);
+        }
+
+        public override async Task<EventCategoryResponse?> UpdateAsync(int id, EventCategoryUpdateRequest request, CancellationToken cancellationToken = default)
+        {
+            var eventCategory = await _dbContext.EventCategories.FindAsync(new object[] { id }, cancellationToken);
+
+            if (eventCategory == null)
+            {
+                return null;
+            }
+
+            _mapper.Map(request, eventCategory);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return await GetByIdAsync(id, cancellationToken);
         }
     }
 }

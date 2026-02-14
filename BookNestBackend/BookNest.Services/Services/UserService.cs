@@ -98,7 +98,7 @@ namespace BookNest.Services.Services
 
             var list = await query.ToListAsync(cancellationToken);
 
-            var mapped = list.Select(MapToResponse).ToList();
+            var mapped = _mapper.Map<List<UserResponse>>(list);
 
             return new PagedResult<UserResponse>
             {
@@ -119,7 +119,7 @@ namespace BookNest.Services.Services
                 return null;
             }
 
-            return MapToResponse(user);
+            return _mapper.Map<UserResponse>(user);
         }
 
         protected override async Task BeforeInsert(User user, UserInsertRequest request, CancellationToken cancellationToken = default)
@@ -177,14 +177,16 @@ namespace BookNest.Services.Services
 
         protected override async Task BeforeUpdate(User entity, UserUpdateRequest request, CancellationToken cancellationToken = default)
         {
-            var existingMail = await _dbContext.Users.FirstOrDefaultAsync(em => em.EmailAddress == request.EmailAddress);
+            var existingMail = await _dbContext.Users
+                .FirstOrDefaultAsync(em => em.EmailAddress == request.EmailAddress && em.Id != entity.Id, cancellationToken);
 
             if (existingMail != null)
             {
                 throw new Exception("Email address already exists.");
             }
 
-            var existingUsername = await _dbContext.Users.FirstOrDefaultAsync(eu => eu.Username == request.Username);
+            var existingUsername = await _dbContext.Users
+                .FirstOrDefaultAsync(eu => eu.Username == request.Username && eu.Id != entity.Id, cancellationToken);
 
             if (existingUsername != null)
             {
@@ -251,7 +253,7 @@ namespace BookNest.Services.Services
                 throw new InvalidOperationException("User not found."); 
             }
 
-            var response = MapToResponse(user);
+            var response = _mapper.Map<UserResponse>(user);
 
             response.Roles = user.UserRoles
                 .Select(ur => new RoleResponse
