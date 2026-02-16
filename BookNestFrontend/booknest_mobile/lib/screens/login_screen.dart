@@ -16,6 +16,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final _authService = AuthService();
   bool _isLoading = false;
   bool _rememberMe = false;
+  String? _usernameError;  // ← DODATO
+  String? _passwordError;  // ← DODATO
 
   // Tvoje boje iz Figme
   static const Color darkBrown = Color(0xFF443831);
@@ -23,43 +25,64 @@ class _LoginScreenState extends State<LoginScreen> {
   static const Color lightBrown = Color(0xFFBAB2A7);
 
   Future<void> _login() async {
-  if (_usernameController.text.isEmpty || _passwordController.text.isEmpty) {
-    _showError('Please enter username and password');
-    return;
-  }
-
-  setState(() {
-    _isLoading = true;
-  });
-
-  try {
-    print('🟢 LOGIN SCREEN: Starting login...');
-    print('🟢 LOGIN SCREEN: Username: ${_usernameController.text}');
-    
-    final response = await _authService.login(
-      _usernameController.text,
-      _passwordController.text,
-    );
-    
-    print('🟢 LOGIN SCREEN: Login successful!');
-    print('🟢 LOGIN SCREEN: Token received: ${response.token.substring(0, 20)}...');
-
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const HomeScreen()),
-      );
-    }
-  } catch (e) {
-    print('🔴 LOGIN SCREEN ERROR: $e');
-    print('🔴 LOGIN SCREEN ERROR TYPE: ${e.runtimeType}');
-    _showError('Login failed');
-  } finally {
+    // Reset errors
     setState(() {
-      _isLoading = false;
+      _usernameError = null;
+      _passwordError = null;
     });
+
+    // Validacija
+    bool hasError = false;
+    
+    if (_usernameController.text.isEmpty) {
+      setState(() {
+        _usernameError = 'Username is required';
+      });
+      hasError = true;
+    }
+    
+    if (_passwordController.text.isEmpty) {
+      setState(() {
+        _passwordError = 'Password is required';
+      });
+      hasError = true;
+    }
+
+    if (hasError) {
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      print('🟢 LOGIN SCREEN: Starting login...');
+      print('🟢 LOGIN SCREEN: Username: ${_usernameController.text}');
+      
+      final response = await _authService.login(
+        _usernameController.text,
+        _passwordController.text,
+      );
+      
+      print('🟢 LOGIN SCREEN: Login successful!');
+      print('🟢 LOGIN SCREEN: Token received: ${response.token.substring(0, 20)}...');
+
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      }
+    } catch (e) {
+      print('🔴 LOGIN SCREEN ERROR: $e');
+      _showError('Invalid username or password');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
-}
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -74,326 +97,282 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: lightBrown,
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // SAMO "Welcome back!" tekst - lijevi gornji ugao
-          const SizedBox(height: 26),
-          
-          Padding(
-            padding: const EdgeInsets.only(left: 15),
-            child: SizedBox(
-              width: 241,
-              height: 116,
-              child: Column(
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 100),
+
+              // Login
+              const Text(
+                'Login',
+                style: TextStyle(
+                  fontFamily: 'Roboto',
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  color: darkBrown,
+                  height: 1.0,
+                ),
+              ),
+              const SizedBox(height: 180),
+
+              // Username field
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Text(
-                    'Welcome',
-                    style: TextStyle(
-                      fontFamily: 'Roboto',
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: darkBrown,
-                      height: 1.0,
+                children: [
+                  SizedBox(
+                    height: 24,
+                    child: TextField(
+                      controller: _usernameController,
+                      onChanged: (value) {
+                        if (_usernameError != null) {
+                          setState(() {
+                            _usernameError = null;
+                          });
+                        }
+                      },
+                      style: const TextStyle(
+                        fontFamily: 'Roboto',
+                        color: darkBrown,
+                        fontSize: 16,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: 'Username',
+                        hintStyle: TextStyle(
+                          fontFamily: 'Roboto',
+                          color: _usernameError != null 
+                              ? Colors.red
+                              : darkBrown,
+                          fontSize: 16,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
                     ),
                   ),
-                  Text(
-                    'back!',
-                    style: TextStyle(
-                      fontFamily: 'Roboto',
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: darkBrown,
-                      height: 1.0,
-                    ),
+                  const SizedBox(height: 4),
+                  Container(
+                    width: double.infinity,
+                    height: 1,
+                    color: _usernameError != null ? Colors.red : darkBrown,
                   ),
+                  if (_usernameError != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _usernameError!,
+                      style: const TextStyle(
+                        fontFamily: 'Roboto',
+                        fontSize: 12,
+                        color: Colors.red,
+                      ),
+                    ),
+                  ],
                 ],
               ),
-            ),
-          ),
-          
-          const SizedBox(height: 50),
+              const SizedBox(height: 32),
 
-          // Login Card - 377x537
-          Padding(
-            padding: const EdgeInsets.only(left: 30),
-            child: Container(
-              width: 357,
-              height: 500,
-              decoration: BoxDecoration(
-                color: mediumBrown, 
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Stack(
+              // Password field
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // LOGIN tekst
-                  Positioned(
-                    top: 46,
-                    left: (357 - 103) / 2,
-                    child: const SizedBox(
-                      width: 103,
-                      height: 40,
-                      child: Center(
-                        child: Text(
-                          'LOGIN',
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
+                  SizedBox(
+                    height: 24,
+                    child: TextField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      onChanged: (value) {
+                        if (_passwordError != null) {
+                          setState(() {
+                            _passwordError = null;
+                          });
+                        }
+                      },
+                      style: const TextStyle(
+                        fontFamily: 'Roboto',
+                        color: darkBrown,
+                        fontSize: 16,
                       ),
-                    ),
-                  ),
-                  
-                  // Username input field
-                  Positioned(
-                    top: 147,
-                    left: 19,
-                    child: SizedBox(
-                      width: 310,
-                      height: 20,
-                      child: TextField(
-                        controller: _usernameController,
-                        style: const TextStyle(
+                      decoration: InputDecoration(
+                        hintText: 'Password',
+                        hintStyle: TextStyle(
                           fontFamily: 'Roboto',
-                          color: Colors.white,
+                          color: _passwordError != null 
+                              ? Colors.red
+                              : darkBrown,
                           fontSize: 16,
                         ),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                          hintText: 'Username',  // ← DODAJ OVO
-                          hintStyle: TextStyle(  // ← I OVO
-                            fontFamily: 'Roboto',
-                            color: Colors.white54,
-                            fontSize: 16,
-                          ),
-                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
                       ),
                     ),
                   ),
-
-                  // Password input field
-                  Positioned(
-                    top: 228,
-                    left: 19,
-                    child: SizedBox(
-                      width: 310,
-                      height: 20,
-                      child: TextField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        style: const TextStyle(
-                          fontFamily: 'Roboto',
-                          color: Colors.white,
-                          fontSize: 16,
-                        ),
-                        decoration: const InputDecoration(
-                          border: InputBorder.none,
-                          isDense: true,
-                          contentPadding: EdgeInsets.zero,
-                          hintText: 'Password',  // ← DODAJ OVO
-                          hintStyle: TextStyle(  // ← I OVO
-                            fontFamily: 'Roboto',
-                            color: Colors.white54,
-                            fontSize: 16,
-                          ),
-                        ),
+                  const SizedBox(height: 4),
+                  Container(
+                    width: double.infinity,
+                    height: 1,
+                    color: _passwordError != null ? Colors.red : darkBrown,
+                  ),
+                  if (_passwordError != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      _passwordError!,
+                      style: const TextStyle(
+                        fontFamily: 'Roboto',
+                        fontSize: 12,
+                        color: Colors.red,
                       ),
                     ),
-                  ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 20),
 
-                  // Prva linija
-                  Positioned(
-                    top: 180,
-                    left: 19,
-                    child: Container(
-                      width: 310,
-                      height: 1,
-                      color: Colors.white,
-                    ),
-                  ),
-                  
-                  // Druga linija
-                  Positioned(
-                    top: 261,
-                    left: 19,
-                    child: Container(
-                      width: 310,
-                      height: 1,
-                      color: Colors.white,
-                    ),
-                  ),
-                  
-                  // Remember me checkbox - 15x15
-                  Positioned(
-                    top: 280,
-                    left: 19,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _rememberMe = !_rememberMe;
-                        });
-                      },
-                      child: Container(
-                        width: 15,
-                        height: 15,
-                        decoration: BoxDecoration(
-                          color: _rememberMe ? Colors.white : mediumBrown,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: Colors.white,
-                            width: 1,
+              // Remember me & Forgot password
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Remember me
+                  Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _rememberMe = !_rememberMe;
+                          });
+                        },
+                        child: Container(
+                          width: 18,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: _rememberMe ? darkBrown : lightBrown,
+                            border: Border.all(color: darkBrown, width: 1.5),
+                            borderRadius: BorderRadius.circular(4),
                           ),
+                          child: _rememberMe
+                              ? const Icon(
+                                  Icons.check,
+                                  size: 14,
+                                  color: Colors.white,
+                                )
+                              : null,
                         ),
-                        child: _rememberMe
-                            ? const Icon(
-                                Icons.check,
-                                size: 10,
-                                color: mediumBrown,
-                              )
-                            : null,
                       ),
-                    ),
-                  ),
-
-                  // Remember me tekst - 104x21
-                  Positioned(
-                    top: 280,
-                    left: 42,
-                    child: GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _rememberMe = !_rememberMe;
-                        });
-                      },
-                      child: const SizedBox(
-                        width: 104,
-                        height: 21,
-                        child: Text(
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _rememberMe = !_rememberMe;
+                          });
+                        },
+                        child: const Text(
                           'Remember me',
                           style: TextStyle(
                             fontFamily: 'Roboto',
                             fontSize: 14,
-                            fontWeight: FontWeight.w300,
-                            color: Colors.white,
+                            color: darkBrown,
                           ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
-
-                  // Forgot your password - 159x21
-                  Positioned(
-                    top: 280,
-                    left: 189,
-                    child: GestureDetector(
-                      onTap: () {
-                        
-                      },
-                      child: const SizedBox(
-                        width: 159,
-                        height: 21,
-                        child: Text(
-                          'Forgot your password?',
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            fontSize: 14,
-                            fontWeight: FontWeight.w300,
-                            color: Colors.white,
-                          ),
-                        ),
+                  // Forgot password
+                  GestureDetector(
+                    onTap: () {
+                      // TODO: Forgot password
+                    },
+                    child: const Text(
+                      'Forgot password?',
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
+                        fontSize: 14,
+                        color: darkBrown,
+                        decoration: TextDecoration.underline,
                       ),
-                    ),
-                  ),
-                
-                  // Login button - 113x53
-                  Positioned(
-                    top: 365,
-                    left: 115,
-                    child: GestureDetector(
-                      onTap: _isLoading ? null : _login,
-                      child: Container(
-                        width: 113,
-                        height: 53,
-                        decoration: BoxDecoration(
-                          color: darkBrown,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text(
-                                'LOGIN',
-                                style: TextStyle(
-                                  fontFamily: 'Roboto',
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w300,
-                                  color: Colors.white,
-                                ),
-                              ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Don't have an account? Sign up
-                  Positioned(
-                    top: 435,
-                    left: 69,
-                    child: Row(
-                      children: [
-                        const Text(
-                          "Don't have an account? ",
-                          style: TextStyle(
-                            fontFamily: 'Roboto',
-                            fontSize: 15,
-                            fontWeight: FontWeight.w300,
-                            color: Colors.white,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const RegisterScreen(),
-                              ),
-                            );
-                          },
-                          child: const Text(
-                            'Sign up',
-                            style: TextStyle(
-                              fontFamily: 'Roboto',
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              decoration: TextDecoration.underline,
-                              decorationColor: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
                     ),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(height: 40),
+
+              // Login button
+              SizedBox(
+                width: double.infinity,
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: _isLoading ? null : _login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: darkBrown,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : const Text(
+                          'LOGIN',
+                          style: TextStyle(
+                            fontFamily: 'Roboto',
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Sign up link
+              Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Don't have an account? ",
+                      style: TextStyle(
+                        fontFamily: 'Roboto',
+                        fontSize: 14,
+                        color: darkBrown,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RegisterScreen(),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Sign up',
+                        style: TextStyle(
+                          fontFamily: 'Roboto',
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: darkBrown,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
           ),
-          const Spacer(),
-        ],
+        ),
       ),
     );
   }
