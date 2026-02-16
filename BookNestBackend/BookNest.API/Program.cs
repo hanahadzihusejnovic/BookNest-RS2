@@ -22,6 +22,23 @@ namespace BookNest.API
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            //Omoguci HTTP za development (Flutter)
+            if (builder.Environment.IsDevelopment())
+            {
+                builder.WebHost.UseUrls("http://localhost:7110", "https://localhost:7111");
+            }
+
+            // ----- CORS CONFIGURATION (za Flutter) -----
+            builder.Services.AddCors(options =>
+            {
+                options.AddPolicy("AllowFlutter", policy =>
+                {
+                    policy.AllowAnyOrigin()
+                          .AllowAnyMethod()
+                          .AllowAnyHeader();
+                });
+            });
+
             // ===== JWT SETTINGS CONFIGURATION =====
             builder.Services.Configure<JwtSettings>(
                 builder.Configuration.GetSection("JwtSettings"));
@@ -126,6 +143,9 @@ namespace BookNest.API
 
             var app = builder.Build();
 
+            // Omoguci CORS
+            app.UseCors("AllowFlutter");
+
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
@@ -133,7 +153,11 @@ namespace BookNest.API
                 app.UseSwaggerUI();
             }
 
-            app.UseHttpsRedirection();
+            // SAMO za development - NE preusmjeravaj na HTTPS
+            if (!app.Environment.IsDevelopment())
+            {
+                app.UseHttpsRedirection();
+            }
 
             app.UseAuthorization();
 
