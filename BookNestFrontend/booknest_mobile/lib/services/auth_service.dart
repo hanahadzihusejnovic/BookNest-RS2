@@ -2,6 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/login_request.dart';
 import '../models/login_response.dart';
 import 'api_service.dart';
+import '../models/register_request.dart';
 
 class AuthService {
   final ApiService _apiService = ApiService();
@@ -26,8 +27,8 @@ class AuthService {
   }
 
   // Register
-  Future<void> register(Map<String, dynamic> registerData) async {
-    await _apiService.register(registerData);
+  Future<void> register(RegisterRequest request) async {
+  await _apiService.register(request);
   }
 
   // Logout

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/login_request.dart';
 import '../models/login_response.dart';
+import '../models/register_request.dart';
 
 class ApiService {
   // ← PROMIJENI OVO NA SVOJU BACKEND ADRESU!
@@ -40,23 +41,32 @@ class ApiService {
 }
 
   // Register metoda
-  Future<void> register(Map<String, dynamic> registerData) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/Auth/register'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode(registerData),
-      );
+Future<void> register(RegisterRequest request) async {
+  try {
+    print('🔵 API: Sending register request to: $baseUrl/Auth/register');
+    
+    final response = await http.post(
+      Uri.parse('$baseUrl/Auth/register'),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(request.toJson()),
+    );
 
-      if (response.statusCode != 200) {
-        throw Exception('Registration failed: ${response.body}');
-      }
-    } catch (e) {
-      throw Exception('Error during registration: $e');
+    print('🔵 API: Response status: ${response.statusCode}');
+    print('🔵 API: Response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      print('✅ API: Registration successful!');
+    } else {
+      print('❌ API: Registration failed with status ${response.statusCode}');
+      throw Exception('Registration failed: ${response.body}');
     }
+  } catch (e) {
+    print('❌ API: Exception: $e');
+    throw Exception('Error during registration: $e');
   }
+}
 
   // GET request sa token-om (za kasnije kad budeš pozivala zaštićene endpoint-e)
   Future<http.Response> get(String endpoint, String token) async {
