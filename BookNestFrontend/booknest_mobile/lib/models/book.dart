@@ -3,15 +3,28 @@ class Book {
   final String title;
   final String author;
   final String? imageUrl;
+  final String? description;
 
   Book({
     required this.id,
     required this.title,
     required this.author,
     this.imageUrl,
+    this.description,
   });
 
-  // Dummy knjige za testiranje
+  // JSON deserialization
+  factory Book.fromJson(Map<String, dynamic> json) {
+    return Book(
+      id: json['id'],
+      title: json['title'],
+      author: json['authorName'],
+      imageUrl: json['coverImageUrl'],
+      description: json['description'],
+    );
+  }
+
+  // Dummy knjige za testiranje (OPCIONO - za fallback)
   static List<Book> getDummyBooks() {
     return [
       Book(
