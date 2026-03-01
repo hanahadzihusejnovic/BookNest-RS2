@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
+using BookNest.Infrastructure.Services;
 
 namespace BookNest.API
 {
@@ -84,6 +85,8 @@ namespace BookNest.API
             builder.Services.AddScoped<ITBRListService, TBRListService>();
             builder.Services.AddScoped<IReviewService, ReviewService>();
             builder.Services.AddScoped<IEventReservationService, EventReservationService>();
+            builder.Services.AddScoped<IImageService, AzureBlobImageService>();
+
             builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
 
             builder.Services.AddAutoMapper(cfg => { },

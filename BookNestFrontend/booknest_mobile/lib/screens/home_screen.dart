@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/book.dart';
 import '../models/event.dart';
 import '../services/auth_service.dart';
+import '../services/book_service.dart';
 import '../layouts/constants.dart';
 import 'login_screen.dart';
+import 'shop_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,9 +16,42 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _authService = AuthService();
+  final _bookService = BookService(); // ← DODAJ
 
-  final List<Book> _topBooks = Book.getDummyBooks();
+  List<Book> _topBooks = []; // ← PROMIJENI
   final List<Event> _events = Event.getDummyEvents();
+
+  bool _isLoading = true; // ← DODAJ
+  String? _errorMessage; // ← DODAJ
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBooks(); // ← DODAJ
+  }
+
+  // ← DODAJ OVU METODU:
+  Future<void> _loadBooks() async {
+    try {
+      print('🔵 HOME SCREEN: Loading books...');
+      final books = await _bookService.getFeaturedBooks();
+      
+      setState(() {
+        _topBooks = books;
+        _isLoading = false;
+      });
+      
+      print('✅ HOME SCREEN: Loaded ${books.length} books');
+    } catch (e) {
+      print('❌ HOME SCREEN: Error loading books: $e');
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+        // Fallback na dummy data
+        _topBooks = Book.getDummyBooks();
+      });
+    }
+  }
 
   Future<void> _logout() async {
     await _authService.logout();
@@ -32,6 +67,18 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final paddingH = 18.0;
     final featured5 = _events.take(5).toList();
+
+    // ← DODAJ LOADING INDICATOR:
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.pageBg,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: AppColors.darkBrown,
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.pageBg,
@@ -376,21 +423,50 @@ class _BookCard extends StatelessWidget {
       child: Column(
         children: [
           Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppColors.pageBg.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Center(
-                child: Icon(
-                  Icons.menu_book_rounded,
-                  color: AppColors.darkBrown.withOpacity(0.65),
-                  size: 34,
-                ),
+  child: Container(
+    width: double.infinity,
+    decoration: BoxDecoration(
+      color: AppColors.pageBg.withOpacity(0.7),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: book.imageUrl != null && book.imageUrl!.isNotEmpty
+          ? Image.network(
+              book.imageUrl!,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                        : null,
+                    color: AppColors.darkBrown,
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Center(
+                  child: Icon(
+                    Icons.menu_book_rounded,
+                    color: AppColors.darkBrown.withOpacity(0.65),
+                    size: 34,
+                  ),
+                );
+              },
+            )
+          : Center(
+              child: Icon(
+                Icons.menu_book_rounded,
+                color: AppColors.darkBrown.withOpacity(0.65),
+                size: 34,
               ),
             ),
-          ),
+    ),
+  ),
+),
           const SizedBox(height: 8),
           Text(
             book.title,
@@ -665,7 +741,15 @@ class _BookNestDrawer extends StatelessWidget {
 
             _DrawerItem(title: "HOME", onTap: onHome),
             _DrawerDivider(),
-            _DrawerItem(title: "SHOP", onTap: onShop),
+            _DrawerItem(
+  title: "SHOP",
+  onTap: () {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const ShopScreen()),
+    );
+  },
+),
             _DrawerDivider(),
             _DrawerItem(title: "EVENTS", onTap: onEvents),
             _DrawerDivider(),
