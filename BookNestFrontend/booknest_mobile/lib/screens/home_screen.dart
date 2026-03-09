@@ -742,14 +742,15 @@ class _BookNestDrawer extends StatelessWidget {
             _DrawerItem(title: "HOME", onTap: onHome),
             _DrawerDivider(),
             _DrawerItem(
-  title: "SHOP",
-  onTap: () {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const ShopScreen()),
-    );
-  },
-),
+              title: "SHOP",
+              onTap: () {
+                Navigator.pop(context); // Zatvori drawer prvo
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ShopScreen()),
+                );
+              },
+            ),
             _DrawerDivider(),
             _DrawerItem(title: "EVENTS", onTap: onEvents),
             _DrawerDivider(),
@@ -758,10 +759,11 @@ class _BookNestDrawer extends StatelessWidget {
             _DrawerItem(title: "SETTINGS", onTap: onSettings),
             _DrawerDivider(),
 
-            const Spacer(),
+            const Spacer(), // ← Pushuje profile i logout na dno
 
+            // ← DODAJ MY PROFILE:
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: InkWell(
                 onTap: () {
                   Navigator.pop(context);
@@ -786,6 +788,62 @@ class _BookNestDrawer extends StatelessWidget {
                     const SizedBox(width: 12),
                     Text(
                       "MY PROFILE",
+                      style: TextStyle(
+                        color: AppColors.pageBg,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w300,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            _DrawerDivider(),
+            
+            // ← DODAJ LOGOUT BUTTON:
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
+              child: InkWell(
+                onTap: () async {
+                  print('🚪 LOGOUT: Starting logout...');
+                  
+                  // Zatvori drawer
+                  Navigator.pop(context);
+                  
+                  // Logout
+                  await AuthService().logout();
+                  print('✅ LOGOUT: Successfully logged out');
+                  
+                  // Navigate to login screen (clear entire navigation stack)
+                  if (context.mounted) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                      (route) => false, // Remove sve route-ove
+                    );
+                  }
+                },
+                borderRadius: BorderRadius.circular(18),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.pageBg, width: 1.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.logout,
+                        color: AppColors.pageBg,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      "LOGOUT",
                       style: TextStyle(
                         color: AppColors.pageBg,
                         fontSize: 20,

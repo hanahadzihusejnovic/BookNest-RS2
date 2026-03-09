@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import 'home_screen.dart';
 import 'register_screen.dart';
+import '../layouts/constants.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -14,75 +15,167 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService = AuthService();
+  
   bool _isLoading = false;
   bool _rememberMe = false;
-  String? _usernameError;  // ← DODATO
-  String? _passwordError;  // ← DODATO
+  String? _usernameError;
+  String? _passwordError;
 
-  // Tvoje boje iz Figme
-  static const Color darkBrown = Color(0xFF443831);
-  static const Color mediumBrown = Color(0xFF776860);
-  static const Color lightBrown = Color(0xFFBAB2A7);
+  @override
+  void initState() {
+    super.initState();
+    _checkRememberMe(); // ← DODANO: Učitaj sačuvane credentials
+  }
+
+  // ← DODANO: Provjeri i učitaj Remember Me podatke
+  Future<void> _checkRememberMe() async {
+    print('🔵 LOGIN: Checking Remember Me...');
+    
+    final credentials = await _authService.getSavedCredentials();
+    
+    if (credentials != null) {
+      print('✅ LOGIN: Found saved credentials for: ${credentials['username']}');
+      
+      setState(() {
+        _usernameController.text = credentials['username']!;
+        _passwordController.text = credentials['password']!;
+        _rememberMe = true;
+      });
+    } else {
+      print('⚠️ LOGIN: No saved credentials found');
+    }
+  }
 
   Future<void> _login() async {
-    // Reset errors
+  // Reset errors
+  setState(() {
+    _usernameError = null;
+    _passwordError = null;
+  });
+
+  // Validacija
+  bool hasError = false;
+  
+  if (_usernameController.text.isEmpty) {
     setState(() {
-      _usernameError = null;
-      _passwordError = null;
+      _usernameError = 'Username is required';
     });
+    hasError = true;
+  }
+  
+  if (_passwordController.text.isEmpty) {
+    setState(() {
+      _passwordError = 'Password is required';
+    });
+    hasError = true;
+  }
 
-    // Validacija
-    bool hasError = false;
+  if (hasError) {
+    return;
+  }
+
+  setState(() {
+    _isLoading = true;
+  });
+
+  try {
+    print('🟢 LOGIN SCREEN: Starting login...');
+    print('🟢 LOGIN SCREEN: Username: ${_usernameController.text}');
     
-    if (_usernameController.text.isEmpty) {
-      setState(() {
-        _usernameError = 'Username is required';
-      });
-      hasError = true;
-    }
+    final response = await _authService.login(
+      _usernameController.text,
+      _passwordController.text,
+    );
     
-    if (_passwordController.text.isEmpty) {
+    print('🟢 LOGIN SCREEN: Login successful!');
+    print('🟢 LOGIN SCREEN: User roles: ${response.roles}');
+
+    // ← PROVJERI ROLU - BLOKIRAJ ADMIN:
+    if (response.roles.contains('Admin')) {
+      print('❌ LOGIN SCREEN: Admin account detected - Access denied!');
+      
+      // Logout immediately
+      await _authService.logout();
+      
       setState(() {
-        _passwordError = 'Password is required';
+        _usernameController.clear();
+        _passwordController.clear();
+        _rememberMe = false;
       });
-      hasError = true;
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Admin accounts cannot access the mobile app.\nPlease use the admin web portal.',
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+      
+      setState(() => _isLoading = false);
+      return; // ZAUSTAVI login proces
     }
 
-    if (hasError) {
+    // PROVJERI DA LI IMA USER ROLU:
+    if (!response.roles.contains('User')) {
+      print('❌ LOGIN SCREEN: Invalid account type');
+      
+      await _authService.logout();
+      
+      setState(() {
+        _usernameController.clear();
+        _passwordController.clear();
+        _rememberMe = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Invalid account type. Please contact support.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+      
+      setState(() => _isLoading = false);
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    print('✅ LOGIN SCREEN: User role validated - Access granted!');
 
-    try {
-      print('🟢 LOGIN SCREEN: Starting login...');
-      print('🟢 LOGIN SCREEN: Username: ${_usernameController.text}');
-      
-      final response = await _authService.login(
+    // Remember Me logic
+    if (_rememberMe) {
+      print('💾 LOGIN: Saving Remember Me credentials...');
+      await _authService.saveRememberMe(
         _usernameController.text,
         _passwordController.text,
       );
-      
-      print('🟢 LOGIN SCREEN: Login successful!');
-      print('🟢 LOGIN SCREEN: Token received: ${response.token.substring(0, 20)}...');
+    } else {
+      print('🗑️ LOGIN: Clearing Remember Me credentials...');
+      await _authService.clearRememberMe();
+    }
 
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-        );
-      }
-    } catch (e) {
-      print('🔴 LOGIN SCREEN ERROR: $e');
-      _showError('Invalid username or password');
-    } finally {
+    if (mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    }
+  } catch (e) {
+    print('🔴 LOGIN SCREEN ERROR: $e');
+    _showError('Invalid username or password');
+  } finally {
+    if (mounted) {
       setState(() {
         _isLoading = false;
       });
     }
   }
+}
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -96,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: lightBrown,
+      backgroundColor: AppColors.lightBrown,
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -105,18 +198,29 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const SizedBox(height: 100),
 
-              // Login
+              // Welcome back!
               const Text(
-                'Login',
+                'Welcome back!',
                 style: TextStyle(
                   fontFamily: 'Roboto',
-                  fontSize: 48,
+                  fontSize: 36,
                   fontWeight: FontWeight.bold,
-                  color: darkBrown,
+                  color: AppColors.darkBrown,
                   height: 1.0,
                 ),
               ),
-              const SizedBox(height: 180),
+              const SizedBox(height: 8),
+              Text(
+                'Log into your BookNest account!',
+                style: TextStyle(
+                  fontFamily: 'Roboto',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.darkBrown.withOpacity(0.75),
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 150),
 
               // Username field
               Column(
@@ -135,7 +239,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       style: const TextStyle(
                         fontFamily: 'Roboto',
-                        color: darkBrown,
+                        color: AppColors.darkBrown,
                         fontSize: 16,
                       ),
                       decoration: InputDecoration(
@@ -144,7 +248,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontFamily: 'Roboto',
                           color: _usernameError != null 
                               ? Colors.red
-                              : darkBrown,
+                              : AppColors.darkBrown,
                           fontSize: 16,
                         ),
                         border: InputBorder.none,
@@ -157,7 +261,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     width: double.infinity,
                     height: 1,
-                    color: _usernameError != null ? Colors.red : darkBrown,
+                    color: _usernameError != null ? Colors.red :AppColors.darkBrown,
                   ),
                   if (_usernameError != null) ...[
                     const SizedBox(height: 4),
@@ -192,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                       style: const TextStyle(
                         fontFamily: 'Roboto',
-                        color: darkBrown,
+                        color: AppColors.darkBrown,
                         fontSize: 16,
                       ),
                       decoration: InputDecoration(
@@ -201,7 +305,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontFamily: 'Roboto',
                           color: _passwordError != null 
                               ? Colors.red
-                              : darkBrown,
+                              : AppColors.darkBrown,
                           fontSize: 16,
                         ),
                         border: InputBorder.none,
@@ -214,7 +318,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     width: double.infinity,
                     height: 1,
-                    color: _passwordError != null ? Colors.red : darkBrown,
+                    color: _passwordError != null ? Colors.red : AppColors.darkBrown,
                   ),
                   if (_passwordError != null) ...[
                     const SizedBox(height: 4),
@@ -243,13 +347,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           setState(() {
                             _rememberMe = !_rememberMe;
                           });
+                          print('🔘 Remember Me: $_rememberMe'); // ← DODANO: Debug log
                         },
                         child: Container(
                           width: 18,
                           height: 18,
                           decoration: BoxDecoration(
-                            color: _rememberMe ? darkBrown : lightBrown,
-                            border: Border.all(color: darkBrown, width: 1.5),
+                            color: _rememberMe ? AppColors.darkBrown : AppColors.lightBrown,
+                            border: Border.all(color: AppColors.darkBrown, width: 1.5),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: _rememberMe
@@ -267,13 +372,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           setState(() {
                             _rememberMe = !_rememberMe;
                           });
+                          print('🔘 Remember Me: $_rememberMe'); // ← DODANO: Debug log
                         },
                         child: const Text(
                           'Remember me',
                           style: TextStyle(
                             fontFamily: 'Roboto',
                             fontSize: 14,
-                            color: darkBrown,
+                            color: AppColors.darkBrown,
                           ),
                         ),
                       ),
@@ -283,13 +389,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   GestureDetector(
                     onTap: () {
                       // TODO: Forgot password
+                      print('🔵 Forgot password tapped'); // ← DODANO: Debug log
                     },
                     child: const Text(
                       'Forgot password?',
                       style: TextStyle(
                         fontFamily: 'Roboto',
                         fontSize: 14,
-                        color: darkBrown,
+                        color: AppColors.darkBrown,
                         decoration: TextDecoration.underline,
                       ),
                     ),
@@ -305,7 +412,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _login,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: darkBrown,
+                    backgroundColor: AppColors.darkBrown,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -343,7 +450,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: TextStyle(
                         fontFamily: 'Roboto',
                         fontSize: 14,
-                        color: darkBrown,
+                        color: AppColors.darkBrown,
                       ),
                     ),
                     GestureDetector(
@@ -361,7 +468,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           fontFamily: 'Roboto',
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: darkBrown,
+                          color: AppColors.darkBrown,
                           decoration: TextDecoration.underline,
                         ),
                       ),
