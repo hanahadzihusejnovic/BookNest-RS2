@@ -4,6 +4,7 @@ import '../models/category.dart';
 import '../services/book_service.dart';
 import '../services/category_service.dart';
 import '../layouts/constants.dart';
+import 'category_screen.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -162,11 +163,11 @@ void _showCategoriesDropdown() {
           CompositedTransformFollower(
             link: _catLink,
             showWhenUnlinked: false,
-            offset: const Offset(-6, 24), // spušta ispod "Categories"
+            offset: const Offset(-6, 24),
             child: Material(
               color: Colors.transparent,
               child: Container(
-                width: 140, // širina kao na dizajnu (možeš povećati)
+                width: 140,
                 constraints: const BoxConstraints(maxHeight: 220),
                 decoration: BoxDecoration(
                   color: AppColors.darkBrown,
@@ -182,7 +183,14 @@ void _showCategoriesDropdown() {
                     return InkWell(
                       onTap: () async {
                         _closeCategoriesDropdown();
-                        await _loadBooksForCategory(c.id);
+                        
+                        // ← DODAJ NAVIGACIJU:
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CategoryScreen(category: c),
+                          ),
+                        );
                       },
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
