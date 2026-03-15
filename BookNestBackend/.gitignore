@@ -60,3 +60,6 @@ wwwroot/dist/
 
 # Local secrets
 secrets.json
+
+BookNest.Subscriber/appsettings.json
+BookNest.API/appsettings.json

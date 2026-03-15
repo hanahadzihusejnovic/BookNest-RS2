@@ -92,4 +92,52 @@ Future<void> register(RegisterRequest request) async {
     );
     return response;
   }
+
+  // Forgot Password
+Future<void> forgotPassword(String email) async {
+  try {
+    print('🔵 API: Sending forgot password request');
+    
+    final response = await http.post(
+      Uri.parse('$baseUrl/Auth/forgot-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'email': email}),
+    );
+
+    print('🔵 API: Response status: ${response.statusCode}');
+
+    if (response.statusCode != 200) {
+      throw Exception('Request failed: ${response.body}');
+    }
+  } catch (e) {
+    print('❌ API: Exception: $e');
+    throw Exception('Error during forgot password: $e');
+  }
+}
+
+// Reset Password
+Future<void> resetPassword(String token, String newPassword, String confirmPassword) async {
+  try {
+    print('🔵 API: Sending reset password request');
+    
+    final response = await http.post(
+      Uri.parse('$baseUrl/Auth/reset-password'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'token': token,
+        'newPassword': newPassword,
+        'confirmPassword': confirmPassword,
+      }),
+    );
+
+    print('🔵 API: Response status: ${response.statusCode}');
+
+    if (response.statusCode != 200) {
+      throw Exception('Request failed: ${response.body}');
+    }
+  } catch (e) {
+    print('❌ API: Exception: $e');
+    throw Exception('Error during reset password: $e');
+  }
+}
 }

@@ -35,5 +35,6 @@ namespace BookNest.Services.Database
         public DbSet<TBRList> TBRLists { get; set; }
         public DbSet<User> Users { get; set; }
         public DbSet<UserRole> UserRoles { get; set; }
+        public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
     }
 }

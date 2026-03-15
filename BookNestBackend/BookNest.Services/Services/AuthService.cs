@@ -165,5 +165,47 @@ namespace BookNest.Services.Services
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+        public async Task<User?> GetByEmailAsync(string email)
+        {
+            return await _dbContext.Users
+                .FirstOrDefaultAsync(u => u.EmailAddress == email);
+        }
+
+        public async Task CreatePasswordResetTokenAsync(int userId, string token, DateTime expiresAt)
+        {
+            var resetToken = new PasswordResetToken
+            {
+                UserId = userId,
+                Token = token,
+                ExpiresAt = expiresAt,
+                IsUsed = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _dbContext.PasswordResetTokens.Add(resetToken);
+            await _dbContext.SaveChangesAsync();
+        }
+
+        public async Task<bool> ResetPasswordAsync(ResetPasswordRequest request)
+        {
+            if (request.NewPassword != request.ConfirmPassword)
+                throw new Exception("Passwords do not match.");
+
+            var resetToken = await _dbContext.PasswordResetTokens
+                .Include(t => t.User)
+                .FirstOrDefaultAsync(t => t.Token == request.Token
+                                        && !t.IsUsed
+                                        && t.ExpiresAt > DateTime.UtcNow);
+
+            if (resetToken == null)
+                throw new Exception("Invalid or expired token.");
+
+            resetToken.User.PasswordHash = _hasher.Hash(request.NewPassword);
+            resetToken.IsUsed = true;
+
+            await _dbContext.SaveChangesAsync();
+            return true;
+        }
     }
 }
