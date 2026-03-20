@@ -26,21 +26,18 @@ namespace BookNest.API.Controllers
             _dbContext = dbContext;
         }
 
-        // Admin može vidjeti sve recenzije
         [Authorize(Roles = "Admin")]
         public override async Task<PagedResult<ReviewResponse>> Get([FromQuery] ReviewSearchObject search)
         {
             return await base.Get(search);
         }
 
-        // Svi mogu vidjeti pojedinačnu recenziju
         [AllowAnonymous]
         public override async Task<ReviewResponse?> GetById(int id)
         {
             return await base.GetById(id);
         }
 
-        // Dobij sve recenzije za knjigu
         [AllowAnonymous]
         [HttpGet("book/{bookId}")]
         public async Task<ActionResult<List<ReviewResponse>>> GetBookReviews(int bookId)
@@ -49,7 +46,6 @@ namespace BookNest.API.Controllers
             return Ok(reviews);
         }
 
-        // Dobij prosječnu ocjenu knjige
         [AllowAnonymous]
         [HttpGet("book/{bookId}/average-rating")]
         public async Task<ActionResult<double>> GetBookAverageRating(int bookId)
@@ -58,7 +54,6 @@ namespace BookNest.API.Controllers
             return Ok(averageRating);
         }
 
-        // Dobij sve recenzije za događaj
         [AllowAnonymous]
         [HttpGet("event/{eventId}")]
         public async Task<ActionResult<List<ReviewResponse>>> GetEventReviews(int eventId)
@@ -67,7 +62,6 @@ namespace BookNest.API.Controllers
             return Ok(reviews);
         }
 
-        // Dobij prosječnu ocjenu događaja
         [AllowAnonymous]
         [HttpGet("event/{eventId}/average-rating")]
         public async Task<ActionResult<double>> GetEventAverageRating(int eventId)
@@ -76,7 +70,6 @@ namespace BookNest.API.Controllers
             return Ok(averageRating);
         }
 
-        // Dobij sve moje recenzije
         [HttpGet("my-reviews")]
         public async Task<ActionResult<List<ReviewResponse>>> GetMyReviews()
         {
@@ -91,17 +84,15 @@ namespace BookNest.API.Controllers
             return Ok(reviews);
         }
 
-        // Kreiraj recenziju - override da dodamo UserId
         public override async Task<ReviewResponse> Create([FromBody] ReviewInsertRequest request)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
 
             if (userId == 0)
             {
-                return new ReviewResponse(); // Vraća prazan objekat ako nije autentifikovan
+                return new ReviewResponse();
             }
 
-            // Dodaj UserId u entitet prije kreiranja
             var review = new Review
             {
                 UserId = userId,
@@ -118,7 +109,6 @@ namespace BookNest.API.Controllers
             return await _reviewService.GetByIdAsync(review.Id) ?? new ReviewResponse();
         }
 
-        // Samo vlasnik može ažurirati svoju recenziju
         [HttpPut("{id}")]
         public override async Task<ReviewResponse?> Update(int id, [FromBody] ReviewUpdateRequest request)
         {
@@ -129,7 +119,6 @@ namespace BookNest.API.Controllers
                 return null;
             }
 
-            // Provjeri da li recenzija pripada korisniku
             var review = await _dbContext.Reviews.FindAsync(id);
             if (review == null || review.UserId != userId)
             {
@@ -139,7 +128,6 @@ namespace BookNest.API.Controllers
             return await base.Update(id, request);
         }
 
-        // Vlasnik ili Admin mogu brisati recenziju
         [HttpDelete("{id}")]
         public override async Task<bool> Delete(int id)
         {
@@ -151,13 +139,11 @@ namespace BookNest.API.Controllers
                 return false;
             }
 
-            // Admin može brisati bilo koju recenziju
             if (userRole == "Admin")
             {
                 return await base.Delete(id);
             }
 
-            // Obični korisnik može brisati samo svoju recenziju
             var review = await _dbContext.Reviews.FindAsync(id);
             if (review == null || review.UserId != userId)
             {

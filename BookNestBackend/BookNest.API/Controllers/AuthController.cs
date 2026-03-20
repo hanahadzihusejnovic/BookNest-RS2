@@ -53,23 +53,18 @@ namespace BookNest.API.Controllers
         {
             try
             {
-                // Pronađi korisnika po email-u
                 var user = await _authService.GetByEmailAsync(request.Email);
 
                 if (user == null)
                 {
-                    // Ne otkrivaj da li email postoji u sistemu (security best practice)
                     return Ok(new { message = "If the email exists, a password reset link will be sent." });
                 }
 
-                // Generiši reset token
                 var token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
-                var expiresAt = DateTime.UtcNow.AddHours(1); // Token važi 1 sat
+                var expiresAt = DateTime.UtcNow.AddHours(1);
 
-                // Sačuvaj token u bazi
                 await _authService.CreatePasswordResetTokenAsync(user.Id, token, expiresAt);
 
-                // Pošalji poruku u RabbitMQ
                 var message = new PasswordResetEmailMessage
                 {
                     Email = user.EmailAddress,

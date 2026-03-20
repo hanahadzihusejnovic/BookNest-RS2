@@ -57,6 +57,12 @@ namespace BookNest.Services.Services
                 query = query.Where(b => b.Price == search.Price.Value);
             }
 
+            if (search.CategoryId.HasValue)
+            {
+                query = query.Where(b => b.BookCategories
+                    .Any(bc => bc.CategoryId == search.CategoryId.Value));
+            }
+
             return query;
         }
 

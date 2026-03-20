@@ -18,14 +18,11 @@ namespace BookNest.Infrastructure.Services
 
         public async Task<string> UploadImageAsync(Stream imageStream, string fileName)
         {
-            // Kreiraj unique filename
             var uniqueFileName = $"{Guid.NewGuid()}-{fileName}";
 
-            // Dobavi container
             var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
             await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
 
-            // Upload blob
             var blobClient = containerClient.GetBlobClient(uniqueFileName);
 
             await blobClient.UploadAsync(imageStream, new BlobHttpHeaders
@@ -33,7 +30,6 @@ namespace BookNest.Infrastructure.Services
                 ContentType = GetContentType(fileName)
             });
 
-            // Vrati URL
             return blobClient.Uri.ToString();
         }
 

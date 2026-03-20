@@ -17,12 +17,10 @@ namespace BookNest.Subscriber
         {
             _logger.LogInformation("🚀 BookNest.Subscriber Worker starting...");
 
-            // Pokreni RabbitMQ Consumer
             await _rabbitMqConsumer.StartConsumingAsync();
 
             _logger.LogInformation("✅ BookNest.Subscriber Worker is running");
 
-            // Keep running
             while (!stoppingToken.IsCancellationRequested)
             {
                 await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);

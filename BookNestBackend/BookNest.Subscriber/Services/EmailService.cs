@@ -56,7 +56,6 @@ namespace BookNest.Subscriber.Services
 
                 emailMessage.Body = bodyBuilder.ToMessageBody();
 
-                // Send via SMTP
                 using var client = new SmtpClient();
 
                 await client.ConnectAsync(

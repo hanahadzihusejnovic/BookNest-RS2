@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/register_request.dart';
 import '../services/auth_service.dart';
 import 'login_screen.dart';
+import '../layouts/constants.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -13,7 +14,6 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   final _authService = AuthService();
   
-  // Controllers
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -28,7 +28,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   DateTime _selectedDate = DateTime.now().subtract(const Duration(days: 365 * 18));
   bool _isLoading = false;
 
-  // Error states - ISTO KAO LOGIN
   String? _firstNameError;
   String? _lastNameError;
   String? _emailError;
@@ -37,13 +36,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _confirmPasswordError;
   String? _phoneError;
 
-  // Tvoje boje iz Figme
-  static const Color darkBrown = Color(0xFF443831);
-  static const Color mediumBrown = Color(0xFF776860);
-  static const Color lightBrown = Color(0xFFBAB2A7);
-
   Future<void> _register() async {
-    // Reset all errors
     setState(() {
       _firstNameError = null;
       _lastNameError = null;
@@ -56,7 +49,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     bool hasError = false;
 
-    // First Name validation
     if (_firstNameController.text.isEmpty) {
       setState(() => _firstNameError = 'Required');
       hasError = true;
@@ -65,7 +57,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       hasError = true;
     }
 
-    // Last Name validation
     if (_lastNameController.text.isEmpty) {
       setState(() => _lastNameError = 'Required');
       hasError = true;
@@ -74,7 +65,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       hasError = true;
     }
 
-    // Email validation
     if (_emailController.text.isEmpty) {
       setState(() => _emailError = 'Required');
       hasError = true;
@@ -86,7 +76,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     }
 
-    // Username validation
     if (_usernameController.text.isEmpty) {
       setState(() => _usernameError = 'Required');
       hasError = true;
@@ -101,7 +90,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       hasError = true;
     }
 
-    // Password validation
     if (_passwordController.text.isEmpty) {
       setState(() => _passwordError = 'Required');
       hasError = true;
@@ -119,7 +107,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       hasError = true;
     }
 
-    // Confirm Password validation
     if (_confirmPasswordController.text.isEmpty) {
       setState(() => _confirmPasswordError = 'Required');
       hasError = true;
@@ -128,7 +115,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       hasError = true;
     }
 
-    // Phone validation (optional)
     if (_phoneController.text.isNotEmpty) {
       if (!RegExp(r'^[0-9+\-\s()]+$').hasMatch(_phoneController.text)) {
         setState(() => _phoneError = 'Invalid phone format');
@@ -139,13 +125,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     }
 
-    if (hasError) {
-      return;
-    }
+    if (hasError) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       print('🟢 REGISTER SCREEN: Starting registration...');
@@ -183,27 +165,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
       print('🔴 REGISTER SCREEN ERROR: $e');
       _showError('Registration failed');
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
   void _showSuccess(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
 
@@ -217,10 +191,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: darkBrown,
+              primary: AppColors.darkBrown,
               onPrimary: Colors.white,
-              surface: lightBrown,
-              onSurface: darkBrown,
+              surface: AppColors.lightBrown,
+              onSurface: AppColors.darkBrown,
             ),
           ),
           child: child!,
@@ -228,273 +202,253 @@ class _RegisterScreenState extends State<RegisterScreen> {
       },
     );
     if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
+      setState(() => _selectedDate = picked);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: lightBrown,
+      backgroundColor: AppColors.lightBrown,
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 40),
-              
-              // Back button
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: darkBrown),
-                onPressed: () => Navigator.pop(context),
-                padding: EdgeInsets.zero,
-                alignment: Alignment.centerLeft,
-              ),
-              
-              const SizedBox(height: 20),
-
-              // Title
-              const Text(
-                'Register',
-                style: TextStyle(
-                  fontFamily: 'Roboto',
-                  fontSize: 48,
-                  fontWeight: FontWeight.bold,
-                  color: darkBrown,
-                  height: 1.0,
-                ),
-              ),
-              const SizedBox(height: 40),
-
-              // First Name
-              _buildTextField(
-                controller: _firstNameController,
-                hint: 'First Name',
-                errorText: _firstNameError,
-                onChanged: () {
-                  if (_firstNameError != null) {
-                    setState(() => _firstNameError = null);
-                  }
-                },
-              ),
-              const SizedBox(height: 32),
-
-              // Last Name
-              _buildTextField(
-                controller: _lastNameController,
-                hint: 'Last Name',
-                errorText: _lastNameError,
-                onChanged: () {
-                  if (_lastNameError != null) {
-                    setState(() => _lastNameError = null);
-                  }
-                },
-              ),
-              const SizedBox(height: 32),
-
-              // Email
-              _buildTextField(
-                controller: _emailController,
-                hint: 'Email',
-                keyboardType: TextInputType.emailAddress,
-                errorText: _emailError,
-                onChanged: () {
-                  if (_emailError != null) {
-                    setState(() => _emailError = null);
-                  }
-                },
-              ),
-              const SizedBox(height: 32),
-
-              // Username
-              _buildTextField(
-                controller: _usernameController,
-                hint: 'Username',
-                errorText: _usernameError,
-                onChanged: () {
-                  if (_usernameError != null) {
-                    setState(() => _usernameError = null);
-                  }
-                },
-              ),
-              const SizedBox(height: 32),
-
-              // Password
-              _buildTextField(
-                controller: _passwordController,
-                hint: 'Password',
-                obscureText: true,
-                errorText: _passwordError,
-                onChanged: () {
-                  if (_passwordError != null) {
-                    setState(() => _passwordError = null);
-                  }
-                },
-              ),
-              const SizedBox(height: 32),
-
-              // Confirm Password
-              _buildTextField(
-                controller: _confirmPasswordController,
-                hint: 'Confirm Password',
-                obscureText: true,
-                errorText: _confirmPasswordError,
-                onChanged: () {
-                  if (_confirmPasswordError != null) {
-                    setState(() => _confirmPasswordError = null);
-                  }
-                },
-              ),
-              const SizedBox(height: 32),
-
-              // Date of Birth
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 60),
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: Row(
                 children: [
-                  GestureDetector(
-                    onTap: _selectDate,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Date of Birth: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                          style: const TextStyle(
-                            fontFamily: 'Roboto',
-                            color: darkBrown,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const Icon(Icons.calendar_today, color: darkBrown, size: 20),
-                      ],
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: AppColors.darkBrown),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                   ),
-                  const SizedBox(height: 4),
-                  Container(
-                    width: double.infinity,
-                    height: 1,
-                    color: darkBrown,
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Welcome!',
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.darkBrown,
+                      height: 1.0,
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 40),
-
-              // Optional fields header
-              const Text(
-                'Optional Information',
+            ),
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 64),
+              child: Text(
+                'Create your BookNest account!',
                 style: TextStyle(
                   fontFamily: 'Roboto',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: darkBrown,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.darkBrown.withOpacity(0.75),
+                  height: 1.2,
                 ),
               ),
-              const SizedBox(height: 24),
+            ),
+            const SizedBox(height: 40),
 
-              // Address
-              _buildTextField(
-                controller: _addressController,
-                hint: 'Address (optional)',
-              ),
-              const SizedBox(height: 32),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 30),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildTextField(
+                    controller: _firstNameController,
+                    hint: 'First Name',
+                    errorText: _firstNameError,
+                    onChanged: () {
+                      if (_firstNameError != null) setState(() => _firstNameError = null);
+                    },
+                  ),
+                  const SizedBox(height: 32),
 
-              // City
-              _buildTextField(
-                controller: _cityController,
-                hint: 'City (optional)',
-              ),
-              const SizedBox(height: 32),
+                  _buildTextField(
+                    controller: _lastNameController,
+                    hint: 'Last Name',
+                    errorText: _lastNameError,
+                    onChanged: () {
+                      if (_lastNameError != null) setState(() => _lastNameError = null);
+                    },
+                  ),
+                  const SizedBox(height: 32),
 
-              // Country
-              _buildTextField(
-                controller: _countryController,
-                hint: 'Country (optional)',
-              ),
-              const SizedBox(height: 32),
+                  _buildTextField(
+                    controller: _emailController,
+                    hint: 'Email',
+                    keyboardType: TextInputType.emailAddress,
+                    errorText: _emailError,
+                    onChanged: () {
+                      if (_emailError != null) setState(() => _emailError = null);
+                    },
+                  ),
+                  const SizedBox(height: 32),
 
-              // Phone
-              _buildTextField(
-                controller: _phoneController,
-                hint: 'Phone Number (optional)',
-                keyboardType: TextInputType.phone,
-                errorText: _phoneError,
-                onChanged: () {
-                  if (_phoneError != null) {
-                    setState(() => _phoneError = null);
-                  }
-                },
-              ),
-              const SizedBox(height: 40),
+                  _buildTextField(
+                    controller: _usernameController,
+                    hint: 'Username',
+                    errorText: _usernameError,
+                    onChanged: () {
+                      if (_usernameError != null) setState(() => _usernameError = null);
+                    },
+                  ),
+                  const SizedBox(height: 32),
 
-              // Register Button
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _register,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: darkBrown,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                  _buildTextField(
+                    controller: _passwordController,
+                    hint: 'Password',
+                    obscureText: true,
+                    errorText: _passwordError,
+                    onChanged: () {
+                      if (_passwordError != null) setState(() => _passwordError = null);
+                    },
+                  ),
+                  const SizedBox(height: 32),
+
+                  _buildTextField(
+                    controller: _confirmPasswordController,
+                    hint: 'Confirm Password',
+                    obscureText: true,
+                    errorText: _confirmPasswordError,
+                    onChanged: () {
+                      if (_confirmPasswordError != null) setState(() => _confirmPasswordError = null);
+                    },
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Date of Birth
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GestureDetector(
+                        onTap: _selectDate,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Date of Birth: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                              style: const TextStyle(
+                                fontFamily: 'Roboto',
+                                color: AppColors.darkBrown,
+                                fontSize: 16,
+                              ),
+                            ),
+                            const Icon(Icons.calendar_today, color: AppColors.darkBrown, size: 20),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        width: double.infinity,
+                        height: 1,
+                        color: AppColors.darkBrown,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 40),
+
+                  const Text(
+                    'Optional Information',
+                    style: TextStyle(
+                      fontFamily: 'Roboto',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.darkBrown,
                     ),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : const Text(
-                          'REGISTER',
+                  const SizedBox(height: 24),
+
+                  _buildTextField(controller: _addressController, hint: 'Address (optional)'),
+                  const SizedBox(height: 32),
+                  _buildTextField(controller: _cityController, hint: 'City (optional)'),
+                  const SizedBox(height: 32),
+                  _buildTextField(controller: _countryController, hint: 'Country (optional)'),
+                  const SizedBox(height: 32),
+                  _buildTextField(
+                    controller: _phoneController,
+                    hint: 'Phone Number (optional)',
+                    keyboardType: TextInputType.phone,
+                    errorText: _phoneError,
+                    onChanged: () {
+                      if (_phoneError != null) setState(() => _phoneError = null);
+                    },
+                  ),
+                  const SizedBox(height: 40),
+
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _register,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.darkBrown,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'REGISTER',
+                              style: TextStyle(
+                                fontFamily: 'Roboto',
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          "Already have an account? ",
                           style: TextStyle(
                             fontFamily: 'Roboto',
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 2,
+                            color: AppColors.darkBrown,
+                            fontSize: 14,
                           ),
                         ),
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Login link
-              Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      "Already have an account? ",
-                      style: TextStyle(
-                        fontFamily: 'Roboto',
-                        color: darkBrown,
-                        fontSize: 14,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Text(
-                        'Login',
-                        style: TextStyle(
-                          fontFamily: 'Roboto',
-                          color: darkBrown,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.underline,
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: const Text(
+                            'Login',
+                            style: TextStyle(
+                              fontFamily: 'Roboto',
+                              color: AppColors.darkBrown,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-              const SizedBox(height: 40),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -518,22 +472,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
             obscureText: obscureText,
             keyboardType: keyboardType,
             onChanged: (value) {
-              if (onChanged != null) {
-                onChanged();
-              }
+              if (onChanged != null) onChanged();
             },
             style: const TextStyle(
               fontFamily: 'Roboto',
-              color: darkBrown,
+              color: AppColors.darkBrown,
               fontSize: 16,
             ),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
                 fontFamily: 'Roboto',
-                color: errorText != null 
-                    ? Colors.red
-                    : darkBrown,
+                color: errorText != null ? Colors.red : AppColors.darkBrown,
                 fontSize: 16,
               ),
               border: InputBorder.none,
@@ -546,7 +496,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         Container(
           width: double.infinity,
           height: 1,
-          color: errorText != null ? Colors.red : darkBrown,
+          color: errorText != null ? Colors.red : AppColors.darkBrown,
         ),
         if (errorText != null) ...[
           const SizedBox(height: 4),
