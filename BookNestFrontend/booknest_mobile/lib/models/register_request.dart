@@ -24,7 +24,7 @@ class RegisterRequest {
     this.country,
     this.phoneNumber,
     this.imageUrl,
-    this.roleIds = const [3], // Default role ID 3 (User)
+    this.roleIds = const [3],
   });
 
   Map<String, dynamic> toJson() {

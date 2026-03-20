@@ -262,7 +262,6 @@ namespace BookNest.Services.Services
 
         private string GenerateQRCodeLink()
         {
-            // Jednostavan QR kod link - u produkciji bi generisao pravi QR kod
             return $"https://booknest.com/tickets/{Guid.NewGuid()}";
         }
     }

@@ -34,7 +34,6 @@ namespace BookNest.Services.MessageQueue
                 await using var connection = await factory.CreateConnectionAsync();
                 await using var channel = await connection.CreateChannelAsync();
 
-                // Declare queue
                 await channel.QueueDeclareAsync(
                     queue: queueName,
                     durable: true,
@@ -43,11 +42,9 @@ namespace BookNest.Services.MessageQueue
                     arguments: null
                 );
 
-                // Serialize message
                 var messageJson = JsonSerializer.Serialize(message);
                 var body = Encoding.UTF8.GetBytes(messageJson);
 
-                // Publish message
                 await channel.BasicPublishAsync(
                     exchange: string.Empty,
                     routingKey: queueName,

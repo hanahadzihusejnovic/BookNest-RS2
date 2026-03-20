@@ -11,17 +11,15 @@ namespace BookNest.Services.Security
 {
     public sealed class Pbkdf2PasswordHasher : IPasswordHasher
     {
-        private const int Iterations = 100_000;   // OWASP ≥ 100 000  (configurable)
-        private const int SaltSize = 16;        // 128 bit
-        private const int KeySize = 32;        // 256 bit
+        private const int Iterations = 100_000;   
+        private const int SaltSize = 16;     
+        private const int KeySize = 32;     
 
         public string Hash(string password)
         {
-            // generate salt
             Span<byte> salt = stackalloc byte[SaltSize];
             RandomNumberGenerator.Fill(salt);
 
-            // derive key
             byte[] key = Rfc2898DeriveBytes.Pbkdf2(
                 password,
                 salt,
@@ -29,7 +27,6 @@ namespace BookNest.Services.Security
                 HashAlgorithmName.SHA256,
                 KeySize);
 
-            // store as: <iter>.<saltB64>.<keyB64>
             return $"{Iterations}.{Convert.ToBase64String(salt)}.{Convert.ToBase64String(key)}";
         }
 
@@ -49,7 +46,6 @@ namespace BookNest.Services.Security
                 HashAlgorithmName.SHA256,
                 KeySize);
 
-            // constant‑time comparison
             return CryptographicOperations.FixedTimeEquals(computed, key);
         }
     }

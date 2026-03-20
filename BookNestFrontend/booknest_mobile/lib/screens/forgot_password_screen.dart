@@ -95,7 +95,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
             const SizedBox(height: 250),
 
-            // Sve ostalo sa paddingom 30
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30),
               child: Column(

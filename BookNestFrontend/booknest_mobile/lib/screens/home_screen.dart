@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/book.dart';
 import '../models/event.dart';
-import '../services/auth_service.dart';
 import '../services/book_service.dart';
 import '../layouts/constants.dart';
-import 'login_screen.dart';
-import 'shop_screen.dart';
+import '../layouts/app_layout.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,238 +13,186 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final _authService = AuthService();
-  final _bookService = BookService(); // ← DODAJ
-
-  List<Book> _topBooks = []; // ← PROMIJENI
+  final _bookService = BookService();
+  List<Book> _topBooks = [];
   final List<Event> _events = Event.getDummyEvents();
-
-  bool _isLoading = true; // ← DODAJ
-  String? _errorMessage; // ← DODAJ
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadBooks(); // ← DODAJ
+    _loadBooks();
   }
 
-  // ← DODAJ OVU METODU:
   Future<void> _loadBooks() async {
     try {
-      print('🔵 HOME SCREEN: Loading books...');
       final books = await _bookService.getFeaturedBooks();
-      
       setState(() {
         _topBooks = books;
         _isLoading = false;
       });
-      
-      print('✅ HOME SCREEN: Loaded ${books.length} books');
     } catch (e) {
-      print('❌ HOME SCREEN: Error loading books: $e');
       setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-        // Fallback na dummy data
         _topBooks = Book.getDummyBooks();
+        _isLoading = false;
       });
-    }
-  }
-
-  Future<void> _logout() async {
-    await _authService.logout();
-    if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginScreen()),
-      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final paddingH = 18.0;
-    final featured5 = _events.take(5).toList();
-
-    // ← DODAJ LOADING INDICATOR:
     if (_isLoading) {
       return Scaffold(
         backgroundColor: AppColors.pageBg,
         body: Center(
-          child: CircularProgressIndicator(
-            color: AppColors.darkBrown,
-          ),
+          child: CircularProgressIndicator(color: AppColors.darkBrown),
         ),
       );
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.pageBg,
+    final featured5 = _events.take(5).toList();
 
-      // ✅ SIDEBAR
-      drawer: _BookNestDrawer(
-        onHome: () {}, // vec si na home
-        onShop: () {},
-        onEvents: () {},
-        onAbout: () {},
-        onSettings: () {},
-        onProfile: () {},
-      ),
-
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _TopHeader(
-                onMenu: () {}, // ovdje vise ne treba, ali ostaje
-                onBell: () {
-                  // TODO: notifications screen
-                },
-              ),
-
-              const SizedBox(height: 18),
-
-              // Top picks
-              _SectionCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Top 5 picks for you!",
-                      style: TextStyle(
-                        color: Color.fromARGB(255, 255, 255, 255),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+    return AppLayout(
+      pageTitle: 'HOME',
+      showCartFavTbr: false,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top picks
+            _SectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Top 5 picks for you!",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(height: 12),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 260,
+                    child: GridView.builder(
+                      itemCount: _topBooks.take(5).length,
+                      physics: const BouncingScrollPhysics(),
+                      padding: EdgeInsets.zero,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 12,
+                        crossAxisSpacing: 12,
+                        childAspectRatio: 0.75,
+                      ),
+                      itemBuilder: (context, index) {
+                        final book = _topBooks[index];
+                        return _BookCard(
+                          book: book,
+                          onDetails: () {},
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
-                    SizedBox(
-                      height: 260,
-                      child: GridView.builder(
-                        itemCount: _topBooks.take(5).length,
-                        physics: const BouncingScrollPhysics(),
-                        padding: EdgeInsets.zero,
-                        gridDelegate:
-                            const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.75,
+            const SizedBox(height: 18),
+
+            // Maybe interested
+            _SectionCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Maybe you are interested in...",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 185,
+                    child: ListView.separated(
+                      itemCount: featured5.length,
+                      separatorBuilder: (_, __) =>
+                          const SizedBox(height: 10),
+                      itemBuilder: (context, i) {
+                        final e = featured5[i];
+                        return _InterestRow(
+                          title: e.title,
+                          subtitle: e.description,
+                          timeText:
+                              "${_weekday(e.dateTime.weekday)} at ${e.dateTime.hour.toString().padLeft(2, '0')}:${e.dateTime.minute.toString().padLeft(2, '0')}pm",
+                          onTap: () {},
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 18),
+
+            // Upcoming events
+            _SectionCard(
+              child: Column(
+                children: [
+                  const Text(
+                    "Your upcoming events!",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    width: double.infinity,
+                    height: 190,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.mediumBrown.withOpacity(0.55),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: ListView.separated(
+                            itemCount: _events.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              return _UpcomingEventTile(
+                                  event: _events[index]);
+                            },
+                          ),
                         ),
-                        itemBuilder: (context, index) {
-                          final book = _topBooks[index];
-                          return _BookCard(
-                            book: book,
-                            onDetails: () {
-                              // TODO: go to book details
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // Maybe interested
-              _SectionCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Maybe you are interested in...",
-                      style: TextStyle(
-                        color: Color.fromARGB(255, 255, 255, 255),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 185,
-                      child: ListView.separated(
-                        itemCount: featured5.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 10),
-                        itemBuilder: (context, i) {
-                          final e = featured5[i];
-                          return _InterestRow(
-                            title: e.title,
-                            subtitle: e.description,
-                            timeText:
-                                "${_weekday(e.dateTime.weekday)} at ${e.dateTime.hour.toString().padLeft(2, '0')}:${e.dateTime.minute.toString().padLeft(2, '0')}pm",
-                            onTap: () {
-                              // TODO: event details
-                            },
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // Upcoming events
-              _SectionCard(
-                child: Column(
-                  children: [
-                    const Text(
-                      "Your upcoming events!",
-                      style: TextStyle(
-                        color: Color.fromARGB(255, 255, 255, 255),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      width: double.infinity,
-                      height: 190,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.mediumBrown.withOpacity(0.55),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Column(
-                        children: [
-                          Expanded(
-                            child: ListView.separated(
-                              itemCount: _events.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 10),
-                              itemBuilder: (context, index) {
-                                return _UpcomingEventTile(event: _events[index]);
-                              },
-                            ),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: _SmallButton(
+                            text: "See more\nevents",
+                            onTap: () {},
                           ),
-                          const SizedBox(height: 8),
-                          Center(
-                            child: _SmallButton(
-                              text: "See more\nevents",
-                              onTap: () {
-                                // TODO: navigate to events list
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
 
-              const SizedBox(height: 22),
-            ],
-          ),
+            const SizedBox(height: 22),
+          ],
         ),
       ),
     );
@@ -254,126 +200,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _weekday(int w) {
     switch (w) {
-      case 1:
-        return "Monday";
-      case 2:
-        return "Tuesday";
-      case 3:
-        return "Wednesday";
-      case 4:
-        return "Thursday";
-      case 5:
-        return "Friday";
-      case 6:
-        return "Saturday";
-      default:
-        return "Sunday";
+      case 1: return "Monday";
+      case 2: return "Tuesday";
+      case 3: return "Wednesday";
+      case 4: return "Thursday";
+      case 5: return "Friday";
+      case 6: return "Saturday";
+      default: return "Sunday";
     }
   }
 }
 
-String _weekday(int w) {
-  switch (w) {
-    case 1:
-      return "Monday";
-    case 2:
-      return "Tuesday";
-    case 3:
-      return "Wednesday";
-    case 4:
-      return "Thursday";
-    case 5:
-      return "Friday";
-    case 6:
-      return "Saturday";
-    default:
-      return "Sunday";
-  }
-}
-
-/* ----------------------- WIDGETI ----------------------- */
-
-class _TopHeader extends StatelessWidget {
-  final VoidCallback onMenu;
-  final VoidCallback onBell;
-
-  const _TopHeader({
-    required this.onMenu,
-    required this.onBell,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Gornji red: logo + menu
-        Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "BookNest",
-                    style: TextStyle(
-                      color: AppColors.darkBrown,
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 0),
-                  Text(
-                    "World of your stories!",
-                    style: TextStyle(
-                      color: AppColors.darkBrown,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // ✅ MENU OTVARA DRAWER
-            Builder(
-              builder: (ctx) => IconButton(
-                onPressed: () => Scaffold.of(ctx).openDrawer(),
-                icon: Icon(Icons.menu, color: AppColors.darkBrown, size: 26),
-                splashRadius: 20,
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 8),
-
-        // Donji red: HOME + bell
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                "HOME",
-                style: TextStyle(
-                  color: AppColors.darkBrown,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ),
-            IconButton(
-              onPressed: onBell,
-              icon: Icon(Icons.notifications_none,
-                  color: AppColors.darkBrown, size: 24),
-              splashRadius: 20,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-}
+// --- WIDGETI (ostaju isti) ---
 
 class _SectionCard extends StatelessWidget {
   final Widget child;
@@ -404,10 +242,7 @@ class _BookCard extends StatelessWidget {
   final Book book;
   final VoidCallback onDetails;
 
-  const _BookCard({
-    required this.book,
-    required this.onDetails,
-  });
+  const _BookCard({required this.book, required this.onDetails});
 
   @override
   Widget build(BuildContext context) {
@@ -416,57 +251,53 @@ class _BookCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.pageBg.withOpacity(0.25),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.12),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
       ),
       child: Column(
         children: [
           Expanded(
-  child: Container(
-    width: double.infinity,
-    decoration: BoxDecoration(
-      color: AppColors.pageBg.withOpacity(0.7),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: book.imageUrl != null && book.imageUrl!.isNotEmpty
-          ? Image.network(
-              book.imageUrl!,
-              fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Center(
-                  child: CircularProgressIndicator(
-                    value: loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded /
-                            loadingProgress.expectedTotalBytes!
-                        : null,
-                    color: AppColors.darkBrown,
-                  ),
-                );
-              },
-              errorBuilder: (context, error, stackTrace) {
-                return Center(
-                  child: Icon(
-                    Icons.menu_book_rounded,
-                    color: AppColors.darkBrown.withOpacity(0.65),
-                    size: 34,
-                  ),
-                );
-              },
-            )
-          : Center(
-              child: Icon(
-                Icons.menu_book_rounded,
-                color: AppColors.darkBrown.withOpacity(0.65),
-                size: 34,
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.pageBg.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: book.imageUrl != null && book.imageUrl!.isNotEmpty
+                    ? Image.network(
+                        book.imageUrl!,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Center(
+                            child: CircularProgressIndicator(
+                              value: loadingProgress.expectedTotalBytes != null
+                                  ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                  : null,
+                              color: AppColors.darkBrown,
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) => Center(
+                          child: Icon(
+                            Icons.menu_book_rounded,
+                            color: AppColors.darkBrown.withOpacity(0.65),
+                            size: 34,
+                          ),
+                        ),
+                      )
+                    : Center(
+                        child: Icon(
+                          Icons.menu_book_rounded,
+                          color: AppColors.darkBrown.withOpacity(0.65),
+                          size: 34,
+                        ),
+                      ),
               ),
             ),
-    ),
-  ),
-),
+          ),
           const SizedBox(height: 8),
           Text(
             book.title,
@@ -474,7 +305,7 @@ class _BookCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color.fromARGB(255, 255, 255, 255),
+              color: Colors.white,
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
               height: 1.1,
@@ -487,16 +318,13 @@ class _BookCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Color.fromARGB(255, 255, 255, 255),
+              color: Colors.white,
               fontSize: 10.5,
               fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 8),
-          _SmallButton(
-            text: "DETAILS",
-            onTap: onDetails,
-          ),
+          _SmallButton(text: "DETAILS", onTap: onDetails),
         ],
       ),
     );
@@ -523,9 +351,7 @@ class _InterestRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.pageBg.withOpacity(0.25),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.12),
-        ),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -534,35 +360,26 @@ class _InterestRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Color.fromARGB(255, 255, 255, 255),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+                Text(title,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
-                Text(
-                  "Date&Time: $timeText",
-                  style: const TextStyle(
-                    color: Color.fromARGB(255, 255, 255, 255),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
+                Text("Date&Time: $timeText",
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600)),
                 const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color.fromARGB(255, 255, 255, 255),
-                    fontSize: 10.8,
-                    fontWeight: FontWeight.w500,
-                    height: 1.2,
-                  ),
-                ),
+                Text(subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10.8,
+                        fontWeight: FontWeight.w500,
+                        height: 1.2)),
               ],
             ),
           ),
@@ -570,10 +387,7 @@ class _InterestRow extends StatelessWidget {
           SizedBox(
             width: 92,
             child: _SmallButton(
-              text: "Click for more\ndetails",
-              onTap: onTap,
-              height: 38,
-            ),
+                text: "Click for more\ndetails", onTap: onTap, height: 38),
           ),
         ],
       ),
@@ -594,52 +408,36 @@ class _UpcomingEventTile extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          event.title,
-          style: const TextStyle(
-            color: Color.fromARGB(255, 255, 255, 255),
-            fontSize: 13,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
+        Text(event.title,
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w900)),
         const SizedBox(height: 3),
-        Text(
-          "Date&Time: $day - $hh:$mm",
-          style: const TextStyle(
-            color: Color.fromARGB(255, 255, 255, 255),
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        Text("Date&Time: $day - $hh:$mm",
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w600)),
         const SizedBox(height: 2),
-        Text(
-          "Location: ${event.location}",
-          style: const TextStyle(
-            color: Color.fromARGB(255, 255, 255, 255),
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        Text("Location: ${event.location}",
+            style: const TextStyle(
+                color: Colors.white,
+                fontSize: 11,
+                fontWeight: FontWeight.w600)),
       ],
     );
   }
 
   String _weekday(int w) {
     switch (w) {
-      case 1:
-        return "Monday";
-      case 2:
-        return "Tuesday";
-      case 3:
-        return "Wednesday";
-      case 4:
-        return "Thursday";
-      case 5:
-        return "Friday";
-      case 6:
-        return "Saturday";
-      default:
-        return "Sunday";
+      case 1: return "Monday";
+      case 2: return "Tuesday";
+      case 3: return "Wednesday";
+      case 4: return "Thursday";
+      case 5: return "Friday";
+      case 6: return "Saturday";
+      default: return "Sunday";
     }
   }
 }
@@ -679,227 +477,6 @@ class _SmallButton extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/* ----------------------- DRAWER ----------------------- */
-
-class _BookNestDrawer extends StatelessWidget {
-  final VoidCallback onHome;
-  final VoidCallback onShop;
-  final VoidCallback onEvents;
-  final VoidCallback onAbout;
-  final VoidCallback onSettings;
-  final VoidCallback onProfile;
-
-  const _BookNestDrawer({
-    required this.onHome,
-    required this.onShop,
-    required this.onEvents,
-    required this.onAbout,
-    required this.onSettings,
-    required this.onProfile,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      backgroundColor: AppColors.darkBrown,
-      width: MediaQuery.of(context).size.width * 0.72,
-      child: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "BookNest",
-                    style: TextStyle(
-                      color: AppColors.pageBg,
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 0),
-                  Text(
-                    "World of your stories!",
-                    style: TextStyle(
-                      color: AppColors.pageBg.withOpacity(0.85),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 18),
-
-            _DrawerItem(title: "HOME", onTap: onHome),
-            _DrawerDivider(),
-            _DrawerItem(
-              title: "SHOP",
-              onTap: () {
-                Navigator.pop(context); // Zatvori drawer prvo
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ShopScreen()),
-                );
-              },
-            ),
-            _DrawerDivider(),
-            _DrawerItem(title: "EVENTS", onTap: onEvents),
-            _DrawerDivider(),
-            _DrawerItem(title: "ABOUT US", onTap: onAbout),
-            _DrawerDivider(),
-            _DrawerItem(title: "SETTINGS", onTap: onSettings),
-            _DrawerDivider(),
-
-            const Spacer(), // ← Pushuje profile i logout na dno
-
-            // ← DODAJ MY PROFILE:
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-              child: InkWell(
-                onTap: () {
-                  Navigator.pop(context);
-                  onProfile();
-                },
-                borderRadius: BorderRadius.circular(18),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.pageBg, width: 1.5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.person_outline,
-                        color: AppColors.pageBg,
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      "MY PROFILE",
-                      style: TextStyle(
-                        color: AppColors.pageBg,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w300,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            _DrawerDivider(),
-            
-            // ← DODAJ LOGOUT BUTTON:
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
-              child: InkWell(
-                onTap: () async {
-                  print('🚪 LOGOUT: Starting logout...');
-                  
-                  // Zatvori drawer
-                  Navigator.pop(context);
-                  
-                  // Logout
-                  await AuthService().logout();
-                  print('✅ LOGOUT: Successfully logged out');
-                  
-                  // Navigate to login screen (clear entire navigation stack)
-                  if (context.mounted) {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(builder: (context) => const LoginScreen()),
-                      (route) => false, // Remove sve route-ove
-                    );
-                  }
-                },
-                borderRadius: BorderRadius.circular(18),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.pageBg, width: 1.5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.logout,
-                        color: AppColors.pageBg,
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      "LOGOUT",
-                      style: TextStyle(
-                        color: AppColors.pageBg,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w300,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DrawerItem extends StatelessWidget {
-  final String title;
-  final VoidCallback onTap;
-
-  const _DrawerItem({required this.title, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        Navigator.pop(context);
-        onTap();
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        child: Text(
-          title,
-          style: TextStyle(
-            color: AppColors.pageBg,
-            fontSize: 20,
-            fontWeight: FontWeight.w300,
-            letterSpacing: 0.8,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DrawerDivider extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Divider(
-        color: AppColors.pageBg.withOpacity(0.35),
-        thickness: 1,
-        height: 1,
       ),
     );
   }

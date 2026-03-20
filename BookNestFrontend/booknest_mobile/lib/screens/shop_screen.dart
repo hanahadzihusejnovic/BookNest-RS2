@@ -4,6 +4,7 @@ import '../models/category.dart';
 import '../services/book_service.dart';
 import '../services/category_service.dart';
 import '../layouts/constants.dart';
+import '../layouts/app_layout.dart';
 import 'category_screen.dart';
 
 class ShopScreen extends StatefulWidget {
@@ -25,7 +26,6 @@ class _ShopScreenState extends State<ShopScreen> {
   String? _error;
   int? _selectedCategoryId;
 
-  // search
   String _query = "";
 
   final LayerLink _catLink = LayerLink();
@@ -42,9 +42,6 @@ class _ShopScreenState extends State<ShopScreen> {
     setState(() => _isLoading = true);
 
     try {
-      print('🔵 SHOP SCREEN: Starting data load...');
-
-      // Paralelno učitaj kategorije i preporučene knjige
       final results = await Future.wait([
         _categoryService.getCategories(),
         _bookService.getRecommendedBooks(pageSize: 6),
@@ -53,23 +50,16 @@ class _ShopScreenState extends State<ShopScreen> {
       final categories = results[0] as List<Category>;
       final recommended = results[1] as List<Book>;
 
-      print('✅ SHOP SCREEN: Got ${categories.length} categories');
-      print('✅ SHOP SCREEN: Got ${recommended.length} recommended books');
-
       setState(() {
         _categories = categories;
         _recommendedBooks = recommended;
         _isLoading = false;
       });
 
-      // Učitaj knjige za prvu kategoriju
       if (_categories.isNotEmpty) {
         await _loadBooksForCategory(_categories.first.id);
       }
-    } catch (e, stackTrace) {
-      print('❌ SHOP SCREEN: ERROR loading data: $e');
-      print('❌ SHOP SCREEN: Stack trace: $stackTrace');
-
+    } catch (e) {
       setState(() {
         _error = e.toString();
         _categories = Category.getDummyCategories();
@@ -84,28 +74,19 @@ class _ShopScreenState extends State<ShopScreen> {
   }
 
   Future<void> _loadBooksForCategory(int categoryId) async {
-    print('🔵 SHOP SCREEN: Loading books for category ID: $categoryId');
-
-    // Ako već imamo učitane knjige za ovu kategoriju, preskoči
     if (_booksByCategory.containsKey(categoryId)) {
-      print('⚠️ SHOP SCREEN: Books already loaded for category $categoryId');
       setState(() => _selectedCategoryId = categoryId);
       return;
     }
 
     try {
-      print('🔵 SHOP SCREEN: Fetching books from API...');
-      final books = await _bookService.getBooksByCategory(categoryId, pageSize: 12);
-      print('✅ SHOP SCREEN: Got ${books.length} books for category $categoryId');
-
+      final books =
+          await _bookService.getBooksByCategory(categoryId, pageSize: 12);
       setState(() {
         _booksByCategory[categoryId] = books;
         _selectedCategoryId = categoryId;
       });
-    } catch (e, stackTrace) {
-      print('❌ SHOP SCREEN: ERROR loading books for category $categoryId: $e');
-      print('❌ SHOP SCREEN: Stack trace: $stackTrace');
-
+    } catch (e) {
       setState(() => _selectedCategoryId = categoryId);
     }
   }
@@ -128,107 +109,107 @@ class _ShopScreenState extends State<ShopScreen> {
     }).toList();
   }
 
-
   void _toggleCategoriesDropdown() {
-  if (_catOpen) {
-    _closeCategoriesDropdown();
-  } else {
-    _showCategoriesDropdown();
+    if (_catOpen) {
+      _closeCategoriesDropdown();
+    } else {
+      _showCategoriesDropdown();
+    }
   }
-}
 
-void _closeCategoriesDropdown() {
-  _catOverlay?.remove();
-  _catOverlay = null;
-  setState(() => _catOpen = false);
-}
+  void _closeCategoriesDropdown() {
+    _catOverlay?.remove();
+    _catOverlay = null;
+    setState(() => _catOpen = false);
+  }
 
-void _showCategoriesDropdown() {
-  if (_categories.isEmpty) return;
+  void _showCategoriesDropdown() {
+    if (_categories.isEmpty) return;
 
-  _catOverlay = OverlayEntry(
-    builder: (context) {
-      return Stack(
-        children: [
-          // klik vani zatvara
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _closeCategoriesDropdown,
-              behavior: HitTestBehavior.translucent,
-              child: const SizedBox(),
+    _catOverlay = OverlayEntry(
+      builder: (context) {
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                onTap: _closeCategoriesDropdown,
+                behavior: HitTestBehavior.translucent,
+                child: const SizedBox(),
+              ),
             ),
-          ),
+            CompositedTransformFollower(
+              link: _catLink,
+              showWhenUnlinked: false,
+              offset: const Offset(-6, 24),
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  width: 140,
+                  constraints: const BoxConstraints(maxHeight: 220),
+                  decoration: BoxDecoration(
+                    color: AppColors.darkBrown,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    itemCount: _categories.length,
+                    separatorBuilder: (_, __) => Divider(
+                      color: AppColors.pageBg,
+                      height: 1,
+                      thickness: 1,
+                      indent: 14,
+                      endIndent: 14,
+                    ),
+                    itemBuilder: (context, i) {
+                      final c = _categories[i];
+                      final selected = c.id == _selectedCategoryId;
 
-          // dropdown panel tačno ispod row-a
-          CompositedTransformFollower(
-            link: _catLink,
-            showWhenUnlinked: false,
-            offset: const Offset(-6, 24),
-            child: Material(
-              color: Colors.transparent,
-              child: Container(
-                width: 140,
-                constraints: const BoxConstraints(maxHeight: 220),
-                decoration: BoxDecoration(
-                  color: AppColors.darkBrown,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  itemCount: _categories.length,
-                  itemBuilder: (context, i) {
-                    final c = _categories[i];
-                    final selected = c.id == _selectedCategoryId;
-
-                    return InkWell(
-                      onTap: () async {
-                        _closeCategoriesDropdown();
-                        
-                        // ← DODAJ NAVIGACIJU:
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CategoryScreen(category: c),
+                      return InkWell(
+                        onTap: () async {
+                          _closeCategoriesDropdown();
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CategoryScreen(category: c),
+                            ),
+                          );
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
                           ),
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 10,
-                        ),
-                        child: Text(
-                          c.name.toUpperCase(),
-                          style: TextStyle(
-                            color: AppColors.pageBg,
-                            fontSize: 11.5,
-                            fontWeight: selected
-                                ? FontWeight.w900
-                                : FontWeight.w500,
-                            letterSpacing: 0.6,
+                          child: Text(
+                            c.name.toUpperCase(),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.pageBg,
+                              fontSize: 11.5,
+                              fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
+                              letterSpacing: 0.6,
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
-      );
-    },
-  );
+          ],
+        );
+      },
+    );
 
-  Overlay.of(context).insert(_catOverlay!);
-  setState(() => _catOpen = true);
-}
+    Overlay.of(context).insert(_catOverlay!);
+    setState(() => _catOpen = true);
+  }
 
-@override
-void dispose() {
-  _closeCategoriesDropdown();
-  super.dispose();
-}
+  @override
+  void dispose() {
+    _closeCategoriesDropdown();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -241,99 +222,26 @@ void dispose() {
       );
     }
 
-    final paddingH = 18.0;
-
-    // Primijeni search na recommended knjige
     final recommended = _applySearch(_recommendedBooks).take(6).toList();
-
-    // Primijeni search na knjige iz kategorije
     final cat = _selectedCategory;
     final catBooksRaw = (_selectedCategoryId != null)
         ? (_booksByCategory[_selectedCategoryId] ?? [])
         : <Book>[];
     final categoryBooks = _applySearch(catBooksRaw);
 
-    return Scaffold(
-      backgroundColor: AppColors.pageBg,
-      drawer: _ShopDrawer(onHome: () => Navigator.pop(context)),
-      body: SafeArea(
-        child: NotificationListener<ScrollNotification>(
-  onNotification: (n) {
-    if (_catOpen) _closeCategoriesDropdown();
-    return false;
-  },
-  child: SingleChildScrollView(
-    padding: EdgeInsets.symmetric(horizontal: paddingH, vertical: 14),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-              // Header: BookNest + menu
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "BookNest",
-                          style: TextStyle(
-                            color: AppColors.darkBrown,
-                            fontSize: 32,
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                        const SizedBox(height: 0),
-                        Text(
-                          "World of your stories!",
-                          style: TextStyle(
-                            color: AppColors.darkBrown,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Builder(
-                    builder: (ctx) => IconButton(
-                      onPressed: () => Scaffold.of(ctx).openDrawer(),
-                      icon: Icon(Icons.menu,
-                          color: AppColors.darkBrown, size: 26),
-                      splashRadius: 20,
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
-
-              // SHOP row + icons
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    "SHOP",
-                    style: TextStyle(
-                      color: AppColors.darkBrown,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(Icons.shopping_cart_outlined,
-                      color: AppColors.darkBrown, size: 22),
-                  const SizedBox(width: 10),
-                  Icon(Icons.favorite_border,
-                      color: AppColors.darkBrown, size: 22),
-                  const SizedBox(width: 10),
-                  Icon(Icons.bookmark_border,
-                      color: AppColors.darkBrown, size: 22),
-                ],
-              ),
-
-              const SizedBox(height: 10),
-
+    return AppLayout(
+      pageTitle: 'SHOP',
+      showCartFavTbr: true,
+      body: NotificationListener<ScrollNotification>(
+        onNotification: (n) {
+          if (_catOpen) _closeCategoriesDropdown();
+          return false;
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               // Search bar
               _SearchBar(
                 hint: "Search by name, author, genre",
@@ -342,36 +250,38 @@ void dispose() {
 
               const SizedBox(height: 12),
 
-              // Categories dropdown (otvara bottom sheet)
+              // Categories dropdown
               CompositedTransformTarget(
-  link: _catLink,
-  child: InkWell(
-    onTap: _toggleCategoriesDropdown,
-    borderRadius: BorderRadius.circular(10),
-    child: Row(
-      children: [
-        Text(
-          "Categories",
-          style: TextStyle(
-            color: AppColors.darkBrown,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(width: 2),
-        Icon(
-          _catOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
-          color: AppColors.darkBrown,
-          size: 20,
-        ),
-      ],
-    ),
-  ),
-),
+                link: _catLink,
+                child: InkWell(
+                  onTap: _toggleCategoriesDropdown,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Row(
+                    children: [
+                      Text(
+                        "Categories",
+                        style: TextStyle(
+                          color: AppColors.darkBrown,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      Icon(
+                        _catOpen
+                            ? Icons.arrow_drop_up
+                            : Icons.arrow_drop_down,
+                        color: AppColors.darkBrown,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
 
               const SizedBox(height: 10),
 
-              // Recommended card (3 u redu, kao slika)
+              // Recommended
               _SectionCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -385,7 +295,6 @@ void dispose() {
                       ),
                     ),
                     const SizedBox(height: 12),
-
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
@@ -408,56 +317,55 @@ void dispose() {
 
               const SizedBox(height: 14),
 
-              // Category section: Top in {category} (GRID kao Recommended)
-_SectionCard(
-  child: Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        cat == null
-            ? "Top in category!"
-            : "Top in ${cat.name} category!",
-        style: TextStyle(
-          color: Colors.white.withOpacity(0.95),
-          fontSize: 13,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      const SizedBox(height: 12),
-
-      categoryBooks.isEmpty
-          ? Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  "No books to show.",
-                  style: TextStyle(
-                    color: AppColors.pageBg.withOpacity(0.9),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+              // Category section
+              _SectionCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      cat == null
+                          ? "Top in category!"
+                          : "Top in ${cat.name} category!",
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.95),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    categoryBooks.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Text(
+                                "No books to show.",
+                                style: TextStyle(
+                                  color: AppColors.pageBg.withOpacity(0.9),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          )
+                        : GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: categoryBooks.length,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 12,
+                              crossAxisSpacing: 12,
+                              childAspectRatio: 0.62,
+                            ),
+                            itemBuilder: (context, index) {
+                              final book = categoryBooks[index];
+                              return _ShopBookCard(book: book, onTap: () {});
+                            },
+                          ),
+                  ],
                 ),
               ),
-            )
-          : GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: categoryBooks.length,
-              gridDelegate:
-                  const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 0.62,
-              ),
-              itemBuilder: (context, index) {
-                final book = categoryBooks[index];
-                return _ShopBookCard(book: book, onTap: () {});
-              },
-            ),
-    ],
-  ),
-),
 
               if (_error != null) ...[
                 const SizedBox(height: 10),
@@ -475,11 +383,11 @@ _SectionCard(
           ),
         ),
       ),
-    ));
+    );
   }
 }
 
-/* ----------------------- WIDGETS (DIZAJN) ----------------------- */
+/* ----------------------- WIDGETS ----------------------- */
 
 class _SearchBar extends StatelessWidget {
   final String hint;
@@ -614,80 +522,6 @@ class _ShopBookCard extends StatelessWidget {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-/* ------------ Drawer ------------ */
-
-class _ShopDrawer extends StatelessWidget {
-  final VoidCallback onHome;
-  const _ShopDrawer({required this.onHome});
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      backgroundColor: AppColors.darkBrown,
-      width: MediaQuery.of(context).size.width * 0.72,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                "BookNest",
-                style: TextStyle(
-                  color: AppColors.pageBg,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              Text(
-                "World of your stories!",
-                style: TextStyle(
-                  color: AppColors.pageBg.withOpacity(0.85),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 20),
-              _DrawerItem(
-                title: "HOME",
-                onTap: () {
-                  Navigator.pop(context);
-                  onHome();
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _DrawerItem extends StatelessWidget {
-  final String title;
-  final VoidCallback onTap;
-  const _DrawerItem({required this.title, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        child: Text(
-          title,
-          style: TextStyle(
-            color: AppColors.pageBg,
-            fontSize: 20,
-            fontWeight: FontWeight.w300,
-            letterSpacing: 0.8,
-          ),
         ),
       ),
     );

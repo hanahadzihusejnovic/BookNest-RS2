@@ -13,5 +13,6 @@ namespace BookNest.Model.SearchObjects
         public int? AuthorId { get; set; }
         public string? AuthorName { get; set; }
         public decimal? Price { get; set; }
+        public int? CategoryId { get; set; }
     }
 }

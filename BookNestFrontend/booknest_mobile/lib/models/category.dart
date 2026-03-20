@@ -9,7 +9,6 @@ class Category {
     this.description,
   });
 
-  // JSON deserialization
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
       id: json['id'] ?? 0,
@@ -18,7 +17,6 @@ class Category {
     );
   }
 
-  // Dummy kategorije za fallback
   static List<Category> getDummyCategories() {
     return [
       Category(id: 1, name: 'Fiction'),

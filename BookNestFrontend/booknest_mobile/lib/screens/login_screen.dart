@@ -197,14 +197,14 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 100),
+              const SizedBox(height: 60),
 
               // Welcome back!
               const Text(
                 'Welcome back!',
                 style: TextStyle(
                   fontFamily: 'Roboto',
-                  fontSize: 36,
+                  fontSize: 30,
                   fontWeight: FontWeight.bold,
                   color: AppColors.darkBrown,
                   height: 1.0,
@@ -221,7 +221,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   height: 1.2,
                 ),
               ),
-              const SizedBox(height: 150),
+              const SizedBox(height: 180),
 
               // Username field
               Column(

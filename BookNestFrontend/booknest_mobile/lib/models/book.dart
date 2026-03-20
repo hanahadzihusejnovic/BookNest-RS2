@@ -4,6 +4,7 @@ class Book {
   final String author;
   final String? imageUrl;
   final String? description;
+  final double? price; 
 
   Book({
     required this.id,
@@ -11,9 +12,9 @@ class Book {
     required this.author,
     this.imageUrl,
     this.description,
+    this.price,
   });
 
-  // JSON deserialization
   factory Book.fromJson(Map<String, dynamic> json) {
     return Book(
       id: json['id'],
@@ -21,10 +22,10 @@ class Book {
       author: json['authorName'],
       imageUrl: json['coverImageUrl'],
       description: json['description'],
+      price: (json['price'] as num?)?.toDouble(),
     );
   }
 
-  // Dummy knjige za testiranje (OPCIONO - za fallback)
   static List<Book> getDummyBooks() {
     return [
       Book(

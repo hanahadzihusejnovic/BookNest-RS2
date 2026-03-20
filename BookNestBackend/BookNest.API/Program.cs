@@ -114,6 +114,7 @@ namespace BookNest.API
             builder.Services.AddControllers();
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
             // ===== SWAGGER WITH JWT SUPPORT =====
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
@@ -148,7 +149,7 @@ namespace BookNest.API
 
             var app = builder.Build();
 
-            // Omoguci CORS
+            // CORS
             app.UseCors("AllowFlutter");
 
             // Configure the HTTP request pipeline.
@@ -157,8 +158,8 @@ namespace BookNest.API
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
-
-            // SAMO za development - NE preusmjeravaj na HTTPS
+            
+            // DEVELOPMENT (ne HTTPS)
             if (!app.Environment.IsDevelopment())
             {
                 app.UseHttpsRedirection();

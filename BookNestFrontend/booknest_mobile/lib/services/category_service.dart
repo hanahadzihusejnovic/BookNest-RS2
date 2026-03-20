@@ -7,7 +7,6 @@ class CategoryService {
   static const String baseUrl = 'http://10.0.2.2:7110/api';
   final AuthService _authService = AuthService();
 
-  // Dobavi sve kategorije
   Future<List<Category>> getCategories() async {
     try {
       print('🔵 CATEGORY SERVICE: Fetching categories');

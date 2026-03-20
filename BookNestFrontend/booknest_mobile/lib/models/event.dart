@@ -13,7 +13,6 @@ class Event {
     required this.location,
   });
 
-  // Dummy eventi za testiranje
   static List<Event> getDummyEvents() {
   return [
     Event(
@@ -75,7 +74,6 @@ class Event {
   ];
 }
 
-  // Helper za prikaz datuma
   String getFormattedDate() {
     final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     return '${days[dateTime.weekday - 1]} - ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}pm';
