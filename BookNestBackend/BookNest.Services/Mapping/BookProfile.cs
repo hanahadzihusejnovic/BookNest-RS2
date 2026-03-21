@@ -14,9 +14,14 @@ namespace BookNest.Services.Mapping
     {
         public BookProfile() 
         {
-            CreateMap<Book, BookResponse>().
-                ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author.FirstName + " " + src.Author.LastName))
-                .ForMember(dest => dest.Categories, opt => opt.MapFrom(src => src.BookCategories.Select(bc => bc.Category)));
+            CreateMap<Book, BookResponse>()
+                .ForMember(dest => dest.AuthorName, opt => opt.MapFrom(src => src.Author.FirstName + " " + src.Author.LastName))
+                .ForMember(dest => dest.Categories, opt => opt.MapFrom(src => src.BookCategories.Select(bc => bc.Category)))
+                .ForMember(dest => dest.AuthorBiography, opt => opt.MapFrom(src => src.Author.Biography))
+                .ForMember(dest => dest.AuthorImageUrl, opt => opt.MapFrom(src => src.Author.ImageUrl))
+                .ForMember(dest => dest.AverageRating, opt => opt.MapFrom(src => src.Reviews.Any() ? src.Reviews.Average(r => r.Rating) : (double?)null))
+                .ForMember(dest => dest.ReviewCount, opt => opt.MapFrom(src => src.Reviews.Count))
+                .ForMember(dest => dest.Reviews, opt => opt.MapFrom(src => src.Reviews));
 
             CreateMap<BookInsertRequest, Book>();
 

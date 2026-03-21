@@ -10,6 +10,7 @@ class AppLayout extends StatelessWidget {
   final Widget body;
   final bool showCartFavTbr;
   final bool showBackButton;
+  final bool showPageActionsRow;
 
   const AppLayout({
     super.key,
@@ -17,6 +18,7 @@ class AppLayout extends StatelessWidget {
     required this.body,
     this.showCartFavTbr = true,
     this.showBackButton = false,
+    this.showPageActionsRow = true,
   });
 
   @override
@@ -78,9 +80,9 @@ class AppLayout extends StatelessWidget {
                     ],
                   ),
 
+                  if (showPageActionsRow) ...[
                   const SizedBox(height: 12),
 
-                  // Donji red: naziv stranice + ikonice
                   Row(
                     children: [
                       Expanded(
@@ -121,6 +123,7 @@ class AppLayout extends StatelessWidget {
                       ],
                     ],
                   ),
+                ],
                 ],
               ),
             ),
