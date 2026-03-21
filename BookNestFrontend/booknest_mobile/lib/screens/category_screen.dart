@@ -4,6 +4,7 @@ import '../models/category.dart';
 import '../services/book_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
+import 'book_details_screen.dart';
 
 class CategoryScreen extends StatefulWidget {
   final Category category;
@@ -142,7 +143,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
                                   final book = _filteredBooks[index];
                                   return _CategoryBookCard(
                                     book: book,
-                                    onTap: () {},
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => BookDetailsScreen(book: book),
+                                        ),
+                                      );
+                                    },
                                   );
                                 },
                               ),

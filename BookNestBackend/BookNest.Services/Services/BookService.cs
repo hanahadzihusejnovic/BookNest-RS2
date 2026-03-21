@@ -72,6 +72,8 @@ namespace BookNest.Services.Services
                          .Include(b => b.Author)
                          .Include(b => b.BookCategories)
                          .ThenInclude(bc => bc.Category)
+                         .Include(b => b.Reviews)
+                         .ThenInclude(r => r.User)
                          .AsQueryable();
 
             query = ApplyFilter(query, search);

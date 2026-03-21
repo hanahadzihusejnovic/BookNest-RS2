@@ -44,5 +44,6 @@ namespace BookNest.Services.Database.Entities
         public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
         public ICollection<TBRList> TBRList { get; set; } = new List<TBRList>();
         public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
+        public ICollection<Review> Reviews { get; set; } = new List<Review>();
     }
 }
