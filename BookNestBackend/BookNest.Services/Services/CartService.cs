@@ -29,6 +29,7 @@ namespace BookNest.Services.Services
             var query = _dbContext.Carts
                          .Include(c => c.CartItems)
                              .ThenInclude(ci => ci.Book)
+                             .ThenInclude(b => b.Author)
                          .AsQueryable();
 
             int? totalCount = null;
@@ -59,8 +60,9 @@ namespace BookNest.Services.Services
         public override async Task<CartResponse?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
             var cart = await _dbContext.Carts
-                               .Include(c => c.CartItems)
-                               .ThenInclude(ci => ci.Book)
+                              .Include(c => c.CartItems)
+                                .ThenInclude(ci => ci.Book)
+                                .ThenInclude(b => b.Author)
                                .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
 
             if (cart == null)
@@ -74,8 +76,9 @@ namespace BookNest.Services.Services
         public async Task<CartResponse> GetUserCartAsync(int userId, CancellationToken cancellationToken = default)
         {
             var cart = await _dbContext.Carts
-                .Include(c => c.CartItems)
-                .ThenInclude(ci => ci.Book)
+                              .Include(c => c.CartItems)
+                                .ThenInclude(ci => ci.Book)
+                                .ThenInclude(b => b.Author)
                 .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
 
             if (cart == null)
