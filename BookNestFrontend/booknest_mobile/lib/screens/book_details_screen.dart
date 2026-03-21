@@ -3,6 +3,7 @@ import '../models/book.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import '../services/review_service.dart';
+import '../services/cart_service.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final Book book;
@@ -424,10 +425,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     final book = widget.book;
 
     return AppLayout(
-      pageTitle: '',
+      pageTitle: 'Details',
       showCartFavTbr: true,
       showBackButton: true,
-      showPageActionsRow: false,
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(18, 6, 18, 28),
         child: Column(
@@ -510,7 +510,29 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 Expanded(
                   child: _PrimaryActionButton(
                     text: 'Add to cart',
-                    onTap: () {},
+                    onTap: () async {
+                      try {
+                        final cartService = CartService();
+                        await cartService.addItem(widget.book.id, _quantity);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Added to cart!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
                   ),
                 ),
                 const SizedBox(width: 6),

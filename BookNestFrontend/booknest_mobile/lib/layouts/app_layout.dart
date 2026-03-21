@@ -4,6 +4,7 @@ import '../screens/home_screen.dart';
 import '../screens/shop_screen.dart';
 import '../services/auth_service.dart';
 import '../screens/login_screen.dart';
+import '../screens/cart_screen.dart';
 
 class AppLayout extends StatelessWidget {
   final String pageTitle;
@@ -98,7 +99,12 @@ class AppLayout extends StatelessWidget {
                       ),
                       if (showCartFavTbr) ...[
                         GestureDetector(
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => const CartScreen()),
+                            );
+                          },
                           child: Icon(Icons.shopping_cart_outlined,
                               color: AppColors.darkBrown, size: 22),
                         ),
