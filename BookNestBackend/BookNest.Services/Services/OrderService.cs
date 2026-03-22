@@ -59,6 +59,7 @@ namespace BookNest.Services.Services
                 .Include(o => o.Payment)
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Book)
+                    .ThenInclude(b => b.Author)
                 .AsQueryable();
 
             query = ApplyFilter(query, search);
@@ -96,6 +97,7 @@ namespace BookNest.Services.Services
                 .Include(o => o.Payment)
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Book)
+                    .ThenInclude(b => b.Author)
                 .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
             if (order == null)
@@ -185,6 +187,7 @@ namespace BookNest.Services.Services
                 .Include(o => o.Payment)
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Book)
+                    .ThenInclude(b => b.Author)
                 .Where(o => o.UserId == userId)
                 .OrderByDescending(o => o.OrderDate)
                 .ToListAsync(cancellationToken);

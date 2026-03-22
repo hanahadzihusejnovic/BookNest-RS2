@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import '../layouts/constants.dart';
 import '../screens/home_screen.dart';
 import '../screens/shop_screen.dart';
-import '../services/auth_service.dart';
-import '../screens/login_screen.dart';
 import '../screens/cart_screen.dart';
 import '../screens/favorites_screen.dart';
 import '../screens/tbr_screen.dart';
+import '../screens/profile_screen.dart';
 
 class AppLayout extends StatelessWidget {
   final String pageTitle;
@@ -261,8 +260,13 @@ class _BookNestDrawer extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: InkWell(
                 onTap: () {
-                  Navigator.pop(context);
-                },
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const ProfileScreen()),
+                );
+              },
                 borderRadius: BorderRadius.circular(18),
                 child: Row(
                   children: [
@@ -279,52 +283,6 @@ class _BookNestDrawer extends StatelessWidget {
                     const SizedBox(width: 12),
                     Text(
                       'MY PROFILE',
-                      style: TextStyle(
-                        color: AppColors.pageBg,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w300,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            _DrawerDivider(),
-
-            // LOGOUT
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 18),
-              child: InkWell(
-                onTap: () async {
-                  Navigator.pop(context);
-                  await AuthService().logout();
-                  if (context.mounted) {
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const LoginScreen()),
-                      (route) => false,
-                    );
-                  }
-                },
-                borderRadius: BorderRadius.circular(18),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.pageBg, width: 1.5),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(Icons.logout,
-                          color: AppColors.pageBg, size: 22),
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      'LOGOUT',
                       style: TextStyle(
                         color: AppColors.pageBg,
                         fontSize: 20,

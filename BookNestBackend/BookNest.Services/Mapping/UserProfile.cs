@@ -20,6 +20,8 @@ namespace BookNest.Services.Mapping
             CreateMap<UserInsertRequest, User>();
 
             CreateMap<UserUpdateRequest, User>();
+
+            CreateMap<UserSelfUpdateRequest, User>();
         }
     }
 }
