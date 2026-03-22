@@ -4,6 +4,7 @@ import '../models/event.dart';
 import '../services/book_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
+import '../screens/book_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,14 +27,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadBooks() async {
     try {
-      final books = await _bookService.getFeaturedBooks();
+      final books = await _bookService.getRecommendedBooks();
       setState(() {
         _topBooks = books;
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
-        _topBooks = Book.getDummyBooks();
+        _topBooks = [];
         _isLoading = false;
       });
     }
@@ -74,27 +75,125 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  SizedBox(
-                    height: 260,
-                    child: GridView.builder(
-                      itemCount: _topBooks.take(5).length,
-                      physics: const BouncingScrollPhysics(),
-                      padding: EdgeInsets.zero,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        childAspectRatio: 0.75,
-                      ),
-                      itemBuilder: (context, index) {
-                        final book = _topBooks[index];
-                        return _BookCard(
-                          book: book,
-                          onDetails: () {},
-                        );
-                      },
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: _topBooks.take(5).length,
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 3,
+                      mainAxisSpacing: 14,
+                      crossAxisSpacing: 14,
+                      childAspectRatio: 0.48,
                     ),
+                    itemBuilder: (context, index) {
+                      final book = _topBooks[index];
+                      return Container(
+                        padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
+                        decoration: BoxDecoration(
+                          color: AppColors.pageBg.withOpacity(0.92),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              flex: 6,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: book.imageUrl != null && book.imageUrl!.isNotEmpty
+                                      ? Image.network(
+                                          book.imageUrl!,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => Container(
+                                            color: Colors.white.withOpacity(0.45),
+                                            child: Icon(
+                                              Icons.menu_book_rounded,
+                                              color: AppColors.darkBrown.withOpacity(0.5),
+                                              size: 28,
+                                            ),
+                                          ),
+                                        )
+                                      : Container(
+                                          color: Colors.white.withOpacity(0.45),
+                                          child: Icon(
+                                            Icons.menu_book_rounded,
+                                            color: AppColors.darkBrown.withOpacity(0.5),
+                                            size: 28,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Expanded(
+                              flex: 5,
+                              child: Column(
+                                children: [
+                                  Text(
+                                    book.title,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: AppColors.darkBrown,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      height: 1.15,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    book.author,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: AppColors.darkBrown.withOpacity(0.7),
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 22,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => BookDetailsScreen(book: book),
+                                          ),
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        elevation: 0,
+                                        backgroundColor: AppColors.darkBrown,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        padding: EdgeInsets.zero,
+                                      ),
+                                      child: const Text(
+                                        'DETAILS',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 8.5,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -234,99 +333,6 @@ class _SectionCard extends StatelessWidget {
         ],
       ),
       child: child,
-    );
-  }
-}
-
-class _BookCard extends StatelessWidget {
-  final Book book;
-  final VoidCallback onDetails;
-
-  const _BookCard({required this.book, required this.onDetails});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: AppColors.pageBg.withOpacity(0.25),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.12)),
-      ),
-      child: Column(
-        children: [
-          Expanded(
-            child: Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppColors.pageBg.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: book.imageUrl != null && book.imageUrl!.isNotEmpty
-                    ? Image.network(
-                        book.imageUrl!,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Center(
-                            child: CircularProgressIndicator(
-                              value: loadingProgress.expectedTotalBytes != null
-                                  ? loadingProgress.cumulativeBytesLoaded /
-                                      loadingProgress.expectedTotalBytes!
-                                  : null,
-                              color: AppColors.darkBrown,
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) => Center(
-                          child: Icon(
-                            Icons.menu_book_rounded,
-                            color: AppColors.darkBrown.withOpacity(0.65),
-                            size: 34,
-                          ),
-                        ),
-                      )
-                    : Center(
-                        child: Icon(
-                          Icons.menu_book_rounded,
-                          color: AppColors.darkBrown.withOpacity(0.65),
-                          size: 34,
-                        ),
-                      ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            book.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              height: 1.1,
-            ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            book.author,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _SmallButton(text: "DETAILS", onTap: onDetails),
-        ],
-      ),
     );
   }
 }

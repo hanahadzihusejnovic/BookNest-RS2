@@ -6,6 +6,7 @@ import '../services/category_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import 'category_screen.dart';
+import '../screens/book_details_screen.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -42,13 +43,8 @@ class _ShopScreenState extends State<ShopScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final results = await Future.wait([
-        _categoryService.getCategories(),
-        _bookService.getRecommendedBooks(pageSize: 6),
-      ]);
-
-      final categories = results[0] as List<Category>;
-      final recommended = results[1] as List<Book>;
+      final categories = await _categoryService.getCategories();
+      final recommended = await _bookService.getContentBasedRecommendations();
 
       setState(() {
         _categories = categories;
@@ -56,14 +52,18 @@ class _ShopScreenState extends State<ShopScreen> {
         _isLoading = false;
       });
 
-      if (_categories.isNotEmpty) {
-        await _loadBooksForCategory(_categories.first.id);
-      }
+      final defaultCategory = _categories.firstWhere(
+        (c) => c.name.toLowerCase() == 'fiction',
+        orElse: () => _categories.first,
+      );
+
+      await _loadBooksForCategory(defaultCategory.id);
+
     } catch (e) {
       setState(() {
         _error = e.toString();
         _categories = Category.getDummyCategories();
-        _recommendedBooks = Book.getDummyBooks().take(6).toList();
+        _recommendedBooks = [];
         _isLoading = false;
       });
 
@@ -81,7 +81,7 @@ class _ShopScreenState extends State<ShopScreen> {
 
     try {
       final books =
-          await _bookService.getBooksByCategory(categoryId, pageSize: 12);
+          await _bookService.getBooksByCategory(categoryId, pageSize: 6);
       setState(() {
         _booksByCategory[categoryId] = books;
         _selectedCategoryId = categoryId;
@@ -308,7 +308,17 @@ class _ShopScreenState extends State<ShopScreen> {
                       ),
                       itemBuilder: (context, index) {
                         final book = recommended[index];
-                        return _ShopBookCard(book: book, onTap: () {});
+                        return _ShopBookCard(
+                          book: book, 
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => BookDetailsScreen(book: book),
+                              ),
+                            );
+                          },
+                        );
                       },
                     ),
                   ],
@@ -360,7 +370,17 @@ class _ShopScreenState extends State<ShopScreen> {
                             ),
                             itemBuilder: (context, index) {
                               final book = categoryBooks[index];
-                              return _ShopBookCard(book: book, onTap: () {});
+                              return _ShopBookCard(
+                                book: book, 
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => BookDetailsScreen(book: book),
+                                    ),
+                                  );
+                                },
+                              );
                             },
                           ),
                   ],
@@ -455,12 +475,12 @@ class _ShopBookCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(10),
       child: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: AppColors.pageBg.withOpacity(0.22),
-          borderRadius: BorderRadius.circular(14),
+          color: AppColors.lightBrown,
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: Colors.white.withOpacity(0.10)),
         ),
         child: Column(
