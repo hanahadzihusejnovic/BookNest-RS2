@@ -5,6 +5,8 @@ import '../screens/shop_screen.dart';
 import '../services/auth_service.dart';
 import '../screens/login_screen.dart';
 import '../screens/cart_screen.dart';
+import '../screens/favorites_screen.dart';
+import '../screens/tbr_screen.dart';
 
 class AppLayout extends StatelessWidget {
   final String pageTitle;
@@ -110,13 +112,25 @@ class AppLayout extends StatelessWidget {
                         ),
                         const SizedBox(width: 10),
                         GestureDetector(
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const FavoritesScreen()),
+                            );
+                          },
                           child: Icon(Icons.favorite_border,
                               color: AppColors.darkBrown, size: 22),
                         ),
                         const SizedBox(width: 10),
                         GestureDetector(
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const TBRScreen()),
+                            );
+                          },
                           child: Icon(Icons.bookmark_border,
                               color: AppColors.darkBrown, size: 22),
                         ),
