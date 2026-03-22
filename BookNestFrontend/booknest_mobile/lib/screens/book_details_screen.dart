@@ -4,6 +4,8 @@ import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import '../services/review_service.dart';
 import '../services/cart_service.dart';
+import '../services/favorite_service.dart';
+import '../services/tbr_service.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final Book book;
@@ -22,14 +24,181 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   bool _descExpanded = false;
   bool _authorExpanded = false;
   final _reviewService = ReviewService();
+  final _favoriteService = FavoriteService();
+  final _tbrService = TBRService();
   List<BookReview> _reviews = [];
   double _averageRating = 0;
+  bool _isInTBR = false;
+  ReadingStatus? _tbrStatus;
+  bool _isLoadingFav = false;
+  bool _isLoadingTBR = false;
 
   @override
   void initState() {
     super.initState();
     _reviews = widget.book.reviews;
     _averageRating = widget.book.averageRating ?? 0;
+    _loadStatuses();
+  }
+
+  Future<void> _loadStatuses() async {
+    final isInTBR = await _tbrService.isBookInTBR(widget.book.id);
+    if (isInTBR) {
+      final status = await _tbrService.getTBRStatus(widget.book.id);
+      if (mounted) {
+        setState(() {
+          _isInTBR = true;
+          _tbrStatus = status;
+        });
+      }
+    } else {
+      if (mounted) {
+        setState(() {
+          _isInTBR = false;
+          _tbrStatus = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _addToFavorites() async {
+    setState(() => _isLoadingFav = true);
+    try {
+      await _favoriteService.addToFavorites(widget.book.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Added to favorites!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      setState(() => _isLoadingFav = false);
+    }
+  }
+
+  void _showTBRMenu(BuildContext buttonContext) {
+    final RenderBox button =
+        buttonContext.findRenderObject() as RenderBox;
+    final RenderBox overlay =
+        Overlay.of(buttonContext).context.findRenderObject() as RenderBox;
+    final RelativeRect position = RelativeRect.fromRect(
+      Rect.fromPoints(
+        button.localToGlobal(Offset.zero, ancestor: overlay),
+        button.localToGlobal(
+            button.size.bottomRight(Offset.zero), ancestor: overlay),
+      ),
+      Offset.zero & overlay.size,
+    );
+
+    showMenu<ReadingStatus>(
+      context: buttonContext,
+      position: position,
+      color: AppColors.pageBg,
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      items: ReadingStatus.values.map((status) {
+        final isSelected = _tbrStatus == status;
+        return PopupMenuItem<ReadingStatus>(
+          value: status,
+          child: Center(
+            child: Text(
+              status.label,
+              style: TextStyle(
+                color: AppColors.darkBrown,
+                fontWeight:
+                    isSelected ? FontWeight.w800 : FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    ).then((selected) async {
+      if (selected == null) return;
+
+      if (_isInTBR && _tbrStatus != selected) {
+        final confirm = await _showChangeStatusDialog(selected);
+        if (!confirm) return;
+      }
+
+      setState(() => _isLoadingTBR = true);
+      try {
+        if (_isInTBR) {
+          await _tbrService.updateTBRStatus(widget.book.id, selected);
+        } else {
+          await _tbrService.addToTBR(widget.book.id, selected);
+        }
+        setState(() {
+          _isInTBR = true;
+          _tbrStatus = selected;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Added to TBR as "${selected.label}"!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Error: $e'), backgroundColor: Colors.red),
+          );
+        }
+      } finally {
+        setState(() => _isLoadingTBR = false);
+      }
+    });
+  }
+
+  Future<bool> _showChangeStatusDialog(ReadingStatus newStatus) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.pageBg,
+          title: Text(
+            'Change reading status',
+            style: TextStyle(
+              color: AppColors.darkBrown,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to change your reading status to "${newStatus.label}"?',
+            style: TextStyle(
+              color: AppColors.darkBrown.withOpacity(0.8),
+              fontSize: 14,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child:
+                  Text('No', style: TextStyle(color: AppColors.darkBrown)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.darkBrown),
+              child:
+                  const Text('Yes', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
   }
 
   void _showAddReviewDialog() {
@@ -152,7 +321,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                               Navigator.pop(context);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('Review added successfully!'),
+                                  content:
+                                      Text('Review added successfully!'),
                                   backgroundColor: Colors.green,
                                 ),
                               );
@@ -195,154 +365,158 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   void _showUpdateReviewDialog(BookReview review) {
-  int selectedRating = review.rating;
-  final commentController = TextEditingController(text: review.comment ?? '');
-  bool isSubmitting = false;
+    int selectedRating = review.rating;
+    final commentController =
+        TextEditingController(text: review.comment ?? '');
+    bool isSubmitting = false;
 
-  showDialog(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: AppColors.pageBg,
-            title: Text(
-              'Update your review',
-              style: TextStyle(
-                color: AppColors.darkBrown,
-                fontWeight: FontWeight.w800,
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppColors.pageBg,
+              title: Text(
+                'Update your review',
+                style: TextStyle(
+                  color: AppColors.darkBrown,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Rating',
-                  style: TextStyle(
-                    color: AppColors.darkBrown,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: List.generate(5, (i) {
-                    return GestureDetector(
-                      onTap: () =>
-                          setDialogState(() => selectedRating = i + 1),
-                      child: Icon(
-                        i < selectedRating ? Icons.star : Icons.star_border,
-                        color: AppColors.darkBrown,
-                        size: 32,
-                      ),
-                    );
-                  }),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Comment (optional)',
-                  style: TextStyle(
-                    color: AppColors.darkBrown,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: commentController,
-                  maxLines: 3,
-                  style: TextStyle(color: AppColors.darkBrown, fontSize: 13),
-                  decoration: InputDecoration(
-                    hintText: 'Write your review...',
-                    hintStyle: TextStyle(
-                      color: AppColors.darkBrown.withOpacity(0.4),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Rating',
+                    style: TextStyle(
+                      color: AppColors.darkBrown,
+                      fontWeight: FontWeight.w700,
                       fontSize: 13,
                     ),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.5),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: List.generate(5, (i) {
+                      return GestureDetector(
+                        onTap: () =>
+                            setDialogState(() => selectedRating = i + 1),
+                        child: Icon(
+                          i < selectedRating
+                              ? Icons.star
+                              : Icons.star_border,
+                          color: AppColors.darkBrown,
+                          size: 32,
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Comment (optional)',
+                    style: TextStyle(
+                      color: AppColors.darkBrown,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
                     ),
                   ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: commentController,
+                    maxLines: 3,
+                    style: TextStyle(
+                        color: AppColors.darkBrown, fontSize: 13),
+                    decoration: InputDecoration(
+                      hintText: 'Write your review...',
+                      hintStyle: TextStyle(
+                        color: AppColors.darkBrown.withOpacity(0.4),
+                        fontSize: 13,
+                      ),
+                      filled: true,
+                      fillColor: Colors.white.withOpacity(0.5),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Cancel',
+                      style: TextStyle(color: AppColors.darkBrown)),
+                ),
+                ElevatedButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          setDialogState(() => isSubmitting = true);
+                          try {
+                            await _reviewService.updateReview(
+                              reviewId: review.id,
+                              rating: selectedRating,
+                              comment: commentController.text.isEmpty
+                                  ? null
+                                  : commentController.text,
+                            );
+
+                            final reviews = await _reviewService
+                                .getBookReviews(widget.book.id);
+                            final avg = reviews.isEmpty
+                                ? 0.0
+                                : reviews
+                                        .map((r) => r.rating)
+                                        .reduce((a, b) => a + b) /
+                                    reviews.length;
+
+                            setState(() {
+                              _reviews = reviews;
+                              _averageRating = avg;
+                            });
+
+                            if (mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Review updated!'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            setDialogState(() => isSubmitting = false);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Error: $e'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.darkBrown),
+                  child: isSubmitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Text('Update',
+                          style: TextStyle(color: Colors.white)),
                 ),
               ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Cancel',
-                    style: TextStyle(color: AppColors.darkBrown)),
-              ),
-              ElevatedButton(
-                onPressed: isSubmitting
-                    ? null
-                    : () async {
-                        setDialogState(() => isSubmitting = true);
-                        try {
-                          await _reviewService.updateReview(
-                            reviewId: review.id,
-                            rating: selectedRating,
-                            comment: commentController.text.isEmpty
-                                ? null
-                                : commentController.text,
-                          );
-
-                          final reviews = await _reviewService
-                              .getBookReviews(widget.book.id);
-                          final avg = reviews.isEmpty
-                              ? 0.0
-                              : reviews
-                                      .map((r) => r.rating)
-                                      .reduce((a, b) => a + b) /
-                                  reviews.length;
-
-                          setState(() {
-                            _reviews = reviews;
-                            _averageRating = avg;
-                          });
-
-                          if (mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Review updated!'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          setDialogState(() => isSubmitting = false);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Error: $e'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.darkBrown),
-                child: isSubmitting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2),
-                      )
-                    : const Text('Update',
-                        style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
+            );
+          },
+        );
+      },
+    );
+  }
 
   void _showDeleteReviewDialog(BookReview review) {
     showDialog(
@@ -367,15 +541,16 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('No', style: TextStyle(color: AppColors.darkBrown)),
+              child:
+                  Text('No', style: TextStyle(color: AppColors.darkBrown)),
             ),
             ElevatedButton(
               onPressed: () async {
                 try {
                   await _reviewService.deleteReview(review.id);
 
-                  final reviews =
-                      await _reviewService.getBookReviews(widget.book.id);
+                  final reviews = await _reviewService
+                      .getBookReviews(widget.book.id);
                   final avg = reviews.isEmpty
                       ? 0.0
                       : reviews
@@ -409,8 +584,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   }
                 }
               },
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red),
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text('Yes',
                   style: TextStyle(color: Colors.white)),
             ),
@@ -505,6 +680,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
             const SizedBox(height: 18),
 
+            // Red 1: Add to cart + Add to favorites
             Row(
               children: [
                 Expanded(
@@ -513,7 +689,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                     onTap: () async {
                       try {
                         final cartService = CartService();
-                        await cartService.addItem(widget.book.id, _quantity);
+                        await cartService.addItem(
+                            widget.book.id, _quantity);
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
@@ -537,13 +714,50 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 ),
                 const SizedBox(width: 6),
                 Expanded(
-                  child: _PrimaryActionButton(
-                    text: 'Add to favorites',
-                    trailing: Icons.arrow_drop_down,
-                    onTap: () {},
-                  ),
+                  child: _isLoadingFav
+                      ? _LoadingButton()
+                      : _PrimaryActionButton(
+                          text: 'Add to favorites',
+                          onTap: _addToFavorites,
+                        ),
                 ),
               ],
+            ),
+
+            const SizedBox(height: 10),
+
+            // Red 2: Add to TBR List
+            Center(
+              child: SizedBox(
+                width: MediaQuery.of(context).size.width * 0.6,
+                height: 54,
+                child: _isLoadingTBR
+                    ? _LoadingButton()
+                    : Builder(
+                        builder: (buttonContext) => ElevatedButton(
+                          onPressed: () => _showTBRMenu(buttonContext),
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+                            backgroundColor: _isInTBR
+                                ? AppColors.mediumBrown
+                                : AppColors.darkBrown,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: Text(
+                            _isInTBR
+                                ? (_tbrStatus?.label ?? 'In TBR List')
+                                : 'Add to TBR List',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
             ),
 
             const SizedBox(height: 22),
@@ -930,7 +1144,9 @@ class _ReviewTile extends StatelessWidget {
                     children: List.generate(
                       5,
                       (i) => Icon(
-                        i < review.rating ? Icons.star : Icons.star_border,
+                        i < review.rating
+                            ? Icons.star
+                            : Icons.star_border,
                         color: Colors.white,
                         size: 12,
                       ),
@@ -953,7 +1169,6 @@ class _ReviewTile extends StatelessWidget {
             ],
           ),
         ),
-        // Tri tačke
         PopupMenuButton<String>(
           icon: Icon(Icons.more_vert, color: Colors.white, size: 18),
           color: AppColors.pageBg,
@@ -1002,17 +1217,15 @@ class _ReviewTile extends StatelessWidget {
   }
 }
 
-/* ---------------- BUTTON ---------------- */
+/* ---------------- BUTTONS ---------------- */
 
 class _PrimaryActionButton extends StatelessWidget {
   final String text;
-  final IconData? trailing;
   final VoidCallback onTap;
 
   const _PrimaryActionButton({
     required this.text,
     required this.onTap,
-    this.trailing,
   });
 
   @override
@@ -1040,11 +1253,28 @@ class _PrimaryActionButton extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            if (trailing != null) ...[
-              const SizedBox(width: 6),
-              Icon(trailing, color: Colors.white, size: 20),
-            ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LoadingButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 54,
+      decoration: BoxDecoration(
+        color: AppColors.darkBrown.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+              color: Colors.white, strokeWidth: 2),
         ),
       ),
     );
