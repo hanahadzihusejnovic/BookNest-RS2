@@ -78,6 +78,12 @@ namespace BookNest.Services.Services
 
             query = ApplyFilter(query, search);
 
+            if (search.CategoryId.HasValue)
+            {
+                query = query.OrderByDescending(b =>
+                    b.Reviews.Any() ? b.Reviews.Average(r => r.Rating) : 0);
+            }
+
             int? totalCount = null;
             if (search.IncludeTotalCount)
             {
@@ -207,6 +213,110 @@ namespace BookNest.Services.Services
                 }).ToList();
 
             return response;
-        } 
+        }
+
+        public async Task<List<BookResponse>> GetRecommendedBooksAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
+        {
+            var myBookIds = await GetUserInteractedBookIds(userId, cancellationToken);
+
+            var similarUserIds = await _dbContext.Orders
+                .Where(o => o.UserId != userId &&
+                            o.OrderItems.Any(oi => myBookIds.Contains(oi.BookId)))
+                .Select(o => o.UserId)
+                .Union(
+                    _dbContext.Favorites
+                        .Where(f => f.UserId != userId && myBookIds.Contains(f.BookId))
+                        .Select(f => f.UserId)
+                )
+                .Union(
+                    _dbContext.TBRLists
+                        .Where(t => t.UserId != userId && myBookIds.Contains(t.BookId))
+                        .Select(t => t.UserId)
+                )
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var collaborativeBookIds = await _dbContext.Orders
+                .Where(o => similarUserIds.Contains(o.UserId))
+                .SelectMany(o => o.OrderItems.Select(oi => oi.BookId))
+                .Union(
+                    _dbContext.Favorites
+                        .Where(f => similarUserIds.Contains(f.UserId))
+                        .Select(f => f.BookId)
+                )
+                .Union(
+                    _dbContext.TBRLists
+                        .Where(t => similarUserIds.Contains(t.UserId))
+                        .Select(t => t.BookId)
+                )
+                .Where(bookId => !myBookIds.Contains(bookId))
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var recommended = await _dbContext.Books
+                                    .Include(b => b.Author)
+                                    .Include(b => b.BookCategories)
+                                        .ThenInclude(bc => bc.Category)  
+                                    .Include(b => b.Reviews)
+                                    .Where(b => collaborativeBookIds.Contains(b.Id))
+                                    .OrderByDescending(b =>
+                                        b.Reviews.Any() ? b.Reviews.Average(r => r.Rating) : 0)
+                                    .Take(count)
+                                    .ToListAsync(cancellationToken);
+
+            return _mapper.Map<List<BookResponse>>(recommended);
+        }
+
+        private async Task<List<int>> GetUserInteractedBookIds(int userId, CancellationToken cancellationToken)
+        {
+            var purchased = await _dbContext.Orders
+                .Where(o => o.UserId == userId)
+                .SelectMany(o => o.OrderItems.Select(oi => oi.BookId))
+                .ToListAsync(cancellationToken);
+
+            var favorites = await _dbContext.Favorites
+                .Where(f => f.UserId == userId)
+                .Select(f => f.BookId)
+                .ToListAsync(cancellationToken);
+
+            var tbr = await _dbContext.TBRLists
+                .Where(t => t.UserId == userId)
+                .Select(t => t.BookId)
+                .ToListAsync(cancellationToken);
+
+            return purchased.Union(favorites).Union(tbr).Distinct().ToList();
+        }
+
+        public async Task<List<BookResponse>> GetContentBasedRecommendationsAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
+        {
+            var myBookIds = await GetUserInteractedBookIds(userId, cancellationToken);
+
+            var preferredCategoryIds = await _dbContext.BookCategories
+                .Where(bc => myBookIds.Contains(bc.BookId))
+                .Select(bc => bc.CategoryId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            IQueryable<Book> query = _dbContext.Books
+                .Include(b => b.Author)
+                .Include(b => b.BookCategories)
+                    .ThenInclude(bc => bc.Category)
+                .Include(b => b.Reviews)
+                .Where(b => !myBookIds.Contains(b.Id));
+
+            if (preferredCategoryIds.Any())
+            {
+                query = query.Where(b =>
+                    b.BookCategories.Any(bc => preferredCategoryIds.Contains(bc.CategoryId)));
+            }
+
+            var books = await query
+                .OrderByDescending(b =>
+                    b.Reviews.Any() ? b.Reviews.Average(r => r.Rating) : 0)
+                .Take(count)
+                .ToListAsync(cancellationToken);
+
+            return _mapper.Map<List<BookResponse>>(books);
+        }
     }
 }

@@ -126,7 +126,53 @@ class BookService {
     }
   }
 
-  Future<List<Book>> getRecommendedBooks({int pageSize = 6}) async {
-    return getFeaturedBooks(); 
+  Future<List<Book>> getRecommendedBooks() async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) throw Exception('No authentication token found');
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/Book/recommended?count=6'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => Book.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to load recommended books');
+      }
+    } catch (e) {
+      print('❌ BOOK SERVICE: Error: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<Book>> getContentBasedRecommendations() async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) throw Exception('No authentication token found');
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/Book/recommended-content?count=6'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((json) => Book.fromJson(json)).toList();
+      } else {
+        throw Exception('Failed to load recommendations');
+      }
+    } catch (e) {
+      print('❌ BOOK SERVICE: Error: $e');
+      rethrow;
+    }
   }
 }
