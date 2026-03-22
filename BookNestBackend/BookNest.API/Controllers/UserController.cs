@@ -64,5 +64,19 @@ namespace BookNest.API.Controllers
 
             return Ok(user);
         }
+
+        [HttpPut("update-self")]
+        public async Task<ActionResult<UserResponse>> UpdateSelf([FromBody] UserSelfUpdateRequest request)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (userId == 0)
+                return Unauthorized();
+
+            var result = await _userService.UpdateSelfAsync(userId, request);
+            if (result == null)
+                return NotFound();
+
+            return Ok(result);
+        }
     }
 }

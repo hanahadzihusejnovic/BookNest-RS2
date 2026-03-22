@@ -22,6 +22,8 @@ namespace BookNest.Services.Mapping
 
             CreateMap<OrderItem, OrderItemResponse>()
                 .ForMember(dest => dest.BookTitle, opt => opt.MapFrom(src => src.Book.Title))
+                .ForMember(dest => dest.BookAuthorName, opt => opt.MapFrom(src => src.Book.Author.FirstName + " " + src.Book.Author.LastName))
+                .ForMember(dest => dest.BookImageUrl, opt => opt.MapFrom(src => src.Book.CoverImageUrl))
                 .ForMember(dest => dest.Subtotal, opt => opt.MapFrom(src => src.Quantity * src.Price));
 
             CreateMap<Shipping, ShippingResponse>();

@@ -264,5 +264,30 @@ namespace BookNest.Services.Services
 
             return response;
         }
+
+        public async Task<UserResponse?> UpdateSelfAsync(int userId, UserSelfUpdateRequest request, CancellationToken cancellationToken = default)
+        {
+            var user = await _dbContext.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+            if (user == null) return null;
+
+            if (!string.IsNullOrEmpty(request.Username) && request.Username != user.Username)
+            {
+                var existingUsername = await _dbContext.Users
+                    .FirstOrDefaultAsync(u => u.Username == request.Username && u.Id != userId, cancellationToken);
+
+                if (existingUsername != null)
+                    throw new Exception("Username already exists.");
+            }
+
+            _mapper.Map(request, user);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return _mapper.Map<UserResponse>(user);
+        }
     }
 }
