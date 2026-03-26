@@ -1,81 +1,81 @@
-class Event {
+class EventModel {
   final int id;
-  final String title;
-  final String description;
-  final DateTime dateTime;
-  final String location;
+  final String name;
+  final String? description;
+  final int eventCategoryId;
+  final String eventCategoryName;
+  final int organizerId;
+  final String organizerName;
+  final DateTime eventDate;
+  final String eventTime;
+  final String eventType;
+  final String? address;
+  final String? city;
+  final String? country;
+  final double ticketPrice;
+  final int capacity;
+  final bool isActive;
+  final String? imageUrl;
+  final int reservedSeats;
 
-  Event({
+  EventModel({
     required this.id,
-    required this.title,
-    required this.description,
-    required this.dateTime,
-    required this.location,
+    required this.name,
+    this.description,
+    required this.eventCategoryId,
+    required this.eventCategoryName,
+    required this.organizerId,
+    required this.organizerName,
+    required this.eventDate,
+    required this.eventTime,
+    required this.eventType,
+    this.address,
+    this.city,
+    this.country,
+    required this.ticketPrice,
+    required this.capacity,
+    required this.isActive,
+    this.imageUrl,
+    required this.reservedSeats,
   });
 
-  static List<Event> getDummyEvents() {
-  return [
-    Event(
-      id: 1,
-      title: 'Book club session',
-      description: 'Online book discussion - Theme: "The Boy In The Striped Pajamas" by John Boyne',
-      dateTime: DateTime.now().add(const Duration(days: 2)),
-      location: 'Online',
-    ),
-    Event(
-      id: 2,
-      title: 'Relax&Read session',
-      description: 'Enjoy your free time by reserving your place at BookNest center!',
-      dateTime: DateTime.now().add(const Duration(days: 5)),
-      location: 'BookNest center',
-    ),
-    Event(
-      id: 3,
-      title: 'Author Meet & Greet',
-      description: 'Meet your favorite author and get your books signed!',
-      dateTime: DateTime.now().add(const Duration(days: 8)),
-      location: 'Main Library',
-    ),
-    Event(
-      id: 4,
-      title: 'BookNest workshop',
-      description: 'Creative writing workshop',
-      dateTime: DateTime.now().add(const Duration(days: 7)),
-      location: 'Bookstore B',
-    ),
-    Event(
-      id: 5,
-      title: 'Kids corner',
-      description: 'Reading session for children',
-      dateTime: DateTime.now().add(const Duration(days: 10)),
-      location: 'National park',
-    ),
-    Event(
-      id: 6,
-      title: 'Poetry Night',
-      description: 'Share and listen to poetry readings',
-      dateTime: DateTime.now().add(const Duration(days: 12)),
-      location: 'BookNest Café',
-    ),
-    Event(
-      id: 7,
-      title: 'Book Swap Event',
-      description: 'Bring your old books and swap with others',
-      dateTime: DateTime.now().add(const Duration(days: 15)),
-      location: 'Community Center',
-    ),
-    Event(
-      id: 8,
-      title: 'Book  Event',
-      description: 'Bring your old books and swap with others',
-      dateTime: DateTime.now().add(const Duration(days: 15)),
-      location: 'Community',
-    ),
-  ];
-}
+  int get availableSeats => capacity - reservedSeats;
 
-  String getFormattedDate() {
+  String get location {
+    if (eventType == 'Online') return 'Online';
+    final parts = [address, city, country].where((e) => e != null && e.isNotEmpty).toList();
+    return parts.join(', ');
+  }
+
+  String get formattedDate {
     final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    return '${days[dateTime.weekday - 1]} - ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}pm';
+    final day = days[eventDate.weekday - 1];
+    final timeParts = eventTime.split(':');
+    final hour = timeParts[0];
+    final minute = timeParts[1];
+    return '$day at $hour:$minute';
+  }
+
+  factory EventModel.fromJson(Map<String, dynamic> json) {
+    return EventModel(
+      id: json['id'],
+      name: json['name'] ?? '',
+      description: json['description'],
+      eventCategoryId: json['eventCategoryId'],
+      eventCategoryName: json['eventCategoryName'] ?? '',
+      organizerId: json['organizerId'],
+      organizerName: json['organizerName'] ?? '',
+      eventDate: DateTime.parse(json['eventDate']),
+      eventTime: json['eventTime'] ?? '00:00:00',
+      eventType: json['eventType'] ?? '',
+      address: json['address'],
+      city: json['city'],
+      country: json['country'],
+      ticketPrice: (json['ticketPrice'] as num).toDouble(),
+      capacity: json['capacity'],
+      isActive: json['isActive'],
+      imageUrl: json['imageUrl'],
+      reservedSeats: json['reservedSeats'],
+    );
   }
 }
