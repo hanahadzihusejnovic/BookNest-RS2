@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/book.dart';
 import '../models/event.dart';
 import '../services/book_service.dart';
+import '../services/event_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import '../screens/book_details_screen.dart';
@@ -15,26 +16,45 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _bookService = BookService();
+  final _eventService = EventService();
   List<Book> _topBooks = [];
-  final List<Event> _events = Event.getDummyEvents();
+  List<EventModel> _upcomingEvents = [];
+  List<EventModel> _interestedEvents = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadBooks();
+    _loadData();
   }
 
-  Future<void> _loadBooks() async {
+  Future<void> _loadData() async {
     try {
       final books = await _bookService.getRecommendedBooks();
+      final events = await _eventService.getEvents(isActive: true, pageSize: 50);
+      
+      final now = DateTime.now();
+      final upcoming = events
+          .where((e) => e.eventDate.isAfter(now))
+          .take(3)
+          .toList();
+      
+      final interested = events
+          .where((e) => e.eventDate.isAfter(now))
+          .take(2)
+          .toList();
+
       setState(() {
         _topBooks = books;
+        _upcomingEvents = upcoming;
+        _interestedEvents = interested;
         _isLoading = false;
       });
     } catch (e) {
       setState(() {
         _topBooks = [];
+        _upcomingEvents = [];
+        _interestedEvents = [];
         _isLoading = false;
       });
     }
@@ -50,8 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       );
     }
-
-    final featured5 = _events.take(5).toList();
 
     return AppLayout(
       pageTitle: 'HOME',
@@ -78,7 +96,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   GridView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _topBooks.take(5).length,
+                    itemCount: _topBooks.take(6).length,
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 3,
                       mainAxisSpacing: 14,
@@ -202,93 +220,91 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 18),
 
             // Maybe interested
-            _SectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Maybe you are interested in...",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+            if (_interestedEvents.isNotEmpty)
+              _SectionCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Maybe you are interested in...",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 185,
-                    child: ListView.separated(
-                      itemCount: featured5.length,
-                      separatorBuilder: (_, __) =>
-                          const SizedBox(height: 10),
+                    const SizedBox(height: 12),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _interestedEvents.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (context, i) {
-                        final e = featured5[i];
+                        final e = _interestedEvents[i];
                         return _InterestRow(
-                          title: e.title,
-                          subtitle: e.description,
-                          timeText:
-                              "${_weekday(e.dateTime.weekday)} at ${e.dateTime.hour.toString().padLeft(2, '0')}:${e.dateTime.minute.toString().padLeft(2, '0')}pm",
+                          title: e.name,
+                          subtitle: e.description ?? '',
+                          timeText: e.formattedDate,
                           onTap: () {},
                         );
                       },
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
             const SizedBox(height: 18),
 
             // Upcoming events
-            _SectionCard(
-              child: Column(
-                children: [
-                  const Text(
-                    "Your upcoming events!",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+            if (_upcomingEvents.isNotEmpty)
+              _SectionCard(
+                child: Column(
+                  children: [
+                    const Text(
+                      "Your upcoming events!",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    width: double.infinity,
-                    height: 190,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.mediumBrown.withOpacity(0.55),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Column(
-                      children: [
-                        Expanded(
-                          child: ListView.separated(
-                            itemCount: _events.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 10),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.mediumBrown.withOpacity(0.55),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Column(
+                        children: [
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _upcomingEvents.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 10),
                             itemBuilder: (context, index) {
                               return _UpcomingEventTile(
-                                  event: _events[index]);
+                                event: _upcomingEvents[index],
+                              );
                             },
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Center(
-                          child: _SmallButton(
-                            text: "See more\nevents",
-                            onTap: () {},
+                          const SizedBox(height: 8),
+                          Center(
+                            child: _SmallButton(
+                              text: "See more\nevents",
+                              onTap: () {},
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
             const SizedBox(height: 22),
           ],
@@ -296,21 +312,9 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
-
-  String _weekday(int w) {
-    switch (w) {
-      case 1: return "Monday";
-      case 2: return "Tuesday";
-      case 3: return "Wednesday";
-      case 4: return "Thursday";
-      case 5: return "Friday";
-      case 6: return "Saturday";
-      default: return "Sunday";
-    }
-  }
 }
 
-// --- WIDGETI (ostaju isti) ---
+/* ----------------------- WIDGETS ----------------------- */
 
 class _SectionCard extends StatelessWidget {
   final Widget child;
@@ -402,25 +406,21 @@ class _InterestRow extends StatelessWidget {
 }
 
 class _UpcomingEventTile extends StatelessWidget {
-  final Event event;
+  final EventModel event;
   const _UpcomingEventTile({required this.event});
 
   @override
   Widget build(BuildContext context) {
-    final day = _weekday(event.dateTime.weekday);
-    final hh = event.dateTime.hour.toString().padLeft(2, '0');
-    final mm = event.dateTime.minute.toString().padLeft(2, '0');
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(event.title,
+        Text(event.name,
             style: const TextStyle(
                 color: Colors.white,
                 fontSize: 13,
                 fontWeight: FontWeight.w900)),
         const SizedBox(height: 3),
-        Text("Date&Time: $day - $hh:$mm",
+        Text("Date&Time: ${event.formattedDate}",
             style: const TextStyle(
                 color: Colors.white,
                 fontSize: 11,
@@ -433,18 +433,6 @@ class _UpcomingEventTile extends StatelessWidget {
                 fontWeight: FontWeight.w600)),
       ],
     );
-  }
-
-  String _weekday(int w) {
-    switch (w) {
-      case 1: return "Monday";
-      case 2: return "Tuesday";
-      case 3: return "Wednesday";
-      case 4: return "Thursday";
-      case 5: return "Friday";
-      case 6: return "Saturday";
-      default: return "Sunday";
-    }
   }
 }
 

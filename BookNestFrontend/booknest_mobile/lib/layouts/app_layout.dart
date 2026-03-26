@@ -6,6 +6,7 @@ import '../screens/cart_screen.dart';
 import '../screens/favorites_screen.dart';
 import '../screens/tbr_screen.dart';
 import '../screens/profile_screen.dart';
+import '../screens/events_screen.dart';
 
 class AppLayout extends StatelessWidget {
   final String pageTitle;
@@ -233,6 +234,14 @@ class _BookNestDrawer extends StatelessWidget {
               isActive: currentPage == 'EVENTS',
               onTap: () {
                 Navigator.pop(context);
+                if (currentPage != 'EVENTS') {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EventsScreen(),
+                    ),
+                  );
+                }
               },
             ),
             _DrawerDivider(),

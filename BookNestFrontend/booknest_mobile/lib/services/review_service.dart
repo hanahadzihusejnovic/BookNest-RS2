@@ -86,4 +86,43 @@ class ReviewService {
       throw Exception('Failed to delete review: ${response.body}');
     }
   }
+
+  Future<void> addEventReview({
+    required int eventId,
+    required int rating,
+    String? comment,
+  }) async {
+    final token = await _authService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/Review'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'eventId': eventId,
+        'rating': rating,
+        'comment': comment,
+      }),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to add review: ${response.body}');
+    }
+  }
+
+  Future<List<BookReview>> getEventReviews(int eventId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/Review/event/$eventId'),
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((r) => BookReview.fromJson(r)).toList();
+    } else {
+      throw Exception('Failed to load reviews');
+    }
+  }
 }
