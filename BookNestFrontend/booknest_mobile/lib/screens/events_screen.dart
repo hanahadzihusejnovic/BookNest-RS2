@@ -339,7 +339,14 @@ class _EventsScreenState extends State<EventsScreen> {
                                         itemBuilder: (context, i) {
                                           return _EventWithImageTile(
                                             event: _basedOnBooks[i],
-                                            onTap: () {},
+                                            onTap: () {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => EventDetailsScreen(event: _basedOnBooks[i]),
+                                                ),
+                                              );
+                                            },
                                           );
                                         },
                                       ),
@@ -425,22 +432,19 @@ class _EventTile extends StatelessWidget {
   final EventModel event;
   final VoidCallback onTap;
 
-  const _EventTile({
-    required this.event,
-    required this.onTap,
-  });
+  const _EventTile({required this.event, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.lightBrown,
+        color: AppColors.pageBg.withOpacity(0.25),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withOpacity(0.12)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Column(
@@ -449,19 +453,17 @@ class _EventTile extends StatelessWidget {
                 Text(
                   event.name,
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Date&Time: ${event.formattedDate}',
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -469,11 +471,10 @@ class _EventTile extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
-                    fontSize: 10.8,
-                    fontWeight: FontWeight.w500,
-                    height: 1.2,
-                  ),
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: 10.8,
+                      fontWeight: FontWeight.w500,
+                      height: 1.2),
                 ),
               ],
             ),
@@ -487,8 +488,7 @@ class _EventTile extends StatelessWidget {
                 elevation: 0,
                 backgroundColor: AppColors.darkBrown,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                    borderRadius: BorderRadius.circular(8)),
                 padding:
                     const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
               ),
@@ -496,11 +496,10 @@ class _EventTile extends StatelessWidget {
                 'Click for more\ndetails',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  height: 1.2,
-                ),
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    height: 1.2),
               ),
             ),
           ),
@@ -514,17 +513,14 @@ class _EventWithImageTile extends StatelessWidget {
   final EventModel event;
   final VoidCallback onTap;
 
-  const _EventWithImageTile({
-    required this.event,
-    required this.onTap,
-  });
+  const _EventWithImageTile({required this.event, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.lightBrown,
+        color: AppColors.pageBg.withOpacity(0.25),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white.withOpacity(0.12)),
       ),
@@ -538,19 +534,17 @@ class _EventWithImageTile extends StatelessWidget {
                 Text(
                   event.name,
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w800,
-                  ),
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Date&Time: ${event.formattedDate}',
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -558,34 +552,32 @@ class _EventWithImageTile extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
-                    fontSize: 10.8,
-                    fontWeight: FontWeight.w500,
-                    height: 1.2,
-                  ),
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: 10.8,
+                      fontWeight: FontWeight.w500,
+                      height: 1.2),
                 ),
                 const SizedBox(height: 8),
-                ElevatedButton(
-                  onPressed: onTap,
-                  style: ElevatedButton.styleFrom(
-                    elevation: 0,
-                    backgroundColor: AppColors.darkBrown,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 6,
-                      horizontal: 12,
-                    ),
-                  ),
-                  child: const Text(
-                    'Click for more\ndetails',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      height: 1.2,
+                Center(
+                  child: SizedBox(
+                    width: 160,
+                    height: 32,
+                    child: ElevatedButton(
+                      onPressed: onTap,
+                      style: ElevatedButton.styleFrom(
+                        elevation: 0,
+                        backgroundColor: AppColors.darkBrown,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: const Text(
+                        'Click for more details',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ),
                 ),

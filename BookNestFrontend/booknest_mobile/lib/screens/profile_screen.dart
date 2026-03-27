@@ -7,6 +7,8 @@ import '../layouts/app_layout.dart';
 import '../screens/login_screen.dart';
 import '../models/order.dart';
 import '../services/order_service.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import '../services/reservation_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -736,19 +738,171 @@ class _ReservationsTab extends StatefulWidget {
 
 class _ReservationsTabState extends State<_ReservationsTab>
     with AutomaticKeepAliveClientMixin {
+  final _reservationService = ReservationService();
+  List<ReservationModel> _reservations = [];
+  bool _isLoading = true;
+  String? _error;
+
   @override
   bool get wantKeepAlive => true;
 
   @override
+  void initState() {
+    super.initState();
+    _loadReservations();
+  }
+
+  Future<void> _loadReservations() async {
+    try {
+      final reservations = await _reservationService.getMyReservations();
+      setState(() {
+        _reservations = reservations;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     super.build(context);
-    return Center(
-      child: Text(
-        'Reservations coming soon!',
-        style: TextStyle(
-          color: AppColors.darkBrown,
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
+    return _isLoading
+        ? Center(
+            child: CircularProgressIndicator(color: AppColors.darkBrown))
+        : _error != null
+            ? Center(
+                child: Text(_error!,
+                    style: TextStyle(color: AppColors.darkBrown)))
+            : _reservations.isEmpty
+                ? Center(
+                    child: Text(
+                      'No reservations yet.',
+                      style: TextStyle(
+                        color: AppColors.darkBrown,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(14, 6, 14, 18),
+                    itemCount: _reservations.length,
+                    separatorBuilder: (_, __) =>
+                        const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      return _ReservationCard(
+                          reservation: _reservations[index]);
+                    },
+                  );
+  }
+}
+
+class _ReservationCard extends StatelessWidget {
+  final ReservationModel reservation;
+
+  const _ReservationCard({required this.reservation});
+
+  @override
+  Widget build(BuildContext context) {
+    final date = reservation.eventDateTime;
+    final days = [
+      'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+      'Friday', 'Saturday', 'Sunday'
+    ];
+    final formattedDate =
+        '${days[date.weekday - 1]} ${date.day}.${date.month}.${date.year} at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.mediumBrown,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            reservation.eventName,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          _ResInfoRow('Date & Time', formattedDate),
+          _ResInfoRow('Location', reservation.eventLocation),
+          _ResInfoRow('Tickets', reservation.quantity.toString()),
+          _ResInfoRow(
+            'Total',
+            reservation.totalPrice == 0
+                ? 'Free'
+                : '${reservation.totalPrice.toStringAsFixed(2)} BAM',
+          ),
+          _ResInfoRow('Status', reservation.reservationStatus),
+          if (reservation.ticketQRCodeLink != null) ...[
+            const SizedBox(height: 10),
+            Center(
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: 120,
+                    height: 120,
+                    child: QrImageView(
+                      data: reservation.ticketQRCodeLink!,
+                      version: QrVersions.auto,
+                      size: 120,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Scan for access!',
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.8),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ResInfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _ResInfoRow(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(
+              color: Colors.white, fontSize: 12, height: 1.3),
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            TextSpan(
+              text: value,
+              style: TextStyle(
+                  color: Colors.white.withOpacity(0.88),
+                  fontWeight: FontWeight.w500),
+            ),
+          ],
         ),
       ),
     );

@@ -49,4 +49,14 @@ class EventService {
         .take(count)
         .toList();
   }
+
+  Future<List<EventModel>> getRecommendedEvents({int count = 6}) async {
+    final uri = Uri.parse('$baseUrl/Event/recommended?count=$count');
+    final response = await http.get(uri, headers: await _headers());
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((e) => EventModel.fromJson(e)).toList();
+    }
+    throw Exception('Failed to load recommended events');
+  }
 }

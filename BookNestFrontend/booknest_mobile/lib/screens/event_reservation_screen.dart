@@ -80,9 +80,7 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
           _lastName = data['lastName'] ?? '';
           _email = data['emailAddress'] ?? '';
           _phone = data['phoneNumber'] ?? '';
-          _address = [data['address'], data['city'], data['country']]
-              .where((e) => e != null && e.isNotEmpty)
-              .join(', ');
+          _address = data['address'] ?? '';
           _isLoading = false;
         });
       } else {
