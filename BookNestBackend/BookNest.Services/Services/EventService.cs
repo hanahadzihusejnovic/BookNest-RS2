@@ -151,5 +151,40 @@ namespace BookNest.Services.Services
             return await GetByIdAsync(eventEntity.Id, cancellationToken)
                    ?? throw new Exception("Failed to retrieve created event.");
         }
+
+        public async Task<List<EventResponse>> GetRecommendedEventsAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
+        {
+            var myEventIds = await _dbContext.EventReservations
+                .Where(r => r.UserId == userId)
+                .Select(r => r.EventId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var similarUserIds = await _dbContext.EventReservations
+                .Where(r => r.UserId != userId && myEventIds.Contains(r.EventId))
+                .Select(r => r.UserId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var collaborativeEventIds = await _dbContext.EventReservations
+                .Where(r => similarUserIds.Contains(r.UserId) && !myEventIds.Contains(r.EventId))
+                .Select(r => r.EventId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var now = DateTime.UtcNow;
+
+            var recommended = await _dbContext.Events
+                .Include(e => e.EventCategory)
+                .Include(e => e.Organizer)
+                .Where(e => collaborativeEventIds.Contains(e.Id) &&
+                            e.IsActive &&
+                            e.EventDate > now)
+                .OrderBy(e => e.EventDate)
+                .Take(count)
+                .ToListAsync(cancellationToken);
+
+            return _mapper.Map<List<EventResponse>>(recommended);
+        }
     }
 }

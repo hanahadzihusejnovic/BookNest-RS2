@@ -12,5 +12,6 @@ namespace BookNest.Services.Interfaces
 {
     public interface IEventService : IBaseCRUDService<EventResponse, EventSearchObject, EventInsertRequest, EventUpdateRequest>
     {
+        Task<List<EventResponse>> GetRecommendedEventsAsync(int userId, int count = 6, CancellationToken cancellationToken = default);
     }
 }
