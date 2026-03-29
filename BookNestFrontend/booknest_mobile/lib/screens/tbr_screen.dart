@@ -3,6 +3,7 @@ import '../models/tbr.dart';
 import '../services/tbr_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
+import '../widgets/book_card.dart';
 
 class TBRScreen extends StatefulWidget {
   const TBRScreen({super.key});
@@ -270,12 +271,12 @@ class _TBRScreenState extends State<TBRScreen> {
                                       ),
                                       itemBuilder: (context, index) {
                                         final item = _currentPageItems[index];
-                                        return _TBRBookCard(
+                                        return BookCard(
                                           title: item.bookTitle,
                                           author: item.bookAuthor,
                                           imageUrl: item.bookImageUrl,
-                                          status: _statusLabel(item.readingStatus),
-                                          onRemove: () => _removeItem(item),
+                                          style: BookCardStyle.remove,
+                                          onTap: () => _removeItem(item),
                                         );
                                       },
                                     ),
@@ -328,124 +329,6 @@ class _TBRScreenState extends State<TBRScreen> {
                           ),
                       ],
                     ),
-    );
-  }
-}
-
-/* ----------------------- TBR BOOK CARD ----------------------- */
-
-class _TBRBookCard extends StatelessWidget {
-  final String title;
-  final String? author;
-  final String? imageUrl;
-  final String status;
-  final VoidCallback onRemove;
-
-  const _TBRBookCard({
-    required this.title,
-    required this.onRemove,
-    required this.status,
-    this.author,
-    this.imageUrl,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
-      decoration: BoxDecoration(
-        color: AppColors.pageBg.withOpacity(0.92),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Expanded(
-            flex: 6,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: SizedBox(
-                width: double.infinity,
-                child: imageUrl != null && imageUrl!.isNotEmpty
-                    ? Image.network(
-                        imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _fallback(),
-                      )
-                    : _fallback(),
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Expanded(
-            flex: 5,
-            child: Column(
-              children: [
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.darkBrown,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    height: 1.15,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  author ?? '',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: AppColors.darkBrown.withOpacity(0.7),
-                    fontSize: 9,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: double.infinity,
-                  height: 22,
-                  child: ElevatedButton(
-                    onPressed: onRemove,
-                    style: ElevatedButton.styleFrom(
-                      elevation: 0,
-                      backgroundColor: AppColors.darkBrown,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: const Text(
-                      'REMOVE',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 8.5,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 0.3,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _fallback() {
-    return Container(
-      color: Colors.white.withOpacity(0.45),
-      child: Icon(
-        Icons.menu_book_rounded,
-        color: AppColors.darkBrown.withOpacity(0.5),
-        size: 28,
-      ),
     );
   }
 }

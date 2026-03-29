@@ -49,5 +49,16 @@ namespace BookNest.API.Controllers
             var events = await _eventService.GetRecommendedEventsAsync(userId, count);
             return Ok(events);
         }
+
+        [HttpGet("recommended-content")]
+        public async Task<ActionResult<List<EventResponse>>> GetContentRecommended([FromQuery] int count = 6)
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (userId == 0)
+                return Unauthorized();
+
+            var events = await _eventService.GetContentBasedRecommendationsAsync(userId, count);
+            return Ok(events);
+        }
     }
 }

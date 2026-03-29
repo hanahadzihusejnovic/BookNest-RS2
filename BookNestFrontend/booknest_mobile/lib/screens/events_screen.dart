@@ -21,7 +21,7 @@ class _EventsScreenState extends State<EventsScreen> {
 
   List<EventModel> _allEvents = [];
   List<EventModel> _filteredEvents = [];
-  List<EventModel> _basedOnBooks = [];
+  List<EventModel> _basedOnReservations = [];
   List<EventCategory> _categories = [];
 
   bool _isLoading = true;
@@ -45,23 +45,26 @@ class _EventsScreenState extends State<EventsScreen> {
         isActive: true,
         pageSize: 50,
       );
+      final basedOnReservations =
+          await _eventService.getContentBasedRecommendations();
 
       final now = DateTime.now();
       final nextMonth = now.add(const Duration(days: 30));
       final upcoming = events
-          .where((e) => e.eventDate.isAfter(now) && e.eventDate.isBefore(nextMonth))
+          .where((e) =>
+              e.eventDate.isAfter(now) && e.eventDate.isBefore(nextMonth))
           .toList();
 
-      final basedOn = upcoming.take(2).toList();
-
+      if (!mounted) return;
       setState(() {
         _categories = categories;
         _allEvents = upcoming;
         _filteredEvents = upcoming;
-        _basedOnBooks = basedOn;
+        _basedOnReservations = basedOnReservations;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -76,7 +79,7 @@ class _EventsScreenState extends State<EventsScreen> {
       _filteredEvents = _allEvents.where((e) {
         return q.isEmpty ||
             e.name.toLowerCase().contains(q) ||
-            e.eventCategoryName.toLowerCase().contains(q);
+            e.organizerName.toLowerCase().contains(q);
       }).toList();
     });
   }
@@ -136,7 +139,6 @@ class _EventsScreenState extends State<EventsScreen> {
                     ),
                     itemBuilder: (context, i) {
                       final c = _categories[i];
-
                       return InkWell(
                         onTap: () {
                           _closeCategoriesDropdown();
@@ -193,9 +195,7 @@ class _EventsScreenState extends State<EventsScreen> {
       showBackButton: false,
       body: _isLoading
           ? Center(
-              child: CircularProgressIndicator(
-                color: AppColors.darkBrown,
-              ),
+              child: CircularProgressIndicator(color: AppColors.darkBrown),
             )
           : _error != null
               ? Center(
@@ -218,7 +218,7 @@ class _EventsScreenState extends State<EventsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _SearchBar(
-                          hint: 'Search by name, category',
+                          hint: 'Search by event name or organizer',
                           onChanged: (v) {
                             _query = v;
                             _applySearch();
@@ -254,6 +254,7 @@ class _EventsScreenState extends State<EventsScreen> {
                         ),
                         const SizedBox(height: 14),
 
+                        // Available this week
                         _SectionCard(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -285,18 +286,20 @@ class _EventsScreenState extends State<EventsScreen> {
                                       height: 280,
                                       child: ListView.separated(
                                         itemCount: _filteredEvents.length,
-                                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                                        separatorBuilder: (_, __) =>
+                                            const SizedBox(height: 10),
                                         itemBuilder: (context, i) {
                                           return _EventTile(
                                             event: _filteredEvents[i],
-                                            onTap: () {
-                                              Navigator.push(
+                                            onTap: () => Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (context) => EventDetailsScreen(event: _filteredEvents[i]),
+                                                builder: (context) =>
+                                                    EventDetailsScreen(
+                                                        event:
+                                                            _filteredEvents[i]),
                                               ),
-                                            );
-                                          },
+                                            ),
                                           );
                                         },
                                       ),
@@ -307,12 +310,13 @@ class _EventsScreenState extends State<EventsScreen> {
 
                         const SizedBox(height: 14),
 
+                        // Based on your reservations
                         _SectionCard(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Based on the books you read!',
+                                'Based on your reservations!',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 13,
@@ -320,13 +324,14 @@ class _EventsScreenState extends State<EventsScreen> {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              _basedOnBooks.isEmpty
+                              _basedOnReservations.isEmpty
                                   ? Padding(
                                       padding: const EdgeInsets.all(8),
                                       child: Text(
                                         'No recommended events right now.',
                                         style: TextStyle(
-                                          color: Colors.white.withOpacity(0.8),
+                                          color:
+                                              Colors.white.withOpacity(0.8),
                                           fontSize: 12.5,
                                         ),
                                       ),
@@ -334,19 +339,23 @@ class _EventsScreenState extends State<EventsScreen> {
                                   : SizedBox(
                                       height: 280,
                                       child: ListView.separated(
-                                        itemCount: _basedOnBooks.length,
-                                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                                        itemCount:
+                                            _basedOnReservations.length,
+                                        separatorBuilder: (_, __) =>
+                                            const SizedBox(height: 10),
                                         itemBuilder: (context, i) {
-                                          return _EventWithImageTile(
-                                            event: _basedOnBooks[i],
-                                            onTap: () {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) => EventDetailsScreen(event: _basedOnBooks[i]),
-                                                ),
-                                              );
-                                            },
+                                          return _EventTile(
+                                            event: _basedOnReservations[i],
+                                            onTap: () => Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    EventDetailsScreen(
+                                                        event:
+                                                            _basedOnReservations[
+                                                                i]),
+                                              ),
+                                            ),
                                           );
                                         },
                                       ),
@@ -370,10 +379,7 @@ class _SearchBar extends StatelessWidget {
   final String hint;
   final ValueChanged<String> onChanged;
 
-  const _SearchBar({
-    required this.hint,
-    required this.onChanged,
-  });
+  const _SearchBar({required this.hint, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -395,6 +401,8 @@ class _SearchBar extends StatelessWidget {
           decoration: InputDecoration(
             border: InputBorder.none,
             hintText: hint,
+            isDense: true,
+            contentPadding: EdgeInsets.zero,
             hintStyle: TextStyle(
               color: AppColors.darkBrown.withOpacity(0.55),
               fontSize: 13,
@@ -410,9 +418,7 @@ class _SearchBar extends StatelessWidget {
 class _SectionCard extends StatelessWidget {
   final Widget child;
 
-  const _SectionCard({
-    required this.child,
-  });
+  const _SectionCard({required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -457,6 +463,14 @@ class _EventTile extends StatelessWidget {
                       fontSize: 13,
                       fontWeight: FontWeight.w800),
                 ),
+                const SizedBox(height: 2),
+                Text(
+                  '${event.organizerName} - organizer',
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.75),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w500),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   'Date&Time: ${event.formattedDate}',
@@ -500,101 +514,6 @@ class _EventTile extends StatelessWidget {
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     height: 1.2),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _EventWithImageTile extends StatelessWidget {
-  final EventModel event;
-  final VoidCallback onTap;
-
-  const _EventWithImageTile({required this.event, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.pageBg.withOpacity(0.25),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.12)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event.name,
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Date&Time: ${event.formattedDate}',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  event.description ?? '',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
-                      fontSize: 10.8,
-                      fontWeight: FontWeight.w500,
-                      height: 1.2),
-                ),
-                const SizedBox(height: 8),
-                Center(
-                  child: SizedBox(
-                    width: 160,
-                    height: 32,
-                    child: ElevatedButton(
-                      onPressed: onTap,
-                      style: ElevatedButton.styleFrom(
-                        elevation: 0,
-                        backgroundColor: AppColors.darkBrown,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: const Text(
-                        'Click for more details',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Container(
-              width: 80,
-              height: 90,
-              color: AppColors.darkBrown.withOpacity(0.3),
-              child: const Icon(
-                Icons.menu_book_rounded,
-                color: Colors.white,
-                size: 30,
               ),
             ),
           ),

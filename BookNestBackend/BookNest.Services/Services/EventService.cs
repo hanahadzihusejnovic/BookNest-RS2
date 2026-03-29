@@ -186,5 +186,42 @@ namespace BookNest.Services.Services
 
             return _mapper.Map<List<EventResponse>>(recommended);
         }
+
+        public async Task<List<EventResponse>> GetContentBasedRecommendationsAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
+        {
+            var myEventIds = await _dbContext.EventReservations
+                .Where(r => r.UserId == userId)
+                .Select(r => r.EventId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var preferredCategoryIds = await _dbContext.EventReservations
+                .Where(r => r.UserId == userId)
+                .Include(r => r.Event)
+                .Select(r => r.Event.EventCategoryId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var now = DateTime.UtcNow;
+
+            IQueryable<Event> query = _dbContext.Events
+                .Include(e => e.EventCategory)
+                .Include(e => e.Organizer)
+                .Where(e => e.IsActive &&
+                            e.EventDate > now &&
+                            !myEventIds.Contains(e.Id));
+
+            if (preferredCategoryIds.Any())
+            {
+                query = query.Where(e => preferredCategoryIds.Contains(e.EventCategoryId));
+            }
+
+            var recommended = await query
+                .OrderBy(e => e.EventDate)
+                .Take(count)
+                .ToListAsync(cancellationToken);
+
+            return _mapper.Map<List<EventResponse>>(recommended);
+        }
     }
 }

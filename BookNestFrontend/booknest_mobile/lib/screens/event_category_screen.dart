@@ -23,9 +23,13 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
   final _eventService = EventService();
 
   List<EventModel> _events = [];
+  List<EventModel> _filteredEvents = [];
   bool _isLoading = true;
   String? _error;
   String _query = '';
+
+  String? _filterEventType; // 'Online', 'InPerson', null = sve
+  String? _filterPrice;     // 'free', 'under20', 'over20', null = sve
 
   @override
   void initState() {
@@ -46,11 +50,14 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
             e.eventCategoryId == widget.category.id;
       }).toList();
 
+      if (!mounted) return;
       setState(() {
         _events = filtered;
+        _filteredEvents = filtered;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -58,15 +65,190 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
     }
   }
 
-  List<EventModel> get _searchedEvents {
-    if (_query.isEmpty) return _events;
+  void _applySearch() {
+    final q = _query.trim().toLowerCase();
+    setState(() {
+      _filteredEvents = _events.where((e) {
+        final matchesSearch = q.isEmpty ||
+            e.name.toLowerCase().contains(q) ||
+            e.organizerName.toLowerCase().contains(q);
 
-    final q = _query.toLowerCase();
-    return _events.where((e) {
-      return e.name.toLowerCase().contains(q) ||
-          e.eventCategoryName.toLowerCase().contains(q) ||
-          (e.description ?? '').toLowerCase().contains(q);
-    }).toList();
+        final matchesType =
+            _filterEventType == null || e.eventType == _filterEventType;
+
+        final matchesPrice = _filterPrice == null ||
+            (_filterPrice == 'free' && e.ticketPrice == 0) ||
+            (_filterPrice == 'under20' &&
+                e.ticketPrice > 0 &&
+                e.ticketPrice < 20) ||
+            (_filterPrice == 'over20' && e.ticketPrice >= 20);
+
+        return matchesSearch && matchesType && matchesPrice;
+      }).toList();
+    });
+  }
+
+  void _showFilterDialog() {
+    String? tempEventType = _filterEventType;
+    String? tempPrice = _filterPrice;
+
+    final typeOptions = [
+      {'label': 'All', 'value': null as String?},
+      {'label': 'Online', 'value': 'Online'},
+      {'label': 'In Person', 'value': 'InPerson'},
+    ];
+
+    final priceOptions = [
+      {'label': 'All', 'value': null as String?},
+      {'label': 'Free', 'value': 'free'},
+      {'label': 'Under 20 BAM', 'value': 'under20'},
+      {'label': '20 BAM and above', 'value': 'over20'},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppColors.pageBg,
+              title: Text(
+                'Filter events',
+                style: TextStyle(
+                  color: AppColors.darkBrown,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Event type',
+                      style: TextStyle(
+                        color: AppColors.darkBrown,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...typeOptions.map((opt) {
+                      final isSelected = tempEventType == opt['value'];
+                      return GestureDetector(
+                        onTap: () {
+                          setDialogState(() {
+                            tempEventType = opt['value'];
+                          });
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.darkBrown
+                                : AppColors.mediumBrown.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            opt['label'] as String,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.darkBrown,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Price',
+                      style: TextStyle(
+                        color: AppColors.darkBrown,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...priceOptions.map((opt) {
+                      final isSelected = tempPrice == opt['value'];
+                      return GestureDetector(
+                        onTap: () {
+                          setDialogState(() {
+                            tempPrice = opt['value'];
+                          });
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.darkBrown
+                                : AppColors.mediumBrown.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            opt['label'] as String,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.darkBrown,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _filterEventType = null;
+                      _filterPrice = null;
+                    });
+                    _applySearch();
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    'Reset',
+                    style: TextStyle(color: AppColors.darkBrown),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _filterEventType = tempEventType;
+                      _filterPrice = tempPrice;
+                    });
+                    _applySearch();
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.darkBrown,
+                  ),
+                  child: const Text(
+                    'Apply',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -84,15 +266,14 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _SearchBar(
-                  hint: 'Search by name',
+                  hint: 'Search by event name or organizer',
                   onChanged: (value) {
-                    setState(() {
-                      _query = value;
-                    });
+                    _query = value;
+                    _applySearch();
                   },
                 ),
                 const SizedBox(height: 10),
-                const _FilterRow(),
+                _FilterRow(onTap: _showFilterDialog),
                 const SizedBox(height: 12),
               ],
             ),
@@ -118,7 +299,7 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
                           ),
                         ),
                       )
-                    : _searchedEvents.isEmpty
+                    : _filteredEvents.isEmpty
                         ? Center(
                             child: Text(
                               'No events found',
@@ -130,15 +311,14 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
                             ),
                           )
                         : ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(14, 0, 14, 18),
-                            itemCount: _searchedEvents.length,
+                            padding:
+                                const EdgeInsets.fromLTRB(14, 0, 14, 18),
+                            itemCount: _filteredEvents.length,
                             separatorBuilder: (_, __) =>
                                 const SizedBox(height: 16),
                             itemBuilder: (context, index) {
-                              final event = _searchedEvents[index];
-                              return _EventCategoryCard(
-                                event: event
-                              );
+                              final event = _filteredEvents[index];
+                              return _EventCategoryCard(event: event);
                             },
                           ),
           ),
@@ -154,37 +334,35 @@ class _SearchBar extends StatelessWidget {
   final String hint;
   final ValueChanged<String> onChanged;
 
-  const _SearchBar({
-    required this.hint,
-    required this.onChanged,
-  });
+  const _SearchBar({required this.hint, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 42,
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.45),
-        borderRadius: BorderRadius.circular(10),
+        color: Colors.white.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: TextField(
-        onChanged: onChanged,
-        style: TextStyle(
-          color: AppColors.darkBrown,
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-        ),
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 11,
-          ),
-          hintText: hint,
-          hintStyle: TextStyle(
-            color: AppColors.darkBrown.withOpacity(0.35),
+      child: Center(
+        child: TextField(
+          onChanged: onChanged,
+          style: TextStyle(
+            color: AppColors.darkBrown,
             fontSize: 13,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
+          ),
+          decoration: InputDecoration(
+            border: InputBorder.none,
+            hintText: hint,
+            isDense: true,
+            contentPadding: EdgeInsets.zero,
+            hintStyle: TextStyle(
+              color: AppColors.darkBrown.withOpacity(0.55),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
@@ -195,27 +373,31 @@ class _SearchBar extends StatelessWidget {
 /* ---------------- FILTER ROW ---------------- */
 
 class _FilterRow extends StatelessWidget {
-  const _FilterRow();
+  final VoidCallback onTap;
+  const _FilterRow({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          'Filter',
-          style: TextStyle(
-            color: AppColors.darkBrown,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        children: [
+          Text(
+            'Filter',
+            style: TextStyle(
+              color: AppColors.darkBrown,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
           ),
-        ),
-        const SizedBox(width: 4),
-        Icon(
-          Icons.arrow_drop_down,
-          color: AppColors.darkBrown,
-          size: 18,
-        ),
-      ],
+          const SizedBox(width: 4),
+          Icon(
+            Icons.arrow_drop_down,
+            color: AppColors.darkBrown,
+            size: 18,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -225,9 +407,7 @@ class _FilterRow extends StatelessWidget {
 class _EventCategoryCard extends StatelessWidget {
   final EventModel event;
 
-  const _EventCategoryCard({
-    required this.event
-  });
+  const _EventCategoryCard({required this.event});
 
   @override
   Widget build(BuildContext context) {
@@ -297,7 +477,8 @@ class _EventCategoryCard extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => EventDetailsScreen(event: event),
+                        builder: (context) =>
+                            EventDetailsScreen(event: event),
                       ),
                     );
                   },
@@ -311,7 +492,8 @@ class _EventCategoryCard extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => EventReservationScreen(event: event, quantity: 1),
+                        builder: (context) => EventReservationScreen(
+                            event: event, quantity: 1),
                       ),
                     );
                   },
@@ -329,10 +511,7 @@ class _EventInfoLine extends StatelessWidget {
   final String label;
   final String value;
 
-  const _EventInfoLine({
-    required this.label,
-    required this.value,
-  });
+  const _EventInfoLine({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -346,9 +525,7 @@ class _EventInfoLine extends StatelessWidget {
         children: [
           TextSpan(
             text: '$label: ',
-            style: const TextStyle(
-              fontWeight: FontWeight.w800,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.w800),
           ),
           TextSpan(
             text: value,
@@ -366,9 +543,7 @@ class _EventInfoLine extends StatelessWidget {
 class _EventImage extends StatelessWidget {
   final String? imageUrl;
 
-  const _EventImage({
-    required this.imageUrl,
-  });
+  const _EventImage({required this.imageUrl});
 
   @override
   Widget build(BuildContext context) {
@@ -404,10 +579,7 @@ class _EventActionButton extends StatelessWidget {
   final String text;
   final VoidCallback onTap;
 
-  const _EventActionButton({
-    required this.text,
-    required this.onTap,
-  });
+  const _EventActionButton({required this.text, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

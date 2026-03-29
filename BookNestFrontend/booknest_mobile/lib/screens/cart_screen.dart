@@ -142,7 +142,7 @@ class _CartScreenState extends State<CartScreen> {
                                       crossAxisCount: 3,
                                       mainAxisSpacing: 14,
                                       crossAxisSpacing: 14,
-                                      childAspectRatio: 0.42,
+                                      childAspectRatio: 0.48,
                                     ),
                                     itemBuilder: (context, index) {
                                       final item = _cart!.cartItems[index];
@@ -292,7 +292,7 @@ class _CartItemCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            flex: 6,
+            flex: 7,
             child: ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: SizedBox(
@@ -301,7 +301,7 @@ class _CartItemCard extends StatelessWidget {
                         item.bookImageUrl!.isNotEmpty
                     ? Image.network(
                         item.bookImageUrl!,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain,
                         errorBuilder: (_, __, ___) => _fallback(),
                       )
                     : _fallback(),

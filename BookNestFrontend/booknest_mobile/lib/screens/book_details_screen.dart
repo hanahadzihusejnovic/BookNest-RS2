@@ -844,7 +844,7 @@ class _TopSection extends StatelessWidget {
             child: book.imageUrl != null && book.imageUrl!.isNotEmpty
                 ? Image.network(
                     book.imageUrl!,
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => imageFallback(),
                   )
                 : imageFallback(),
