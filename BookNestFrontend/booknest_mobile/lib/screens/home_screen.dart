@@ -6,6 +6,7 @@ import '../services/event_service.dart';
 import '../services/reservation_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
+import '../widgets/book_card.dart';
 import '../screens/book_details_screen.dart';
 import '../screens/event_details_screen.dart';
 import '../screens/profile_screen.dart';
@@ -45,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
           .take(3)
           .toList();
 
+      if (!mounted) return;
       setState(() {
         _topBooks = books;
         _interestedEvents = recommended;
@@ -52,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _topBooks = [];
         _interestedEvents = [];
@@ -96,7 +99,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "Top 5 picks for you!",
+                    "Top picks for you!",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -117,119 +120,16 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     itemBuilder: (context, index) {
                       final book = _topBooks[index];
-                      return Container(
-                        padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
-                        decoration: BoxDecoration(
-                          color: AppColors.pageBg.withOpacity(0.92),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              flex: 6,
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(4),
-                                child: SizedBox(
-                                  width: double.infinity,
-                                  child: book.imageUrl != null &&
-                                          book.imageUrl!.isNotEmpty
-                                      ? Image.network(
-                                          book.imageUrl!,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) =>
-                                              Container(
-                                            color: Colors.white
-                                                .withOpacity(0.45),
-                                            child: Icon(
-                                              Icons.menu_book_rounded,
-                                              color: AppColors.darkBrown
-                                                  .withOpacity(0.5),
-                                              size: 28,
-                                            ),
-                                          ),
-                                        )
-                                      : Container(
-                                          color:
-                                              Colors.white.withOpacity(0.45),
-                                          child: Icon(
-                                            Icons.menu_book_rounded,
-                                            color: AppColors.darkBrown
-                                                .withOpacity(0.5),
-                                            size: 28,
-                                          ),
-                                        ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Expanded(
-                              flex: 5,
-                              child: Column(
-                                children: [
-                                  Text(
-                                    book.title,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: AppColors.darkBrown,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      height: 1.15,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    book.author,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color:
-                                          AppColors.darkBrown.withOpacity(0.7),
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 22,
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                BookDetailsScreen(book: book),
-                                          ),
-                                        );
-                                      },
-                                      style: ElevatedButton.styleFrom(
-                                        elevation: 0,
-                                        backgroundColor: AppColors.darkBrown,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                              BorderRadius.circular(4),
-                                        ),
-                                        padding: EdgeInsets.zero,
-                                      ),
-                                      child: const Text(
-                                        'DETAILS',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 8.5,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                      return BookCard(
+                        title: book.title,
+                        author: book.author,
+                        imageUrl: book.imageUrl,
+                        style: BookCardStyle.details,
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BookDetailsScreen(book: book),
+                          ),
                         ),
                       );
                     },
@@ -260,21 +160,21 @@ class _HomeScreenState extends State<HomeScreen> {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: _interestedEvents.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 10),
                             itemBuilder: (context, i) {
                               final e = _interestedEvents[i];
                               return _InterestRow(
                                 title: e.name,
                                 subtitle: e.description ?? '',
                                 timeText: e.formattedDate,
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => EventDetailsScreen(event: e),
-                                    ),
-                                  );
-                                },
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        EventDetailsScreen(event: e),
+                                  ),
+                                ),
                               );
                             },
                           )
@@ -282,21 +182,21 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: 280,
                             child: ListView.separated(
                               itemCount: _interestedEvents.length,
-                              separatorBuilder: (_, __) => const SizedBox(height: 10),
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
                               itemBuilder: (context, i) {
                                 final e = _interestedEvents[i];
                                 return _InterestRow(
                                   title: e.name,
                                   subtitle: e.description ?? '',
                                   timeText: e.formattedDate,
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => EventDetailsScreen(event: e),
-                                      ),
-                                    );
-                                  },
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          EventDetailsScreen(event: e),
+                                    ),
+                                  ),
                                 );
                               },
                             ),
@@ -309,39 +209,26 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // Upcoming events — korisnikove rezervacije
             if (_upcomingReservations.isNotEmpty)
-            _SectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    "Your upcoming events!",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+              _SectionCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      "Your upcoming events!",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  _upcomingReservations.length <= 3
-                      ? ListView.separated(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _upcomingReservations.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 10),
-                          itemBuilder: (context, index) {
-                            final r = _upcomingReservations[index];
-                            return _UpcomingReservationRow(
-                              eventName: r.eventName,
-                              dateText: _formatDate(r.eventDateTime),
-                              location: r.eventLocation,
-                            );
-                          },
-                        )
-                      : SizedBox(
-                          height: 280,
-                          child: ListView.separated(
+                    const SizedBox(height: 12),
+                    _upcomingReservations.length <= 3
+                        ? ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
                             itemCount: _upcomingReservations.length,
-                            separatorBuilder: (_, __) => const SizedBox(height: 10),
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 10),
                             itemBuilder: (context, index) {
                               final r = _upcomingReservations[index];
                               return _UpcomingReservationRow(
@@ -350,44 +237,57 @@ class _HomeScreenState extends State<HomeScreen> {
                                 location: r.eventLocation,
                               );
                             },
+                          )
+                        : SizedBox(
+                            height: 280,
+                            child: ListView.separated(
+                              itemCount: _upcomingReservations.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(height: 10),
+                              itemBuilder: (context, index) {
+                                final r = _upcomingReservations[index];
+                                return _UpcomingReservationRow(
+                                  eventName: r.eventName,
+                                  dateText: _formatDate(r.eventDateTime),
+                                  location: r.eventLocation,
+                                );
+                              },
+                            ),
                           ),
-                        ),
-                  const SizedBox(height: 10),
-                  Center(
-                    child: SizedBox(
-                      width: 160,
-                      height: 32,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.push(
+                    const SizedBox(height: 10),
+                    Center(
+                      child: SizedBox(
+                        width: 160,
+                        height: 32,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const ProfileScreen(),
                             ),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          elevation: 0,
-                          backgroundColor: AppColors.darkBrown,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
                           ),
-                          padding: EdgeInsets.zero,
-                        ),
-                        child: const Text(
-                          'See more events',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w700,
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+                            backgroundColor: AppColors.darkBrown,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                          child: const Text(
+                            'See more events',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
             const SizedBox(height: 22),
           ],

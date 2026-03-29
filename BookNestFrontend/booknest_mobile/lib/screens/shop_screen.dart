@@ -7,6 +7,7 @@ import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import 'category_screen.dart';
 import '../screens/book_details_screen.dart';
+import '../widgets/book_card.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -20,13 +21,14 @@ class _ShopScreenState extends State<ShopScreen> {
   final _categoryService = CategoryService();
 
   List<Book> _recommendedBooks = [];
+  List<Book> _filteredRecommended = [];
   List<Category> _categories = [];
   final Map<int, List<Book>> _booksByCategory = {};
+  final Map<int, List<Book>> _filteredByCategory = {};
 
   bool _isLoading = true;
   String? _error;
   int? _selectedCategoryId;
-
   String _query = "";
 
   final LayerLink _catLink = LayerLink();
@@ -46,9 +48,12 @@ class _ShopScreenState extends State<ShopScreen> {
       final categories = await _categoryService.getCategories();
       final recommended = await _bookService.getContentBasedRecommendations();
 
+      if (!mounted) return;
+
       setState(() {
         _categories = categories;
         _recommendedBooks = recommended;
+        _filteredRecommended = recommended;
         _isLoading = false;
       });
 
@@ -58,12 +63,13 @@ class _ShopScreenState extends State<ShopScreen> {
       );
 
       await _loadBooksForCategory(defaultCategory.id);
-
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _categories = Category.getDummyCategories();
         _recommendedBooks = [];
+        _filteredRecommended = [];
         _isLoading = false;
       });
 
@@ -75,6 +81,7 @@ class _ShopScreenState extends State<ShopScreen> {
 
   Future<void> _loadBooksForCategory(int categoryId) async {
     if (_booksByCategory.containsKey(categoryId)) {
+      if (!mounted) return;
       setState(() => _selectedCategoryId = categoryId);
       return;
     }
@@ -82,11 +89,14 @@ class _ShopScreenState extends State<ShopScreen> {
     try {
       final books =
           await _bookService.getBooksByCategory(categoryId, pageSize: 6);
+      if (!mounted) return;
       setState(() {
         _booksByCategory[categoryId] = books;
+        _filteredByCategory[categoryId] = books;
         _selectedCategoryId = categoryId;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _selectedCategoryId = categoryId);
     }
   }
@@ -100,13 +110,26 @@ class _ShopScreenState extends State<ShopScreen> {
     }
   }
 
-  List<Book> _applySearch(List<Book> books) {
+  void _applySearch() {
     final q = _query.trim().toLowerCase();
-    if (q.isEmpty) return books;
-    return books.where((b) {
-      return b.title.toLowerCase().contains(q) ||
-          b.author.toLowerCase().contains(q);
-    }).toList();
+    setState(() {
+      _filteredRecommended = q.isEmpty
+          ? _recommendedBooks
+          : _recommendedBooks.where((b) {
+              return b.title.toLowerCase().contains(q) ||
+                  b.author.toLowerCase().contains(q);
+            }).toList();
+
+      if (_selectedCategoryId != null &&
+          _booksByCategory.containsKey(_selectedCategoryId)) {
+        _filteredByCategory[_selectedCategoryId!] = q.isEmpty
+            ? _booksByCategory[_selectedCategoryId!]!
+            : _booksByCategory[_selectedCategoryId!]!.where((b) {
+                return b.title.toLowerCase().contains(q) ||
+                    b.author.toLowerCase().contains(q);
+              }).toList();
+      }
+    });
   }
 
   void _toggleCategoriesDropdown() {
@@ -170,7 +193,8 @@ class _ShopScreenState extends State<ShopScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => CategoryScreen(category: c),
+                              builder: (context) =>
+                                  CategoryScreen(category: c),
                             ),
                           );
                         },
@@ -185,7 +209,9 @@ class _ShopScreenState extends State<ShopScreen> {
                             style: TextStyle(
                               color: AppColors.pageBg,
                               fontSize: 11.5,
-                              fontWeight: selected ? FontWeight.w900 : FontWeight.w500,
+                              fontWeight: selected
+                                  ? FontWeight.w900
+                                  : FontWeight.w500,
                               letterSpacing: 0.6,
                             ),
                           ),
@@ -222,12 +248,11 @@ class _ShopScreenState extends State<ShopScreen> {
       );
     }
 
-    final recommended = _applySearch(_recommendedBooks).take(6).toList();
+    final recommended = _filteredRecommended.take(6).toList();
     final cat = _selectedCategory;
-    final catBooksRaw = (_selectedCategoryId != null)
-        ? (_booksByCategory[_selectedCategoryId] ?? [])
+    final categoryBooks = _selectedCategoryId != null
+        ? (_filteredByCategory[_selectedCategoryId] ?? [])
         : <Book>[];
-    final categoryBooks = _applySearch(catBooksRaw);
 
     return AppLayout(
       pageTitle: 'SHOP',
@@ -242,15 +267,16 @@ class _ShopScreenState extends State<ShopScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Search bar
               _SearchBar(
-                hint: "Search by name, author, genre",
-                onChanged: (v) => setState(() => _query = v),
+                hint: "Search by book name or author",
+                onChanged: (v) {
+                  _query = v;
+                  _applySearch();
+                },
               ),
 
               const SizedBox(height: 12),
 
-              // Categories dropdown
               CompositedTransformTarget(
                 link: _catLink,
                 child: InkWell(
@@ -281,7 +307,6 @@ class _ShopScreenState extends State<ShopScreen> {
 
               const SizedBox(height: 10),
 
-              // Recommended
               _SectionCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,39 +320,54 @@ class _ShopScreenState extends State<ShopScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: recommended.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        childAspectRatio: 0.62,
-                      ),
-                      itemBuilder: (context, index) {
-                        final book = recommended[index];
-                        return _ShopBookCard(
-                          book: book, 
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => BookDetailsScreen(book: book),
+                    recommended.isEmpty
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Text(
+                                "No books to show.",
+                                style: TextStyle(
+                                  color: AppColors.pageBg.withOpacity(0.9),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
-                            );
-                          },
-                        );
-                      },
-                    ),
+                            ),
+                          )
+                        : GridView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: recommended.length,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              mainAxisSpacing: 12,
+                              crossAxisSpacing: 12,
+                              childAspectRatio: 0.48,
+                            ),
+                            itemBuilder: (context, index) {
+                              final book = recommended[index];
+                              return BookCard(
+                                title: book.title,
+                                author: book.author,
+                                imageUrl: book.imageUrl,
+                                style: BookCardStyle.details,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        BookDetailsScreen(book: book),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 14),
 
-              // Category section
               _SectionCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -364,22 +404,24 @@ class _ShopScreenState extends State<ShopScreen> {
                             gridDelegate:
                                 const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 3,
-                              mainAxisSpacing: 12,
-                              crossAxisSpacing: 12,
-                              childAspectRatio: 0.62,
+                              mainAxisSpacing: 14,
+                              crossAxisSpacing: 14,
+                              childAspectRatio: 0.48,
                             ),
                             itemBuilder: (context, index) {
                               final book = categoryBooks[index];
-                              return _ShopBookCard(
-                                book: book, 
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => BookDetailsScreen(book: book),
-                                    ),
-                                  );
-                                },
+                              return BookCard(
+                                title: book.title,
+                                author: book.author,
+                                imageUrl: book.imageUrl,
+                                style: BookCardStyle.details,
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        BookDetailsScreen(book: book),
+                                  ),
+                                ),
                               );
                             },
                           ),
@@ -435,6 +477,8 @@ class _SearchBar extends StatelessWidget {
           decoration: InputDecoration(
             border: InputBorder.none,
             hintText: hint,
+            isDense: true,
+            contentPadding: EdgeInsets.zero,
             hintStyle: TextStyle(
               color: AppColors.darkBrown.withOpacity(0.55),
               fontSize: 13,
@@ -461,89 +505,6 @@ class _SectionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
       ),
       child: child,
-    );
-  }
-}
-
-class _ShopBookCard extends StatelessWidget {
-  final Book book;
-  final VoidCallback onTap;
-
-  const _ShopBookCard({required this.book, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: AppColors.lightBrown,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: Colors.white.withOpacity(0.10)),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppColors.pageBg.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: (book.imageUrl != null && book.imageUrl!.isNotEmpty)
-                      ? Image.network(
-                          book.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Center(
-                            child: Icon(
-                              Icons.menu_book_rounded,
-                              color: AppColors.darkBrown.withOpacity(0.65),
-                              size: 30,
-                            ),
-                          ),
-                        )
-                      : Center(
-                          child: Icon(
-                            Icons.menu_book_rounded,
-                            color: AppColors.darkBrown.withOpacity(0.65),
-                            size: 30,
-                          ),
-                        ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              book.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11.5,
-                fontWeight: FontWeight.w700,
-                height: 1.08,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              book.author,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.85),
-                fontSize: 10.5,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -9,6 +9,7 @@ import '../models/order.dart';
 import '../services/order_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../services/reservation_service.dart';
+import '../widgets/book_card.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -578,10 +579,11 @@ class _ProfileButton extends StatelessWidget {
                                     ),
                                     itemBuilder: (context, index) {
                                       final item = _currentPageItems[index];
-                                      return _BookGridCard(
+                                      return BookCard(
                                         title: item.bookTitle,
                                         author: item.bookAuthorName,
                                         imageUrl: item.bookImageUrl,
+                                        style: BookCardStyle.plain,
                                       );
                                     },
                                   ),
@@ -635,95 +637,6 @@ class _ProfileButton extends StatelessWidget {
                           ),
                       ],
                     );
-    }
-  }
-
-/* ----------------------- BOOK GRID CARD ----------------------- */
-
-  class _BookGridCard extends StatelessWidget {
-    final String title;
-    final String? author;
-    final String? imageUrl;
-
-    const _BookGridCard({
-      required this.title,
-      this.author,
-      this.imageUrl,
-    });
-
-    @override
-    Widget build(BuildContext context) {
-      return Container(
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
-        decoration: BoxDecoration(
-          color: AppColors.pageBg.withOpacity(0.92),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              flex: 5,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: imageUrl != null && imageUrl!.isNotEmpty
-                      ? Image.network(
-                          imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _fallback(),
-                        )
-                      : _fallback(),
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Expanded(
-              flex: 3,
-              child: Column(
-                children: [
-                  Text(
-                    title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppColors.darkBrown,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      height: 1.15,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    author ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: AppColors.darkBrown.withOpacity(0.7),
-                      fontSize: 9,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    Widget _fallback() {
-      return Container(
-        color: Colors.white.withOpacity(0.45),
-        child: Icon(
-          Icons.menu_book_rounded,
-          color: AppColors.darkBrown.withOpacity(0.5),
-          size: 28,
-        ),
-      );
     }
   }
 
@@ -817,93 +730,148 @@ class _ReservationCard extends StatelessWidget {
         '${days[date.weekday - 1]} ${date.day}.${date.month}.${date.year} at ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.mediumBrown,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.12)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Text(
-            reservation.eventName,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  reservation.eventName,
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Date & Time: $formattedDate',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Location: ${reservation.eventLocation}',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Tickets: ${reservation.quantity}',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Total: ${reservation.totalPrice == 0 ? 'Free' : '${reservation.totalPrice.toStringAsFixed(2)} BAM'}',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Status: ${reservation.reservationStatus}',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
-          _ResInfoRow('Date & Time', formattedDate),
-          _ResInfoRow('Location', reservation.eventLocation),
-          _ResInfoRow('Tickets', reservation.quantity.toString()),
-          _ResInfoRow(
-            'Total',
-            reservation.totalPrice == 0
-                ? 'Free'
-                : '${reservation.totalPrice.toStringAsFixed(2)} BAM',
-          ),
-          _ResInfoRow('Status', reservation.reservationStatus),
-          if (reservation.ticketQRCodeLink != null) ...[
-            const SizedBox(height: 10),
-            Center(
-              child: Column(
-                children: [
-                  SizedBox(
-                    width: 120,
-                    height: 120,
-                    child: QrImageView(
-                      data: reservation.ticketQRCodeLink!,
-                      version: QrVersions.auto,
-                      size: 120,
+          const SizedBox(width: 10),
+          SizedBox(
+            width: 92,
+            child: ElevatedButton(
+              onPressed: () {
+                // navigacija na event details ako imas event model
+                // za sada samo QR u dialogu
+                if (reservation.ticketQRCodeLink != null) {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      backgroundColor: AppColors.pageBg,
+                      title: Text(
+                        reservation.eventName,
+                        style: TextStyle(
+                          color: AppColors.darkBrown,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      content: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 160,
+                              height: 160,
+                              child: QrImageView(
+                                data: reservation.ticketQRCodeLink!,
+                                version: QrVersions.auto,
+                                size: 160,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Scan for access!',
+                              style: TextStyle(
+                                color: AppColors.darkBrown,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
+                            'Close',
+                            style: TextStyle(color: AppColors.darkBrown),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Scan for access!',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.8),
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                backgroundColor: AppColors.darkBrown,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+              ),
+              child: const Text(
+                'View\nticket',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
               ),
             ),
-          ],
+          ),
         ],
-      ),
-    );
-  }
-}
-
-class _ResInfoRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _ResInfoRow(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 3),
-      child: RichText(
-        text: TextSpan(
-          style: const TextStyle(
-              color: Colors.white, fontSize: 12, height: 1.3),
-          children: [
-            TextSpan(
-              text: '$label: ',
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-            TextSpan(
-              text: value,
-              style: TextStyle(
-                  color: Colors.white.withOpacity(0.88),
-                  fontWeight: FontWeight.w500),
-            ),
-          ],
-        ),
       ),
     );
   }

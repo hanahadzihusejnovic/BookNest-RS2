@@ -5,6 +5,7 @@ import '../services/book_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import 'book_details_screen.dart';
+import '../widgets/book_card.dart';
 
 class CategoryScreen extends StatefulWidget {
   final Category category;
@@ -22,9 +23,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
   final _bookService = BookService();
 
   List<Book> _books = [];
+  List<Book> _filteredBooks = [];
   bool _isLoading = true;
   String? _error;
   String _query = "";
+
+  double? _minPrice;
+  double? _maxPrice;
+  double? _minRating;
 
   @override
   void initState() {
@@ -39,11 +45,14 @@ class _CategoryScreenState extends State<CategoryScreen> {
         pageSize: 50,
       );
 
+      if (!mounted) return;
       setState(() {
         _books = books;
+        _filteredBooks = books;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -51,14 +60,193 @@ class _CategoryScreenState extends State<CategoryScreen> {
     }
   }
 
-  List<Book> get _filteredBooks {
-    if (_query.isEmpty) return _books;
+  void _applySearch() {
+    final q = _query.trim().toLowerCase();
+    setState(() {
+      _filteredBooks = _books.where((b) {
+        final matchesSearch = q.isEmpty ||
+            b.title.toLowerCase().contains(q) ||
+            b.author.toLowerCase().contains(q);
 
-    final q = _query.toLowerCase();
-    return _books.where((b) {
-      return b.title.toLowerCase().contains(q) ||
-          b.author.toLowerCase().contains(q);
-    }).toList();
+        final matchesPrice =
+            (_minPrice == null || (b.price ?? 0) >= _minPrice!) &&
+                (_maxPrice == null || (b.price ?? 0) <= _maxPrice!);
+
+        final matchesRating =
+            _minRating == null || (b.averageRating ?? 0) >= _minRating!;
+
+        return matchesSearch && matchesPrice && matchesRating;
+      }).toList();
+    });
+  }
+
+  void _showFilterDialog() {
+    double? tempMinPrice = _minPrice;
+    double? tempMaxPrice = _maxPrice;
+    double? tempMinRating = _minRating;
+
+    final priceOptions = [
+      {'label': 'All', 'min': null, 'max': null},
+      {'label': 'Under 15 BAM', 'min': 0.0, 'max': 15.0},
+      {'label': '15 - 25 BAM', 'min': 15.0, 'max': 25.0},
+      {'label': 'Over 25 BAM', 'min': 25.0, 'max': null},
+    ];
+
+    final ratingOptions = [
+      {'label': 'All', 'min': null},
+      {'label': '3★ and above', 'min': 3.0},
+      {'label': '4★ and above', 'min': 4.0},
+      {'label': '5★ only', 'min': 5.0},
+    ];
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: AppColors.pageBg,
+              title: Text(
+                'Filter books',
+                style: TextStyle(
+                  color: AppColors.darkBrown,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Price',
+                      style: TextStyle(
+                        color: AppColors.darkBrown,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...priceOptions.map((opt) {
+                      final isSelected = tempMinPrice == opt['min'] &&
+                          tempMaxPrice == opt['max'];
+                      return GestureDetector(
+                        onTap: () {
+                          setDialogState(() {
+                            tempMinPrice = opt['min'] as double?;
+                            tempMaxPrice = opt['max'] as double?;
+                          });
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.darkBrown
+                                : AppColors.mediumBrown.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            opt['label'] as String,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.darkBrown,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                    const SizedBox(height: 14),
+                    Text(
+                      'Rating',
+                      style: TextStyle(
+                        color: AppColors.darkBrown,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ...ratingOptions.map((opt) {
+                      final isSelected = tempMinRating == opt['min'];
+                      return GestureDetector(
+                        onTap: () {
+                          setDialogState(() {
+                            tempMinRating = opt['min'] as double?;
+                          });
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? AppColors.darkBrown
+                                : AppColors.mediumBrown.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            opt['label'] as String,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? Colors.white
+                                  : AppColors.darkBrown,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _minPrice = null;
+                      _maxPrice = null;
+                      _minRating = null;
+                    });
+                    _applySearch();
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    'Reset',
+                    style: TextStyle(color: AppColors.darkBrown),
+                  ),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _minPrice = tempMinPrice;
+                      _maxPrice = tempMaxPrice;
+                      _minRating = tempMinRating;
+                    });
+                    _applySearch();
+                    Navigator.pop(context);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.darkBrown,
+                  ),
+                  child: const Text(
+                    'Apply',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -76,20 +264,18 @@ class _CategoryScreenState extends State<CategoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _SearchBar(
-                  hint: "Search by name, author...",
+                  hint: "Search by book name or author",
                   onChanged: (value) {
-                    setState(() {
-                      _query = value;
-                    });
+                    _query = value;
+                    _applySearch();
                   },
                 ),
                 const SizedBox(height: 10),
-                const _FilterRow(),
+                _FilterRow(onTap: _showFilterDialog),
                 const SizedBox(height: 12),
               ],
             ),
           ),
-
           Expanded(
             child: _isLoading
                 ? Center(
@@ -123,7 +309,8 @@ class _CategoryScreenState extends State<CategoryScreen> {
                             ),
                           )
                         : Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 0, 14, 18),
+                            padding:
+                                const EdgeInsets.fromLTRB(14, 0, 14, 18),
                             child: Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
@@ -137,20 +324,23 @@ class _CategoryScreenState extends State<CategoryScreen> {
                                   crossAxisCount: 3,
                                   mainAxisSpacing: 14,
                                   crossAxisSpacing: 14,
-                                  childAspectRatio: 0.50,
+                                  childAspectRatio: 0.48,
                                 ),
                                 itemBuilder: (context, index) {
                                   final book = _filteredBooks[index];
-                                  return _CategoryBookCard(
-                                    book: book,
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => BookDetailsScreen(book: book),
-                                        ),
-                                      );
-                                    },
+                                  return BookCard(
+                                    title: book.title,
+                                    author: book.author,
+                                    imageUrl: book.imageUrl,
+                                    price: book.price,
+                                    style: BookCardStyle.icons,
+                                    onTap: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            BookDetailsScreen(book: book),
+                                      ),
+                                    ),
                                   );
                                 },
                               ),
@@ -169,37 +359,35 @@ class _SearchBar extends StatelessWidget {
   final String hint;
   final ValueChanged<String> onChanged;
 
-  const _SearchBar({
-    required this.hint,
-    required this.onChanged,
-  });
+  const _SearchBar({required this.hint, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 42,
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.45),
-        borderRadius: BorderRadius.circular(10),
+        color: Colors.white.withOpacity(0.35),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: TextField(
-        onChanged: onChanged,
-        style: TextStyle(
-          color: AppColors.darkBrown,
-          fontSize: 13,
-          fontWeight: FontWeight.w500,
-        ),
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 14,
-            vertical: 11,
-          ),
-          hintText: hint,
-          hintStyle: TextStyle(
-            color: AppColors.darkBrown.withOpacity(0.35),
+      child: Center(
+        child: TextField(
+          onChanged: onChanged,
+          style: TextStyle(
+            color: AppColors.darkBrown,
             fontSize: 13,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
+          ),
+          decoration: InputDecoration(
+            border: InputBorder.none,
+            hintText: hint,
+            isDense: true,
+            contentPadding: EdgeInsets.zero,
+            hintStyle: TextStyle(
+              color: AppColors.darkBrown.withOpacity(0.55),
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
       ),
@@ -210,148 +398,30 @@ class _SearchBar extends StatelessWidget {
 /* ---------------- FILTER ROW ---------------- */
 
 class _FilterRow extends StatelessWidget {
-  const _FilterRow();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(
-          "Filter",
-          style: TextStyle(
-            color: AppColors.darkBrown,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(width: 4),
-        Icon(
-          Icons.arrow_drop_down,
-          color: AppColors.darkBrown,
-          size: 18,
-        ),
-      ],
-    );
-  }
-}
-
-/* ---------------- BOOK CARD ---------------- */
-
-class _CategoryBookCard extends StatelessWidget {
-  final Book book;
   final VoidCallback onTap;
-
-  const _CategoryBookCard({
-    required this.book,
-    required this.onTap,
-  });
+  const _FilterRow({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(7, 7, 7, 8),
-        decoration: BoxDecoration(
-          color: AppColors.pageBg.withOpacity(0.88),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 6,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: book.imageUrl != null && book.imageUrl!.isNotEmpty
-                      ? Image.network(
-                          book.imageUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _fallback(),
-                        )
-                      : _fallback(),
-                ),
-              ),
+      child: Row(
+        children: [
+          Text(
+            "Filter",
+            style: TextStyle(
+              color: AppColors.darkBrown,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
             ),
-            const SizedBox(height: 6),
-            Expanded(
-              flex: 4,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    book.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: AppColors.darkBrown,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      height: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    book.author,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: AppColors.darkBrown.withOpacity(0.58),
-                      fontSize: 8.5,
-                      fontWeight: FontWeight.w500,
-                      height: 1.1,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${(book.price ?? 0).toStringAsFixed(2)} BAM',
-                    style: TextStyle(
-                      color: AppColors.darkBrown.withOpacity(0.82),
-                      fontSize: 8.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.shopping_cart_outlined,
-                        size: 12,
-                        color: AppColors.darkBrown,
-                      ),
-                      const SizedBox(width: 6),
-                      Icon(
-                        Icons.favorite_border,
-                        size: 12,
-                        color: AppColors.darkBrown,
-                      ),
-                      const SizedBox(width: 6),
-                      Icon(
-                        Icons.bookmark_border,
-                        size: 12,
-                        color: AppColors.darkBrown,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _fallback() {
-    return Container(
-      color: Colors.white.withOpacity(0.45),
-      child: Icon(
-        Icons.menu_book_rounded,
-        color: AppColors.darkBrown.withOpacity(0.5),
-        size: 28,
+          ),
+          const SizedBox(width: 4),
+          Icon(
+            Icons.arrow_drop_down,
+            color: AppColors.darkBrown,
+            size: 18,
+          ),
+        ],
       ),
     );
   }
