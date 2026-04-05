@@ -6,6 +6,7 @@ import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import '../screens/event_details_screen.dart';
 import '../screens/event_reservation_screen.dart';
+import '../widgets/pagination_bar.dart';
 
 class EventCategoryScreen extends StatefulWidget {
   final EventCategory category;
@@ -30,6 +31,17 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
 
   String? _filterEventType; // 'Online', 'InPerson', null = sve
   String? _filterPrice;     // 'free', 'under20', 'over20', null = sve
+
+  static const int _pageSize = 12;
+  int _currentPage = 0;
+
+  List<EventModel> get _currentPageItems {
+    final start = _currentPage * _pageSize;
+    final end = (start + _pageSize).clamp(0, _filteredEvents.length);
+    return _filteredEvents.sublist(start, end);
+  }
+
+  int get _totalPages => (_filteredEvents.length / _pageSize).ceil();
 
   @override
   void initState() {
@@ -68,6 +80,7 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
   void _applySearch() {
     final q = _query.trim().toLowerCase();
     setState(() {
+      _currentPage = 0;
       _filteredEvents = _events.where((e) {
         final matchesSearch = q.isEmpty ||
             e.name.toLowerCase().contains(q) ||
@@ -255,7 +268,6 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: '${widget.category.name} category',
-      showCartFavTbr: false,
       showBackButton: true,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -310,16 +322,26 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
                               ),
                             ),
                           )
-                        : ListView.separated(
-                            padding:
-                                const EdgeInsets.fromLTRB(14, 0, 14, 18),
-                            itemCount: _filteredEvents.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 16),
-                            itemBuilder: (context, index) {
-                              final event = _filteredEvents[index];
-                              return _EventCategoryCard(event: event);
-                            },
+                        : Column(
+                            children: [
+                              Expanded(
+                                child: ListView.separated(
+                                  padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
+                                  itemCount: _currentPageItems.length,
+                                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                                  itemBuilder: (context, index) {
+                                    final event = _currentPageItems[index];
+                                    return _EventCategoryCard(event: event);
+                                  },
+                                ),
+                              ),
+                              PaginationBar(
+                                currentPage: _currentPage,
+                                totalPages: _totalPages,
+                                onPrevious: () => setState(() => _currentPage--),
+                                onNext: () => setState(() => _currentPage++),
+                              ),
+                            ],
                           ),
           ),
         ],

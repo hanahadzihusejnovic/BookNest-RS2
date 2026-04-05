@@ -8,6 +8,9 @@ import '../layouts/app_layout.dart';
 import 'category_screen.dart';
 import '../screens/book_details_screen.dart';
 import '../widgets/book_card.dart';
+import '../screens/cart_screen.dart';
+import '../screens/favorites_screen.dart';
+import '../screens/tbr_screen.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -256,7 +259,6 @@ class _ShopScreenState extends State<ShopScreen> {
 
     return AppLayout(
       pageTitle: 'SHOP',
-      showCartFavTbr: true,
       body: NotificationListener<ScrollNotification>(
         onNotification: (n) {
           if (_catOpen) _closeCategoriesDropdown();
@@ -275,37 +277,60 @@ class _ShopScreenState extends State<ShopScreen> {
                 },
               ),
 
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
 
-              CompositedTransformTarget(
-                link: _catLink,
-                child: InkWell(
-                  onTap: _toggleCategoriesDropdown,
-                  borderRadius: BorderRadius.circular(10),
-                  child: Row(
-                    children: [
-                      Text(
-                        "Categories",
-                        style: TextStyle(
-                          color: AppColors.darkBrown,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
+              Row(
+                children: [
+                  CompositedTransformTarget(
+                    link: _catLink,
+                    child: InkWell(
+                      onTap: _toggleCategoriesDropdown,
+                      borderRadius: BorderRadius.circular(10),
+                      child: Row(
+                        children: [
+                          Text(
+                            "Categories",
+                            style: TextStyle(
+                              color: AppColors.darkBrown,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            _catOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
+                            color: AppColors.darkBrown,
+                            size: 20,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 2),
-                      Icon(
-                        _catOpen
-                            ? Icons.arrow_drop_up
-                            : Icons.arrow_drop_down,
-                        color: AppColors.darkBrown,
-                        size: 20,
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => const CartScreen())),
+                    child: Icon(Icons.shopping_cart_outlined,
+                        color: AppColors.darkBrown, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => const FavoritesScreen())),
+                    child: Icon(Icons.favorite_border,
+                        color: AppColors.darkBrown, size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () => Navigator.push(context,
+                        MaterialPageRoute(builder: (context) => const TBRScreen())),
+                    child: Icon(Icons.menu_book,
+                        color: AppColors.darkBrown, size: 20),
+                  ),
+                ],
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 14),
 
               _SectionCard(
                 child: Column(

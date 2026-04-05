@@ -4,6 +4,7 @@ import '../services/favorite_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import '../widgets/book_card.dart';
+import '../widgets/pagination_bar.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -18,8 +19,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   bool _isLoading = true;
   String? _error;
 
-  // Pagination
-  static const int _pageSize = 9;
+  static const int _pageSize = 12;
   int _currentPage = 0;
 
   List<FavoriteModel> get _currentPageItems {
@@ -84,7 +84,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'FAVORITES',
-      showCartFavTbr: false,
       showBackButton: true,
       body: _isLoading
           ? Center(
@@ -119,9 +118,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   : Column(
                       children: [
                         Expanded(
-                          child: SingleChildScrollView(
-                            padding:
-                                const EdgeInsets.fromLTRB(14, 10, 14, 18),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
                             child: Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(14),
@@ -130,8 +128,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                                 borderRadius: BorderRadius.circular(14),
                               ),
                               child: GridView.builder(
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
                                 itemCount: _currentPageItems.length,
                                 gridDelegate:
                                     const SliverGridDelegateWithFixedCrossAxisCount(
@@ -154,49 +150,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                             ),
                           ),
                         ),
-                        if (_totalPages > 1)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                GestureDetector(
-                                  onTap: _currentPage > 0
-                                      ? () => setState(() => _currentPage--)
-                                      : null,
-                                  child: Icon(
-                                    Icons.arrow_back,
-                                    color: _currentPage > 0
-                                        ? AppColors.darkBrown
-                                        : AppColors.darkBrown.withOpacity(0.3),
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  '${_currentPage + 1}',
-                                  style: TextStyle(
-                                    color: AppColors.darkBrown,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                GestureDetector(
-                                  onTap: _currentPage < _totalPages - 1
-                                      ? () => setState(() => _currentPage++)
-                                      : null,
-                                  child: Icon(
-                                    Icons.arrow_forward,
-                                    color: _currentPage < _totalPages - 1
-                                        ? AppColors.darkBrown
-                                        : AppColors.darkBrown.withOpacity(0.3),
-                                    size: 20,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                        PaginationBar(
+                          currentPage: _currentPage,
+                          totalPages: _totalPages,
+                          onPrevious: () => setState(() => _currentPage--),
+                          onNext: () => setState(() => _currentPage++),
+                        ),
                       ],
                     ),
     );
