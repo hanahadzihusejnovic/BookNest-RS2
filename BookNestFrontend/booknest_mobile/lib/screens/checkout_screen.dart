@@ -232,7 +232,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'PURCHASE INFORMATION',
-      showCartFavTbr: false,
       showBackButton: true,
       body: _isLoading
           ? Center(

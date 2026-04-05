@@ -10,6 +10,7 @@ import '../services/order_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../services/reservation_service.dart';
 import '../widgets/book_card.dart';
+import '../widgets/pagination_bar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -69,7 +70,6 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'MY PROFILE',
-      showCartFavTbr: true,
       showBackButton: true,
       body: _isLoading
           ? Center(
@@ -478,7 +478,7 @@ class _ProfileButton extends StatelessWidget {
     bool _isLoading = true;
     String? _error;
 
-    static const int _pageSize = 9;
+    static const int _pageSize = 12;
     int _currentPage = 0;
 
     List<OrderItemModel> get _currentPageItems {
@@ -545,8 +545,8 @@ class _ProfileButton extends StatelessWidget {
                   : Column(
                       children: [
                         Expanded(
-                          child: SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(14, 6, 14, 18),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
                             child: Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(14),
@@ -566,75 +566,38 @@ class _ProfileButton extends StatelessWidget {
                                     ),
                                   ),
                                   const SizedBox(height: 12),
-                                  GridView.builder(
-                                    shrinkWrap: true,
-                                    physics: const NeverScrollableScrollPhysics(),
-                                    itemCount: _currentPageItems.length,
-                                    gridDelegate:
-                                        const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 3,
-                                      mainAxisSpacing: 14,
-                                      crossAxisSpacing: 14,
-                                      childAspectRatio: 0.58,
+                                  Expanded(
+                                    child: GridView.builder(
+                                      itemCount: _currentPageItems.length,
+                                      gridDelegate:
+                                          const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 3,
+                                        mainAxisSpacing: 14,
+                                        crossAxisSpacing: 14,
+                                        childAspectRatio: 0.58,
+                                      ),
+                                      itemBuilder: (context, index) {
+                                        final item = _currentPageItems[index];
+                                        return BookCard(
+                                          title: item.bookTitle,
+                                          author: item.bookAuthorName,
+                                          imageUrl: item.bookImageUrl,
+                                          style: BookCardStyle.plain,
+                                        );
+                                      },
                                     ),
-                                    itemBuilder: (context, index) {
-                                      final item = _currentPageItems[index];
-                                      return BookCard(
-                                        title: item.bookTitle,
-                                        author: item.bookAuthorName,
-                                        imageUrl: item.bookImageUrl,
-                                        style: BookCardStyle.plain,
-                                      );
-                                    },
                                   ),
                                 ],
                               ),
                             ),
                           ),
                         ),
-                        if (_totalPages > 1)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                GestureDetector(
-                                  onTap: _currentPage > 0
-                                      ? () => setState(() => _currentPage--)
-                                      : null,
-                                  child: Icon(
-                                    Icons.arrow_back,
-                                    color: _currentPage > 0
-                                        ? AppColors.darkBrown
-                                        : AppColors.darkBrown.withOpacity(0.3),
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  '${_currentPage + 1}',
-                                  style: TextStyle(
-                                    color: AppColors.darkBrown,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                GestureDetector(
-                                  onTap: _currentPage < _totalPages - 1
-                                      ? () => setState(() => _currentPage++)
-                                      : null,
-                                  child: Icon(
-                                    Icons.arrow_forward,
-                                    color: _currentPage < _totalPages - 1
-                                        ? AppColors.darkBrown
-                                        : AppColors.darkBrown.withOpacity(0.3),
-                                    size: 20,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                        PaginationBar(
+                          currentPage: _currentPage,
+                          totalPages: _totalPages,
+                          onPrevious: () => setState(() => _currentPage--),
+                          onNext: () => setState(() => _currentPage++),
+                        ),
                       ],
                     );
     }
@@ -655,6 +618,17 @@ class _ReservationsTabState extends State<_ReservationsTab>
   List<ReservationModel> _reservations = [];
   bool _isLoading = true;
   String? _error;
+
+  static const int _pageSize = 12;
+  int _currentPage = 0;
+
+  List<ReservationModel> get _currentPageItems {
+    final start = _currentPage * _pageSize;
+    final end = (start + _pageSize).clamp(0, _reservations.length);
+    return _reservations.sublist(start, end);
+  }
+
+  int get _totalPages => (_reservations.length / _pageSize).ceil();
 
   @override
   bool get wantKeepAlive => true;
@@ -701,15 +675,26 @@ class _ReservationsTabState extends State<_ReservationsTab>
                       ),
                     ),
                   )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(14, 6, 14, 18),
-                    itemCount: _reservations.length,
-                    separatorBuilder: (_, __) =>
-                        const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      return _ReservationCard(
-                          reservation: _reservations[index]);
-                    },
+                : Column(
+                    children: [
+                      Expanded(
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(14, 6, 14, 0),
+                          itemCount: _currentPageItems.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 12),
+                          itemBuilder: (context, index) {
+                            return _ReservationCard(
+                                reservation: _currentPageItems[index]);
+                          },
+                        ),
+                      ),
+                      PaginationBar(
+                        currentPage: _currentPage,
+                        totalPages: _totalPages,
+                        onPrevious: () => setState(() => _currentPage--),
+                        onNext: () => setState(() => _currentPage++),
+                      ),
+                    ],
                   );
   }
 }

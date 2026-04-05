@@ -532,7 +532,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             ),
           ),
           content: Text(
-            'Do you want to delete your review and rating?',
+            'Are you sure you want to delete your review?',
             style: TextStyle(
               color: AppColors.darkBrown.withOpacity(0.8),
               fontSize: 14,
@@ -600,8 +600,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     final book = widget.book;
 
     return AppLayout(
-      pageTitle: 'Details',
-      showCartFavTbr: true,
+      pageTitle: 'Book Details',
       showBackButton: true,
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(18, 6, 18, 28),

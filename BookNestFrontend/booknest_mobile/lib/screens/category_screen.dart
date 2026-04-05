@@ -6,6 +6,13 @@ import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import 'book_details_screen.dart';
 import '../widgets/book_card.dart';
+import '../screens/cart_screen.dart';
+import '../screens/favorites_screen.dart';
+import '../screens/tbr_screen.dart';
+import '../services/cart_service.dart';
+import '../services/favorite_service.dart';
+import '../services/tbr_service.dart';
+import '../widgets/pagination_bar.dart';
 
 class CategoryScreen extends StatefulWidget {
   final Category category;
@@ -21,6 +28,9 @@ class CategoryScreen extends StatefulWidget {
 
 class _CategoryScreenState extends State<CategoryScreen> {
   final _bookService = BookService();
+  final _cartService = CartService();
+  final _favoriteService = FavoriteService();
+  final _tbrService = TBRService();
 
   List<Book> _books = [];
   List<Book> _filteredBooks = [];
@@ -31,6 +41,17 @@ class _CategoryScreenState extends State<CategoryScreen> {
   double? _minPrice;
   double? _maxPrice;
   double? _minRating;
+
+  static const int _pageSize = 12;
+  int _currentPage = 0;
+
+  List<Book> get _currentPageItems {
+    final start = _currentPage * _pageSize;
+    final end = (start + _pageSize).clamp(0, _filteredBooks.length);
+    return _filteredBooks.sublist(start, end);
+  }
+
+  int get _totalPages => (_filteredBooks.length / _pageSize).ceil();
 
   @override
   void initState() {
@@ -60,9 +81,127 @@ class _CategoryScreenState extends State<CategoryScreen> {
     }
   }
 
+  Future<void> _addToCart(Book book) async {
+  try {
+    await _cartService.addItem(book.id, 1);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${book.title} added to cart!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
+Future<void> _addToFavorites(Book book) async {
+  try {
+    await _favoriteService.addToFavorites(book.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${book.title} added to favorites!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+}
+
+  void _showTBRDialog(Book book) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.pageBg,
+          title: Text(
+            'Add to TBR List',
+            style: TextStyle(
+              color: AppColors.darkBrown,
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: ReadingStatus.values.map((status) {
+              return GestureDetector(
+                onTap: () async {
+                  Navigator.pop(context);
+                  try {
+                    await _tbrService.addToTBR(book.id, status);
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                            '${book.title} added to TBR as ${status.label}!'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  } catch (e) {
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                },
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.mediumBrown.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    status.label,
+                    style: TextStyle(
+                      color: AppColors.darkBrown,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: AppColors.darkBrown),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _applySearch() {
     final q = _query.trim().toLowerCase();
     setState(() {
+      _currentPage = 0;
       _filteredBooks = _books.where((b) {
         final matchesSearch = q.isEmpty ||
             b.title.toLowerCase().contains(q) ||
@@ -253,7 +392,6 @@ class _CategoryScreenState extends State<CategoryScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: '${widget.category.name} category',
-      showCartFavTbr: true,
       showBackButton: true,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -270,9 +408,54 @@ class _CategoryScreenState extends State<CategoryScreen> {
                     _applySearch();
                   },
                 ),
-                const SizedBox(height: 10),
-                _FilterRow(onTap: _showFilterDialog),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: _showFilterDialog,
+                      child: Row(
+                        children: [
+                          Text(
+                            "Filter",
+                            style: TextStyle(
+                              color: AppColors.darkBrown,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.arrow_drop_down,
+                            color: AppColors.darkBrown,
+                            size: 18,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => const CartScreen())),
+                      child: Icon(Icons.shopping_cart_outlined,
+                          color: AppColors.darkBrown, size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    GestureDetector(
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => const FavoritesScreen())),
+                      child: Icon(Icons.favorite_border,
+                          color: AppColors.darkBrown, size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    GestureDetector(
+                      onTap: () => Navigator.push(context,
+                          MaterialPageRoute(builder: (context) => const TBRScreen())),
+                      child: Icon(Icons.menu_book,
+                          color: AppColors.darkBrown, size: 20),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
               ],
             ),
           ),
@@ -309,41 +492,55 @@ class _CategoryScreenState extends State<CategoryScreen> {
                             ),
                           )
                         : Padding(
-                            padding:
-                                const EdgeInsets.fromLTRB(14, 0, 14, 18),
-                            child: Container(
-                              padding: const EdgeInsets.all(14),
-                              decoration: BoxDecoration(
-                                color: AppColors.mediumBrown,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: GridView.builder(
-                                itemCount: _filteredBooks.length,
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 3,
-                                  mainAxisSpacing: 14,
-                                  crossAxisSpacing: 14,
-                                  childAspectRatio: 0.48,
-                                ),
-                                itemBuilder: (context, index) {
-                                  final book = _filteredBooks[index];
-                                  return BookCard(
-                                    title: book.title,
-                                    author: book.author,
-                                    imageUrl: book.imageUrl,
-                                    price: book.price,
-                                    style: BookCardStyle.icons,
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            BookDetailsScreen(book: book),
-                                      ),
+                            padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(14),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.mediumBrown,
+                                      borderRadius: BorderRadius.circular(10),
                                     ),
-                                  );
-                                },
-                              ),
+                                    child: GridView.builder(
+                                      itemCount: _currentPageItems.length,
+                                      gridDelegate:
+                                          const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 3,
+                                        mainAxisSpacing: 14,
+                                        crossAxisSpacing: 14,
+                                        childAspectRatio: 0.48,
+                                      ),
+                                      itemBuilder: (context, index) {
+                                        final book = _currentPageItems[index];
+                                        return BookCard(
+                                          title: book.title,
+                                          author: book.author,
+                                          imageUrl: book.imageUrl,
+                                          price: book.price,
+                                          style: BookCardStyle.icons,
+                                          onTap: () => Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  BookDetailsScreen(book: book),
+                                            ),
+                                          ),
+                                          onCartTap: () => _addToCart(book),
+                                          onFavTap: () => _addToFavorites(book),
+                                          onBookmarkTap: () => _showTBRDialog(book),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                PaginationBar(
+                                  currentPage: _currentPage,
+                                  totalPages: _totalPages,
+                                  onPrevious: () => setState(() => _currentPage--),
+                                  onNext: () => setState(() => _currentPage++),
+                                ),
+                              ],
                             ),
                           ),
           ),
@@ -390,38 +587,6 @@ class _SearchBar extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/* ---------------- FILTER ROW ---------------- */
-
-class _FilterRow extends StatelessWidget {
-  final VoidCallback onTap;
-  const _FilterRow({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Row(
-        children: [
-          Text(
-            "Filter",
-            style: TextStyle(
-              color: AppColors.darkBrown,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(width: 4),
-          Icon(
-            Icons.arrow_drop_down,
-            color: AppColors.darkBrown,
-            size: 18,
-          ),
-        ],
       ),
     );
   }

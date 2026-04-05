@@ -191,7 +191,6 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
 
     return AppLayout(
       pageTitle: 'RESERVATION INFORMATION',
-      showCartFavTbr: false,
       showBackButton: true,
       body: _isLoading
           ? Center(

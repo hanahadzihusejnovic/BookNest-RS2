@@ -87,7 +87,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return AppLayout(
       pageTitle: 'HOME',
-      showCartFavTbr: false,
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         child: Column(

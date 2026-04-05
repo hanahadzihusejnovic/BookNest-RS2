@@ -333,7 +333,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               style: TextStyle(
                   color: AppColors.darkBrown, fontWeight: FontWeight.w800)),
           content: Text(
-            'Do you want to delete your review and rating?',
+            'Are you sure you want to delete your review?',
             style: TextStyle(
                 color: AppColors.darkBrown.withOpacity(0.8), fontSize: 14),
           ),
@@ -393,8 +393,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     final event = widget.event;
 
     return AppLayout(
-      pageTitle: 'Details',
-      showCartFavTbr: false,
+      pageTitle: 'Event Details',
       showBackButton: true,
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),

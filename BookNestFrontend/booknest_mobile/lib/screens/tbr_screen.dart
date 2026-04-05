@@ -4,6 +4,7 @@ import '../services/tbr_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import '../widgets/book_card.dart';
+import '../widgets/pagination_bar.dart';
 
 class TBRScreen extends StatefulWidget {
   const TBRScreen({super.key});
@@ -20,7 +21,7 @@ class _TBRScreenState extends State<TBRScreen> {
   String? _error;
   int? _selectedStatus; // null = sve
 
-  static const int _pageSize = 9;
+  static const int _pageSize = 12;
   int _currentPage = 0;
 
   final List<Map<String, dynamic>> _statusOptions = [
@@ -161,7 +162,6 @@ class _TBRScreenState extends State<TBRScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'TO BE READ LIST',
-      showCartFavTbr: false,
       showBackButton: true,
       body: _isLoading
           ? Center(
@@ -247,9 +247,8 @@ class _TBRScreenState extends State<TBRScreen> {
                                     ),
                                   ),
                                 )
-                              : SingleChildScrollView(
-                                  padding: const EdgeInsets.fromLTRB(
-                                      14, 10, 14, 18),
+                              : Padding(
+                                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 0),
                                   child: Container(
                                     width: double.infinity,
                                     padding: const EdgeInsets.all(14),
@@ -258,9 +257,6 @@ class _TBRScreenState extends State<TBRScreen> {
                                       borderRadius: BorderRadius.circular(14),
                                     ),
                                     child: GridView.builder(
-                                      shrinkWrap: true,
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
                                       itemCount: _currentPageItems.length,
                                       gridDelegate:
                                           const SliverGridDelegateWithFixedCrossAxisCount(
@@ -276,6 +272,7 @@ class _TBRScreenState extends State<TBRScreen> {
                                           author: item.bookAuthor,
                                           imageUrl: item.bookImageUrl,
                                           style: BookCardStyle.remove,
+                                          statusLabel: _statusLabel(item.readingStatus),
                                           onTap: () => _removeItem(item),
                                         );
                                       },
@@ -283,50 +280,12 @@ class _TBRScreenState extends State<TBRScreen> {
                                   ),
                                 ),
                         ),
-
-                        if (_totalPages > 1)
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 16),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                GestureDetector(
-                                  onTap: _currentPage > 0
-                                      ? () => setState(() => _currentPage--)
-                                      : null,
-                                  child: Icon(
-                                    Icons.arrow_back,
-                                    color: _currentPage > 0
-                                        ? AppColors.darkBrown
-                                        : AppColors.darkBrown.withOpacity(0.3),
-                                    size: 20,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  '${_currentPage + 1}',
-                                  style: TextStyle(
-                                    color: AppColors.darkBrown,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                GestureDetector(
-                                  onTap: _currentPage < _totalPages - 1
-                                      ? () => setState(() => _currentPage++)
-                                      : null,
-                                  child: Icon(
-                                    Icons.arrow_forward,
-                                    color: _currentPage < _totalPages - 1
-                                        ? AppColors.darkBrown
-                                        : AppColors.darkBrown.withOpacity(0.3),
-                                    size: 20,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                        PaginationBar(
+                          currentPage: _currentPage,
+                          totalPages: _totalPages,
+                          onPrevious: () => setState(() => _currentPage--),
+                          onNext: () => setState(() => _currentPage++),
+                        ),
                       ],
                     ),
     );

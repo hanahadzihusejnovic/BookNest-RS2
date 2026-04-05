@@ -84,7 +84,6 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'SHOPPING CART',
-      showCartFavTbr: false,
       showBackButton: true,
       body: _isLoading
           ? Center(
@@ -142,7 +141,7 @@ class _CartScreenState extends State<CartScreen> {
                                       crossAxisCount: 3,
                                       mainAxisSpacing: 14,
                                       crossAxisSpacing: 14,
-                                      childAspectRatio: 0.48,
+                                      childAspectRatio: 0.40,
                                     ),
                                     itemBuilder: (context, index) {
                                       final item = _cart!.cartItems[index];

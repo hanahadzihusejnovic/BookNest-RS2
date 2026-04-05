@@ -2,16 +2,12 @@ import 'package:flutter/material.dart';
 import '../layouts/constants.dart';
 import '../screens/home_screen.dart';
 import '../screens/shop_screen.dart';
-import '../screens/cart_screen.dart';
-import '../screens/favorites_screen.dart';
-import '../screens/tbr_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/events_screen.dart';
 
 class AppLayout extends StatelessWidget {
   final String pageTitle;
   final Widget body;
-  final bool showCartFavTbr;
   final bool showBackButton;
   final bool showPageActionsRow;
 
@@ -19,7 +15,6 @@ class AppLayout extends StatelessWidget {
     super.key,
     required this.pageTitle,
     required this.body,
-    this.showCartFavTbr = true,
     this.showBackButton = false,
     this.showPageActionsRow = true,
   });
@@ -73,77 +68,38 @@ class AppLayout extends StatelessWidget {
                         ),
                       ),
                       Builder(
-                        builder: (ctx) => IconButton(
-                          onPressed: () => Scaffold.of(ctx).openDrawer(),
-                          icon: Icon(Icons.menu,
+                        builder: (ctx) => GestureDetector(
+                          onTap: () => Scaffold.of(ctx).openDrawer(),
+                          child: Icon(Icons.menu,
                               color: AppColors.darkBrown, size: 26),
-                          splashRadius: 20,
                         ),
                       ),
                     ],
                   ),
 
                   if (showPageActionsRow) ...[
-                  const SizedBox(height: 12),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          pageTitle,
-                          style: TextStyle(
-                            color: AppColors.darkBrown,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: 0.5,
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            pageTitle,
+                            style: TextStyle(
+                              color: AppColors.darkBrown,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ),
-                      ),
-                      if (showCartFavTbr) ...[
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const CartScreen()),
-                            );
-                          },
-                          child: Icon(Icons.shopping_cart_outlined,
-                              color: AppColors.darkBrown, size: 22),
-                        ),
-                        const SizedBox(width: 10),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const FavoritesScreen()),
-                            );
-                          },
-                          child: Icon(Icons.favorite_border,
-                              color: AppColors.darkBrown, size: 22),
-                        ),
-                        const SizedBox(width: 10),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const TBRScreen()),
-                            );
-                          },
-                          child: Icon(Icons.bookmark_border,
-                              color: AppColors.darkBrown, size: 22),
-                        ),
-                      ] else ...[
                         GestureDetector(
                           onTap: () {},
                           child: Icon(Icons.notifications_none,
                               color: AppColors.darkBrown, size: 22),
                         ),
                       ],
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
                 ],
               ),
             ),

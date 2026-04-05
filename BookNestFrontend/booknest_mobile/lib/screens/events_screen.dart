@@ -191,7 +191,6 @@ class _EventsScreenState extends State<EventsScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'EVENTS',
-      showCartFavTbr: false,
       showBackButton: false,
       body: _isLoading
           ? Center(
@@ -224,7 +223,7 @@ class _EventsScreenState extends State<EventsScreen> {
                             _applySearch();
                           },
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 14),
                         CompositedTransformTarget(
                           link: _catLink,
                           child: InkWell(

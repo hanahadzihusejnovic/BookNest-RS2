@@ -208,7 +208,7 @@ class BookCard extends StatelessWidget {
                         const SizedBox(width: 6),
                         GestureDetector(
                           onTap: onBookmarkTap,
-                          child: Icon(Icons.bookmark_border,
+                          child: Icon(Icons.menu_book,
                               size: 12, color: AppColors.darkBrown),
                         ),
                       ],
