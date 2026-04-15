@@ -175,4 +175,23 @@ class BookService {
       rethrow;
     }
   }
+
+  Future<Book> getBookById(int id) async {
+    final token = await _authService.getToken();
+    if (token == null) throw Exception('No authentication token found');
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/Book/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return Book.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Failed to load book details');
+    }
+  }
 }

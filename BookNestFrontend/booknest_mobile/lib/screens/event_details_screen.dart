@@ -28,6 +28,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   int _quantity = 1;
   int? _currentUserId;
   bool _hasMyReview = false;
+  bool _descExpanded = false;
 
   @override
   void initState() {
@@ -465,11 +466,30 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             const SizedBox(height: 4),
             Text(
               event.description ?? 'No description available.',
+              maxLines: _descExpanded ? null : 3,
+              overflow: _descExpanded
+                  ? TextOverflow.visible
+                  : TextOverflow.ellipsis,
               style: TextStyle(
                   color: AppColors.darkBrown.withValues(alpha: 0.78),
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                   height: 1.35),
+            ),
+            const SizedBox(height: 6),
+            GestureDetector(
+              onTap: () => setState(() => _descExpanded = !_descExpanded),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Text(
+                  _descExpanded ? 'View less' : 'View more',
+                  style: TextStyle(
+                    color: AppColors.darkBrown.withValues(alpha: 0.6),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             ),
 
             const SizedBox(height: 18),
@@ -536,6 +556,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 : _ReviewsSection(
                     reviews: _reviews,
                     hasMyReview: _hasMyReview,
+                    eventPassed: widget.event.eventDate.isBefore(DateTime.now()),
                     onAddReview: _showAddReviewDialog,
                     onUpdateReview: _showUpdateReviewDialog,
                     onDeleteReview: _showDeleteReviewDialog,
@@ -657,6 +678,7 @@ class _QuantityButton extends StatelessWidget {
 class _ReviewsSection extends StatelessWidget {
   final List<BookReview> reviews;
   final bool hasMyReview;
+  final bool eventPassed;
   final VoidCallback onAddReview;
   final Function(BookReview) onUpdateReview;
   final Function(BookReview) onDeleteReview;
@@ -664,6 +686,7 @@ class _ReviewsSection extends StatelessWidget {
   const _ReviewsSection({
     required this.reviews,
     required this.hasMyReview,
+    required this.eventPassed,
     required this.onAddReview,
     required this.onUpdateReview,
     required this.onDeleteReview,
@@ -728,7 +751,7 @@ class _ReviewsSection extends StatelessWidget {
               width: 250,
               height: 44,
               child: ElevatedButton(
-                onPressed: hasMyReview ? null : onAddReview,
+                onPressed: (hasMyReview || !eventPassed) ? null : onAddReview,
                 style: ElevatedButton.styleFrom(
                   elevation: 0,
                   backgroundColor: AppColors.darkBrown,
@@ -737,7 +760,11 @@ class _ReviewsSection extends StatelessWidget {
                       borderRadius: BorderRadius.circular(10)),
                 ),
                 child: Text(
-                    hasMyReview ? 'Already reviewed' : 'Add a review',
+                    hasMyReview
+                        ? 'Already reviewed'
+                        : !eventPassed
+                            ? 'Event not held yet'
+                            : 'Add a review',
                     style: const TextStyle(
                         color: Colors.white,
                         fontSize: 13.5,

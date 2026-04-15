@@ -4,6 +4,8 @@ import '../screens/home_screen.dart';
 import '../screens/shop_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/events_screen.dart';
+import '../screens/about_screen.dart';
+import '../screens/settings_screen.dart';
 
 class AppLayout extends StatelessWidget {
   final String pageTitle;
@@ -206,6 +208,12 @@ class _BookNestDrawer extends StatelessWidget {
               isActive: currentPage == 'ABOUT US',
               onTap: () {
                 Navigator.pop(context);
+                if (currentPage != 'ABOUT US') {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AboutScreen()),
+                  );
+                }
               },
             ),
             _DrawerDivider(),
@@ -214,6 +222,12 @@ class _BookNestDrawer extends StatelessWidget {
               isActive: currentPage == 'SETTINGS',
               onTap: () {
                 Navigator.pop(context);
+                if (currentPage != 'SETTINGS') {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                  );
+                }
               },
             ),
             _DrawerDivider(),

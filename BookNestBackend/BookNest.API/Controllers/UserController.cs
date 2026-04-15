@@ -78,5 +78,16 @@ namespace BookNest.API.Controllers
 
             return Ok(result);
         }
+
+        [HttpDelete("delete-self")]
+        public async Task<ActionResult> DeleteSelf()
+        {
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            if (userId == 0) return Unauthorized();
+
+            await _userService.DeactivateSelfAsync(userId);
+            return Ok();
+        }
+
     }
 }
