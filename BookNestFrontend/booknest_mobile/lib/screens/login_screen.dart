@@ -184,7 +184,6 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text(
                 'Welcome back!',
                 style: TextStyle(
-                  fontFamily: 'Roboto',
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
                   color: AppColors.darkBrown,
@@ -195,7 +194,6 @@ class _LoginScreenState extends State<LoginScreen> {
               Text(
                 'Log into your BookNest account!',
                 style: TextStyle(
-                  fontFamily: 'Roboto',
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                   color: AppColors.darkBrown.withValues(alpha: 0.75),
@@ -220,14 +218,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         }
                       },
                       style: const TextStyle(
-                        fontFamily: 'Roboto',
                         color: AppColors.darkBrown,
                         fontSize: 16,
                       ),
                       decoration: InputDecoration(
                         hintText: 'Username',
                         hintStyle: TextStyle(
-                          fontFamily: 'Roboto',
                           color: _usernameError != null 
                               ? Colors.red
                               : AppColors.darkBrown,
@@ -250,7 +246,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       _usernameError!,
                       style: const TextStyle(
-                        fontFamily: 'Roboto',
                         fontSize: 12,
                         color: Colors.red,
                       ),
@@ -277,14 +272,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         }
                       },
                       style: const TextStyle(
-                        fontFamily: 'Roboto',
                         color: AppColors.darkBrown,
                         fontSize: 16,
                       ),
                       decoration: InputDecoration(
                         hintText: 'Password',
                         hintStyle: TextStyle(
-                          fontFamily: 'Roboto',
                           color: _passwordError != null 
                               ? Colors.red
                               : AppColors.darkBrown,
@@ -307,7 +300,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       _passwordError!,
                       style: const TextStyle(
-                        fontFamily: 'Roboto',
                         fontSize: 12,
                         color: Colors.red,
                       ),
@@ -359,7 +351,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: const Text(
                           'Remember me',
                           style: TextStyle(
-                            fontFamily: 'Roboto',
                             fontSize: 14,
                             color: AppColors.darkBrown,
                           ),
@@ -380,7 +371,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text(
                       'Forgot password?',
                       style: TextStyle(
-                        fontFamily: 'Roboto',
                         fontSize: 14,
                         color: AppColors.darkBrown,
                         decoration: TextDecoration.underline,
@@ -415,7 +405,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       : const Text(
                           'LOGIN',
                           style: TextStyle(
-                            fontFamily: 'Roboto',
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
@@ -434,7 +423,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text(
                       "Don't have an account? ",
                       style: TextStyle(
-                        fontFamily: 'Roboto',
                         fontSize: 14,
                         color: AppColors.darkBrown,
                       ),
@@ -451,7 +439,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: const Text(
                         'Sign up',
                         style: TextStyle(
-                          fontFamily: 'Roboto',
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                           color: AppColors.darkBrown,

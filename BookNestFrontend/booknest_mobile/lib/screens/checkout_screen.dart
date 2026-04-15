@@ -45,7 +45,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isLoading = true;
   bool _isSubmitting = false;
 
-  static const String baseUrl = 'http://10.0.2.2:7110/api';
 
   @override
   void initState() {
@@ -62,7 +61,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
 
       final response = await http.get(
-        Uri.parse('$baseUrl/User/current-user'),
+        Uri.parse('${AppConstants.baseUrl}/User/current-user'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -137,7 +136,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (_paymentMethod == 'Card') {
         // 1. Kreiraj PaymentIntent na backendu
         final intentResponse = await http.post(
-          Uri.parse('$baseUrl/Order/create-payment-intent'),
+          Uri.parse('${AppConstants.baseUrl}/Order/create-payment-intent'),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
@@ -176,7 +175,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       };
 
       final response = await http.post(
-        Uri.parse('$baseUrl/Order/checkout'),
+        Uri.parse('${AppConstants.baseUrl}/Order/checkout'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

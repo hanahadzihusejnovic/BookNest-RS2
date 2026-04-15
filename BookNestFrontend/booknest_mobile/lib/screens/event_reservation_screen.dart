@@ -39,7 +39,6 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
   String _paymentMethod = 'CashOnArrival';
   CardFieldInputDetails? _cardDetails;
 
-  static const String baseUrl = 'http://10.0.2.2:7110/api';
 
   double get _totalPrice => widget.event.ticketPrice * widget.quantity;
 
@@ -57,7 +56,7 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
         return;
       }
       final response = await http.get(
-        Uri.parse('$baseUrl/User/current-user'),
+        Uri.parse('${AppConstants.baseUrl}/User/current-user'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -101,7 +100,7 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
       if (_paymentMethod == 'Card') {
         // 1. Kreiraj PaymentIntent na backendu
         final intentResponse = await http.post(
-          Uri.parse('$baseUrl/Order/create-payment-intent'),
+          Uri.parse('${AppConstants.baseUrl}/Order/create-payment-intent'),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',

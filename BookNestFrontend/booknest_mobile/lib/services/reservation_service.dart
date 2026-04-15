@@ -1,9 +1,11 @@
 import 'dart:convert';
+import '../layouts/constants.dart';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 
 class ReservationModel {
   final int id;
+  final int eventId;
   final String eventName;
   final String eventLocation;
   final DateTime eventDateTime;
@@ -13,17 +15,18 @@ class ReservationModel {
   final String? ticketQRCodeLink;
 
   static String _parseStatus(dynamic value) {
-  switch (value) {
-    case 0: return 'Pending';
-    case 1: return 'Confirmed';
-    case 2: return 'Cancelled';
-    case 3: return 'Attended';
-    default: return value?.toString() ?? '';
+    switch (value) {
+      case 0: return 'Pending';
+      case 1: return 'Confirmed';
+      case 2: return 'Cancelled';
+      case 3: return 'Attended';
+      default: return value?.toString() ?? '';
+    }
   }
-}
 
   ReservationModel({
     required this.id,
+    required this.eventId,
     required this.eventName,
     required this.eventLocation,
     required this.eventDateTime,
@@ -36,6 +39,7 @@ class ReservationModel {
   factory ReservationModel.fromJson(Map<String, dynamic> json) {
     return ReservationModel(
       id: json['id'],
+      eventId: json['eventId'] ?? 0,
       eventName: json['eventName'] ?? '',
       eventLocation: json['eventLocation'] ?? '',
       eventDateTime: DateTime.parse(json['eventDateTime']),
@@ -48,7 +52,6 @@ class ReservationModel {
 }
 
 class ReservationService {
-  static const String baseUrl = 'http://10.0.2.2:7110/api';
   final AuthService _authService = AuthService();
 
   Future<Map<String, String>> _headers() async {
@@ -67,7 +70,7 @@ class ReservationService {
     String? transactionId,
   }) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/EventReservation/reserve'),
+      Uri.parse('${AppConstants.baseUrl}/EventReservation/reserve'),
       headers: await _headers(),
       body: jsonEncode({
         'eventId': eventId,
@@ -86,7 +89,7 @@ class ReservationService {
 
   Future<List<ReservationModel>> getMyReservations() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/EventReservation/my-reservations'),
+      Uri.parse('${AppConstants.baseUrl}/EventReservation/my-reservations'),
       headers: await _headers(),
     );
     if (response.statusCode == 200) {

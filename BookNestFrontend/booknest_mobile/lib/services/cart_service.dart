@@ -1,10 +1,10 @@
 import 'dart:convert';
+import '../layouts/constants.dart';
 import 'package:http/http.dart' as http;
 import '../models/cart.dart';
 import 'auth_service.dart';
 
 class CartService {
-  static const String baseUrl = 'http://10.0.2.2:7110/api';
   final AuthService _authService = AuthService();
 
   Future<Map<String, String>> _headers() async {
@@ -18,7 +18,7 @@ class CartService {
 
   Future<CartModel> getMyCart() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/Cart/my-cart'),
+      Uri.parse('${AppConstants.baseUrl}/Cart/my-cart'),
       headers: await _headers(),
     );
     if (response.statusCode == 200) {
@@ -29,7 +29,7 @@ class CartService {
 
   Future<CartModel> addItem(int bookId, int quantity) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/Cart/add-item'),
+      Uri.parse('${AppConstants.baseUrl}/Cart/add-item'),
       headers: await _headers(),
       body: jsonEncode({'bookId': bookId, 'quantity': quantity}),
     );
@@ -41,7 +41,7 @@ class CartService {
 
   Future<CartModel> updateItem(int cartItemId, int quantity) async {
     final response = await http.put(
-      Uri.parse('$baseUrl/Cart/update-item/$cartItemId'),
+      Uri.parse('${AppConstants.baseUrl}/Cart/update-item/$cartItemId'),
       headers: await _headers(),
       body: jsonEncode(quantity),
     );
@@ -53,7 +53,7 @@ class CartService {
 
   Future<CartModel> removeItem(int cartItemId) async {
     final response = await http.delete(
-      Uri.parse('$baseUrl/Cart/remove-item/$cartItemId'),
+      Uri.parse('${AppConstants.baseUrl}/Cart/remove-item/$cartItemId'),
       headers: await _headers(),
     );
     if (response.statusCode == 200) {
@@ -64,7 +64,7 @@ class CartService {
 
   Future<void> clearCart() async {
     final response = await http.delete(
-      Uri.parse('$baseUrl/Cart/clear'),
+      Uri.parse('${AppConstants.baseUrl}/Cart/clear'),
       headers: await _headers(),
     );
     if (response.statusCode != 200) {

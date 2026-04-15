@@ -1,10 +1,10 @@
 import 'dart:convert';
+import '../layouts/constants.dart';
 import 'package:http/http.dart' as http;
 import '../models/category.dart';
 import 'auth_service.dart';
 
 class CategoryService {
-  static const String baseUrl = 'http://10.0.2.2:7110/api';
   final AuthService _authService = AuthService();
 
   Future<List<Category>> getCategories() async {
@@ -18,7 +18,7 @@ class CategoryService {
       }
       
       final response = await http.get(
-        Uri.parse('$baseUrl/Category'),
+        Uri.parse('${AppConstants.baseUrl}/Category'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',

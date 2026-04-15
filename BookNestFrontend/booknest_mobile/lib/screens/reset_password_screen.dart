@@ -90,14 +90,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             obscureText: obscure,
             onChanged: (_) => setState(() {}),
             style: const TextStyle(
-              fontFamily: 'Roboto',
               color: AppColors.darkBrown,
               fontSize: 16,
             ),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
-                fontFamily: 'Roboto',
                 color: error != null ? Colors.red : AppColors.darkBrown,
                 fontSize: 16,
               ),
@@ -118,7 +116,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           Text(
             error,
             style: const TextStyle(
-              fontFamily: 'Roboto',
               fontSize: 12,
               color: Colors.red,
             ),
@@ -151,7 +148,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   const Text(
                     'Reset password',
                     style: TextStyle(
-                      fontFamily: 'Roboto',
                       fontSize: 30,
                       fontWeight: FontWeight.bold,
                       color: AppColors.darkBrown,
@@ -198,7 +194,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           : const Text(
                               'RESET PASSWORD',
                               style: TextStyle(
-                                fontFamily: 'Roboto',
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,

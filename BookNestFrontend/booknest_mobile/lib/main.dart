@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'screens/login_screen.dart';
 
 void main() async {
@@ -18,7 +19,7 @@ class MyApp extends StatelessWidget {
       title: 'BookNest',
       debugShowCheckedModeBanner: false, // Ukloni DEBUG banner
       theme: ThemeData(
-        fontFamily: 'Roboto',
+        textTheme: GoogleFonts.gantariTextTheme(),
         useMaterial3: true,
       ),
       home: const LoginScreen(), // ← Početni ekran je Login

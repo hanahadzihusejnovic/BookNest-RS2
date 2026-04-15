@@ -1,10 +1,10 @@
 import 'dart:convert';
+import '../layouts/constants.dart';
 import 'package:http/http.dart' as http;
 import '../models/order.dart';
 import 'auth_service.dart';
 
 class OrderService {
-  static const String baseUrl = 'http://10.0.2.2:7110/api';
   final AuthService _authService = AuthService();
 
   Future<Map<String, String>> _headers() async {
@@ -18,7 +18,7 @@ class OrderService {
 
   Future<List<OrderModel>> getMyOrders() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/Order/my-orders'),
+      Uri.parse('${AppConstants.baseUrl}/Order/my-orders'),
       headers: await _headers(),
     );
     if (response.statusCode == 200) {
