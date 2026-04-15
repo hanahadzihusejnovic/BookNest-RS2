@@ -6,6 +6,7 @@ import '../layouts/app_layout.dart';
 import '../services/review_service.dart';
 import '../services/auth_service.dart';
 import '../screens/event_reservation_screen.dart';
+import '../services/reservation_service.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   final EventModel event;
@@ -22,6 +23,7 @@ class EventDetailsScreen extends StatefulWidget {
 class _EventDetailsScreenState extends State<EventDetailsScreen> {
   final _reviewService = ReviewService();
   final _authService = AuthService();
+  final _reservationService = ReservationService();
   List<BookReview> _reviews = [];
   double _averageRating = 0;
   bool _isLoadingReviews = true;
@@ -29,12 +31,27 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   int? _currentUserId;
   bool _hasMyReview = false;
   bool _descExpanded = false;
+  bool _hasReservation = false;
 
   @override
   void initState() {
     super.initState();
     _loadReviews();
     _loadCurrentUser();
+    _loadReservationStatus();
+  }
+
+  Future<void> _loadReservationStatus() async {
+    try {
+      final reservations = await _reservationService.getMyReservations();
+      if (mounted) {
+        setState(() {
+          _hasReservation = reservations.any(
+            (r) => r.eventId == widget.event.id && r.reservationStatus != 'Cancelled',
+          );
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadCurrentUser() async {
@@ -569,28 +586,32 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 width: 180,
                 height: 42,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EventReservationScreen(
-                          event: widget.event,
-                          quantity: _quantity,
-                        ),
-                      ),
-                    );
-                  },
+                  onPressed: _hasReservation
+                      ? null
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EventReservationScreen(
+                                event: widget.event,
+                                quantity: _quantity,
+                              ),
+                            ),
+                          );
+                        },
                   style: ElevatedButton.styleFrom(
                     elevation: 0,
                     backgroundColor: AppColors.darkBrown,
+                    disabledBackgroundColor: AppColors.mediumBrown,
+                    disabledForegroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(6)),
                   ),
-                  child: const Text(
-                    'RESERVE',
+                  child: Text(
+                    _hasReservation ? 'ALREADY RESERVED' : 'RESERVE',
                     style: TextStyle(
                         color: Colors.white,
-                        fontSize: 15,
+                        fontSize: _hasReservation ? 11 : 15,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 0.6),
                   ),

@@ -76,7 +76,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   const Text(
                     'Forgot password?',
                     style: TextStyle(
-                      fontFamily: 'Roboto',
                       fontSize: 30,
                       fontWeight: FontWeight.bold,
                       color: AppColors.darkBrown,
@@ -108,14 +107,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             }
                           },
                           style: const TextStyle(
-                            fontFamily: 'Roboto',
                             color: AppColors.darkBrown,
                             fontSize: 16,
                           ),
                           decoration: InputDecoration(
                             hintText: 'Email',
                             hintStyle: TextStyle(
-                              fontFamily: 'Roboto',
                               color: _emailError != null ? Colors.red : AppColors.darkBrown,
                               fontSize: 16,
                             ),
@@ -136,7 +133,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         Text(
                           _emailError!,
                           style: const TextStyle(
-                            fontFamily: 'Roboto',
                             fontSize: 12,
                             color: Colors.red,
                           ),
@@ -148,7 +144,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                   Text(
                     'Enter your email and we\'ll send you a reset token.',
                     style: TextStyle(
-                      fontFamily: 'Roboto',
                       fontSize: 14,
                       color: AppColors.darkBrown.withValues(alpha: 0.75),
                     ),
@@ -177,7 +172,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           : const Text(
                               'SEND RESET TOKEN',
                               style: TextStyle(
-                                fontFamily: 'Roboto',
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,

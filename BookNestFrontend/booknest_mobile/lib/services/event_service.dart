@@ -1,10 +1,10 @@
 import 'dart:convert';
+import '../layouts/constants.dart';
 import 'package:http/http.dart' as http;
 import '../models/event.dart';
 import 'auth_service.dart';
 
 class EventService {
-  static const String baseUrl = 'http://10.0.2.2:7110/api';
   final AuthService _authService = AuthService();
 
   Future<Map<String, String>> _headers() async {
@@ -29,7 +29,7 @@ class EventService {
     if (eventCategoryId != null) params['EventCategoryId'] = eventCategoryId.toString();
     if (isActive != null) params['IsActive'] = isActive.toString();
 
-    final uri = Uri.parse('$baseUrl/Event').replace(queryParameters: params);
+    final uri = Uri.parse('${AppConstants.baseUrl}/Event').replace(queryParameters: params);
 
     final response = await http.get(uri, headers: await _headers());
 
@@ -51,7 +51,7 @@ class EventService {
   }
 
   Future<List<EventModel>> getRecommendedEvents({int count = 6}) async {
-    final uri = Uri.parse('$baseUrl/Event/recommended?count=$count');
+    final uri = Uri.parse('${AppConstants.baseUrl}/Event/recommended?count=$count');
     final response = await http.get(uri, headers: await _headers());
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
@@ -61,7 +61,7 @@ class EventService {
   }
 
   Future<List<EventModel>> getContentBasedRecommendations({int count = 6}) async {
-    final uri = Uri.parse('$baseUrl/Event/recommended-content?count=$count');
+    final uri = Uri.parse('${AppConstants.baseUrl}/Event/recommended-content?count=$count');
     final response = await http.get(uri, headers: await _headers());
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);

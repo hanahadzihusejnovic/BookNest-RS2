@@ -106,33 +106,50 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: _topBooks.take(6).length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      mainAxisSpacing: 14,
-                      crossAxisSpacing: 14,
-                      childAspectRatio: 0.48,
-                    ),
-                    itemBuilder: (context, index) {
-                      final book = _topBooks[index];
-                      return BookCard(
-                        title: book.title,
-                        author: book.author,
-                        imageUrl: book.imageUrl,
-                        style: BookCardStyle.details,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => BookDetailsScreen(book: book),
+                  if (_topBooks.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: Text(
+                          'No recommendations yet.\nStart exploring books to get personalized picks!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.75),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            height: 1.5,
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    )
+                  else
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _topBooks.take(6).length,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        mainAxisSpacing: 14,
+                        crossAxisSpacing: 14,
+                        childAspectRatio: 0.48,
+                      ),
+                      itemBuilder: (context, index) {
+                        final book = _topBooks[index];
+                        return BookCard(
+                          title: book.title,
+                          author: book.author,
+                          imageUrl: book.imageUrl,
+                          style: BookCardStyle.details,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => BookDetailsScreen(book: book),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                 ],
               ),
             ),
@@ -140,8 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 18),
 
             // Maybe interested — collaborative filtering
-            if (_interestedEvents.isNotEmpty)
-              _SectionCard(
+            _SectionCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -154,52 +170,65 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _interestedEvents.length <= 3
-                        ? ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _interestedEvents.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (context, i) {
-                              final e = _interestedEvents[i];
-                              return _InterestRow(
-                                title: e.name,
-                                subtitle: e.description ?? '',
-                                timeText: e.formattedDate,
-                                onTap: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        EventDetailsScreen(event: e),
-                                  ),
-                                ),
-                              );
-                            },
-                          )
-                        : SizedBox(
-                            height: 280,
-                            child: ListView.separated(
-                              itemCount: _interestedEvents.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 10),
-                              itemBuilder: (context, i) {
-                                final e = _interestedEvents[i];
-                                return _InterestRow(
-                                  title: e.name,
-                                  subtitle: e.description ?? '',
-                                  timeText: e.formattedDate,
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          EventDetailsScreen(event: e),
-                                    ),
-                                  ),
-                                );
-                              },
+                    if (_interestedEvents.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Center(
+                          child: Text(
+                            'No event recommendations yet.\nReserve events to get personalized suggestions!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.75),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              height: 1.5,
                             ),
                           ),
+                        ),
+                      )
+                    else if (_interestedEvents.length <= 3)
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _interestedEvents.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, i) {
+                          final e = _interestedEvents[i];
+                          return _InterestRow(
+                            title: e.name,
+                            subtitle: e.description ?? '',
+                            timeText: e.formattedDate,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EventDetailsScreen(event: e),
+                              ),
+                            ),
+                          );
+                        },
+                      )
+                    else
+                      SizedBox(
+                        height: 280,
+                        child: ListView.separated(
+                          itemCount: _interestedEvents.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 10),
+                          itemBuilder: (context, i) {
+                            final e = _interestedEvents[i];
+                            return _InterestRow(
+                              title: e.name,
+                              subtitle: e.description ?? '',
+                              timeText: e.formattedDate,
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EventDetailsScreen(event: e),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -207,8 +236,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 18),
 
             // Upcoming events — korisnikove rezervacije
-            if (_upcomingReservations.isNotEmpty)
-              _SectionCard(
+            _SectionCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -221,38 +249,53 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _upcomingReservations.length <= 3
-                        ? ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: _upcomingReservations.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(height: 10),
-                            itemBuilder: (context, index) {
-                              final r = _upcomingReservations[index];
-                              return _UpcomingReservationRow(
-                                eventName: r.eventName,
-                                dateText: _formatDate(r.eventDateTime),
-                                location: r.eventLocation,
-                              );
-                            },
-                          )
-                        : SizedBox(
-                            height: 280,
-                            child: ListView.separated(
-                              itemCount: _upcomingReservations.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 10),
-                              itemBuilder: (context, index) {
-                                final r = _upcomingReservations[index];
-                                return _UpcomingReservationRow(
-                                  eventName: r.eventName,
-                                  dateText: _formatDate(r.eventDateTime),
-                                  location: r.eventLocation,
-                                );
-                              },
+                    if (_upcomingReservations.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Center(
+                          child: Text(
+                            'No upcoming events.\nReserve an event to see it here!',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.75),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              height: 1.5,
                             ),
                           ),
+                        ),
+                      )
+                    else if (_upcomingReservations.length <= 3)
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _upcomingReservations.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final r = _upcomingReservations[index];
+                          return _UpcomingReservationRow(
+                            eventName: r.eventName,
+                            dateText: _formatDate(r.eventDateTime),
+                            location: r.eventLocation,
+                          );
+                        },
+                      )
+                    else
+                      SizedBox(
+                        height: 280,
+                        child: ListView.separated(
+                          itemCount: _upcomingReservations.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 10),
+                          itemBuilder: (context, index) {
+                            final r = _upcomingReservations[index];
+                            return _UpcomingReservationRow(
+                              eventName: r.eventName,
+                              dateText: _formatDate(r.eventDateTime),
+                              location: r.eventLocation,
+                            );
+                          },
+                        ),
+                      ),
                     const SizedBox(height: 10),
                     Center(
                       child: SizedBox(

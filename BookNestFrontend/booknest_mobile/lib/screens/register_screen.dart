@@ -225,7 +225,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const Text(
                     'Welcome!',
                     style: TextStyle(
-                      fontFamily: 'Roboto',
                       fontSize: 30,
                       fontWeight: FontWeight.bold,
                       color: AppColors.darkBrown,
@@ -241,7 +240,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Text(
                 'Create your BookNest account!',
                 style: TextStyle(
-                  fontFamily: 'Roboto',
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
                   color: AppColors.darkBrown.withValues(alpha: 0.75),
@@ -331,7 +329,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Text(
                               'Date of Birth: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
                               style: const TextStyle(
-                                fontFamily: 'Roboto',
                                 color: AppColors.darkBrown,
                                 fontSize: 16,
                               ),
@@ -353,7 +350,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const Text(
                     'Optional Information',
                     style: TextStyle(
-                      fontFamily: 'Roboto',
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: AppColors.darkBrown,
@@ -401,7 +397,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           : const Text(
                               'REGISTER',
                               style: TextStyle(
-                                fontFamily: 'Roboto',
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
@@ -419,7 +414,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const Text(
                           "Already have an account? ",
                           style: TextStyle(
-                            fontFamily: 'Roboto',
                             color: AppColors.darkBrown,
                             fontSize: 14,
                           ),
@@ -429,7 +423,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           child: const Text(
                             'Login',
                             style: TextStyle(
-                              fontFamily: 'Roboto',
                               color: AppColors.darkBrown,
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -471,14 +464,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
               if (onChanged != null) onChanged();
             },
             style: const TextStyle(
-              fontFamily: 'Roboto',
               color: AppColors.darkBrown,
               fontSize: 16,
             ),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
-                fontFamily: 'Roboto',
                 color: errorText != null ? Colors.red : AppColors.darkBrown,
                 fontSize: 16,
               ),
@@ -499,7 +490,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           Text(
             errorText,
             style: const TextStyle(
-              fontFamily: 'Roboto',
               fontSize: 12,
               color: Colors.red,
             ),

@@ -1,21 +1,21 @@
 import 'dart:convert';
+import '../layouts/constants.dart';
 import 'package:http/http.dart' as http;
 import '../models/login_request.dart';
 import '../models/login_response.dart';
 import '../models/register_request.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://10.0.2.2:7110/api';
 
   // Login
   Future<LoginResponse> login(LoginRequest request) async {
     try {
-      print('🔵 API: Sending login request to: $baseUrl/Auth/login');
+      print('🔵 API: Sending login request to: ${AppConstants.baseUrl}/Auth/login');
       print('🔵 API: Username: ${request.username}');
       print('🔵 API: Password length: ${request.password.length}');
       
       final response = await http.post(
-        Uri.parse('$baseUrl/Auth/login'),
+        Uri.parse('${AppConstants.baseUrl}/Auth/login'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -42,10 +42,10 @@ class ApiService {
   // Register
   Future<void> register(RegisterRequest request) async {
     try {
-      print('🔵 API: Sending register request to: $baseUrl/Auth/register');
+      print('🔵 API: Sending register request to: ${AppConstants.baseUrl}/Auth/register');
       
       final response = await http.post(
-        Uri.parse('$baseUrl/Auth/register'),
+        Uri.parse('${AppConstants.baseUrl}/Auth/register'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -70,7 +70,7 @@ class ApiService {
   // GET request 
   Future<http.Response> get(String endpoint, String token) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/$endpoint'),
+      Uri.parse('${AppConstants.baseUrl}/$endpoint'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -82,7 +82,7 @@ class ApiService {
   // POST request 
   Future<http.Response> post(String endpoint, Map<String, dynamic> data, String token) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/$endpoint'),
+      Uri.parse('${AppConstants.baseUrl}/$endpoint'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
@@ -98,7 +98,7 @@ class ApiService {
       print('🔵 API: Sending forgot password request');
       
       final response = await http.post(
-        Uri.parse('$baseUrl/Auth/forgot-password'),
+        Uri.parse('${AppConstants.baseUrl}/Auth/forgot-password'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email}),
       );
@@ -120,7 +120,7 @@ class ApiService {
       print('🔵 API: Sending reset password request');
       
       final response = await http.post(
-        Uri.parse('$baseUrl/Auth/reset-password'),
+        Uri.parse('${AppConstants.baseUrl}/Auth/reset-password'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'token': token,

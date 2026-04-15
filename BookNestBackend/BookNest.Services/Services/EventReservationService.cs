@@ -163,6 +163,13 @@ namespace BookNest.Services.Services
                 throw new Exception($"Not enough available seats. Only {availableSeats} seats available.");
             }
 
+            var existingReservation = await _dbContext.EventReservations.FirstOrDefaultAsync(r => r.UserId == userId
+                                                                                                  && r.EventId == request.EventId
+                                                                                                  && r.ReservationStatus != ReservationStatus.Cancelled, cancellationToken);
+
+            if (existingReservation != null)
+                throw new Exception("You already have a reservation for this event.");
+
             var eventDateTime = eventEntity.EventDate.Date + eventEntity.EventTime;
             if (eventDateTime < DateTime.UtcNow)
             {

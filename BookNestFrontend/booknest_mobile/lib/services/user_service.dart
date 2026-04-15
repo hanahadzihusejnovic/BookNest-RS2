@@ -1,10 +1,10 @@
 import 'dart:convert';
+import '../layouts/constants.dart';
 import 'package:http/http.dart' as http;
 import '../models/user.dart';
 import 'auth_service.dart';
 
 class UserService {
-  static const String baseUrl = 'http://10.0.2.2:7110/api';
   final AuthService _authService = AuthService();
 
   Future<Map<String, String>> _headers() async {
@@ -18,7 +18,7 @@ class UserService {
 
   Future<User> getCurrentUser() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/User/current-user'),
+      Uri.parse('${AppConstants.baseUrl}/User/current-user'),
       headers: await _headers(),
     );
     if (response.statusCode == 200) {
@@ -39,7 +39,7 @@ class UserService {
     String? imageUrl,
   }) async {
     final response = await http.put(
-      Uri.parse('$baseUrl/User/update-self'),
+      Uri.parse('${AppConstants.baseUrl}/User/update-self'),
       headers: await _headers(),
       body: jsonEncode({
         'firstName': firstName,
@@ -61,7 +61,7 @@ class UserService {
 
   Future<void> deleteSelf() async {
     final response = await http.delete(
-      Uri.parse('$baseUrl/User/delete-self'),
+      Uri.parse('${AppConstants.baseUrl}/User/delete-self'),
       headers: await _headers(),
     );
     if (response.statusCode != 200 && response.statusCode != 204) {
