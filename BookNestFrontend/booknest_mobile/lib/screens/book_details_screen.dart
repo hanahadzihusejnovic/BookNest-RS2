@@ -6,6 +6,7 @@ import '../services/review_service.dart';
 import '../services/cart_service.dart';
 import '../services/favorite_service.dart';
 import '../services/tbr_service.dart';
+import '../services/auth_service.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final Book book;
@@ -26,12 +27,15 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   final _reviewService = ReviewService();
   final _favoriteService = FavoriteService();
   final _tbrService = TBRService();
+  final _authService = AuthService();
   List<BookReview> _reviews = [];
   double _averageRating = 0;
   bool _isInTBR = false;
   ReadingStatus? _tbrStatus;
   bool _isLoadingFav = false;
   bool _isLoadingTBR = false;
+  int? _currentUserId;
+  bool _hasMyReview = false;
 
   @override
   void initState() {
@@ -39,6 +43,39 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     _reviews = widget.book.reviews;
     _averageRating = widget.book.averageRating ?? 0;
     _loadStatuses();
+    _loadReviewsAndUser();
+  }
+
+  Future<void> _loadReviewsAndUser() async {
+    final userId = await _authService.getUserId();
+    if (!mounted) return;
+    setState(() => _currentUserId = userId);
+
+    try {
+      final reviews = await _reviewService.getBookReviews(widget.book.id);
+      final avg = reviews.isEmpty
+          ? 0.0
+          : reviews.map((r) => r.rating).reduce((a, b) => a + b) /
+              reviews.length;
+      if (mounted) {
+        setState(() {
+          _reviews = reviews;
+          _averageRating = avg;
+          _hasMyReview = reviews.any((r) => r.userId == userId);
+        });
+      }
+    } catch (_) {
+      // Ako API padne, koristimo reviews iz widget.book
+      if (mounted) {
+        setState(() {
+          _hasMyReview = _reviews.any((r) => r.userId == userId);
+        });
+      }
+    }
+  }
+
+  void _updateHasMyReview(List<BookReview> reviews) {
+    _hasMyReview = reviews.any((r) => r.userId == _currentUserId);
   }
 
   Future<void> _loadStatuses() async {
@@ -66,99 +103,111 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     try {
       await _favoriteService.addToFavorites(widget.book.id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Added to favorites!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppSnackBar.show(context, 'Added to favorites!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
+        AppSnackBar.showError(context, e);
       }
     } finally {
       setState(() => _isLoadingFav = false);
     }
   }
 
-  void _showTBRMenu(BuildContext buttonContext) {
-    final RenderBox button =
-        buttonContext.findRenderObject() as RenderBox;
-    final RenderBox overlay =
-        Overlay.of(buttonContext).context.findRenderObject() as RenderBox;
-    final RelativeRect position = RelativeRect.fromRect(
-      Rect.fromPoints(
-        button.localToGlobal(Offset.zero, ancestor: overlay),
-        button.localToGlobal(
-            button.size.bottomRight(Offset.zero), ancestor: overlay),
-      ),
-      Offset.zero & overlay.size,
-    );
-
-    showMenu<ReadingStatus>(
-      context: buttonContext,
-      position: position,
-      color: AppColors.pageBg,
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      items: ReadingStatus.values.map((status) {
-        final isSelected = _tbrStatus == status;
-        return PopupMenuItem<ReadingStatus>(
-          value: status,
-          child: Center(
-            child: Text(
-              status.label,
-              style: TextStyle(
-                color: AppColors.darkBrown,
-                fontWeight:
-                    isSelected ? FontWeight.w800 : FontWeight.w600,
-                fontSize: 14,
-              ),
+  void _showTBRDialog() {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: AppColors.pageBg,
+          title: Text(
+            _isInTBR ? 'Update TBR Status' : 'Add to TBR List',
+            style: TextStyle(
+              color: AppColors.darkBrown,
+              fontWeight: FontWeight.w800,
+              fontSize: 16,
             ),
           ),
-        );
-      }).toList(),
-    ).then((selected) async {
-      if (selected == null) return;
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: ReadingStatus.values.map((status) {
+              final isSelected = _tbrStatus == status;
+              return GestureDetector(
+                onTap: () async {
+                  final nav = Navigator.of(dialogContext);
+                  final overlay = Overlay.of(dialogContext);
+                  nav.pop();
 
-      if (_isInTBR && _tbrStatus != selected) {
-        final confirm = await _showChangeStatusDialog(selected);
-        if (!confirm) return;
-      }
+                  if (_isInTBR) {
+                    if (_tbrStatus == status) {
+                      AppSnackBar.show(overlay, 'Already in your ${status.label} list!', isError: true);
+                      return;
+                    }
+                    final confirm = await _showChangeStatusDialog(status);
+                    if (!confirm) return;
+                  }
 
-      setState(() => _isLoadingTBR = true);
-      try {
-        if (_isInTBR) {
-          await _tbrService.updateTBRStatus(widget.book.id, selected);
-        } else {
-          await _tbrService.addToTBR(widget.book.id, selected);
-        }
-        setState(() {
-          _isInTBR = true;
-          _tbrStatus = selected;
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Added to TBR as "${selected.label}"!'),
-              backgroundColor: Colors.green,
+                  final wasInTBR = _isInTBR;
+                  setState(() => _isLoadingTBR = true);
+                  try {
+                    if (_isInTBR) {
+                      await _tbrService.updateTBRStatus(widget.book.id, status);
+                    } else {
+                      await _tbrService.addToTBR(widget.book.id, status);
+                    }
+                    if (mounted) {
+                      setState(() {
+                        _isInTBR = true;
+                        _tbrStatus = status;
+                      });
+                      AppSnackBar.show(
+                        overlay,
+                        wasInTBR
+                            ? 'Moved to "${status.label}"!'
+                            : 'Added to TBR as "${status.label}"!',
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) AppSnackBar.showError(overlay, e);
+                  } finally {
+                    if (mounted) setState(() => _isLoadingTBR = false);
+                  }
+                },
+                child: Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? AppColors.mediumBrown.withValues(alpha: 0.5)
+                        : AppColors.mediumBrown.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    status.label,
+                    style: TextStyle(
+                      color: AppColors.darkBrown,
+                      fontSize: 13,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: AppColors.darkBrown),
+              ),
             ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-                content: Text('Error: $e'), backgroundColor: Colors.red),
-          );
-        }
-      } finally {
-        setState(() => _isLoadingTBR = false);
-      }
-    });
+          ],
+        );
+      },
+    );
   }
 
   Future<bool> _showChangeStatusDialog(ReadingStatus newStatus) async {
@@ -177,7 +226,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           content: Text(
             'Are you sure you want to change your reading status to "${newStatus.label}"?',
             style: TextStyle(
-              color: AppColors.darkBrown.withOpacity(0.8),
+              color: AppColors.darkBrown.withValues(alpha: 0.8),
               fontSize: 14,
             ),
           ),
@@ -268,11 +317,11 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                     decoration: InputDecoration(
                       hintText: 'Write your review...',
                       hintStyle: TextStyle(
-                        color: AppColors.darkBrown.withOpacity(0.4),
+                        color: AppColors.darkBrown.withValues(alpha: 0.4),
                         fontSize: 13,
                       ),
                       filled: true,
-                      fillColor: Colors.white.withOpacity(0.5),
+                      fillColor: Colors.white.withValues(alpha: 0.5),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide.none,
@@ -293,6 +342,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   onPressed: isSubmitting
                       ? null
                       : () async {
+                          final nav = Navigator.of(context);
+                          final overlay = Overlay.of(context);
                           setDialogState(() => isSubmitting = true);
                           try {
                             await _reviewService.addReview(
@@ -312,30 +363,19 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                                         .reduce((a, b) => a + b) /
                                     reviews.length;
 
-                            setState(() {
-                              _reviews = reviews;
-                              _averageRating = avg;
-                            });
-
                             if (mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content:
-                                      Text('Review added successfully!'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
+                              setState(() {
+                                _reviews = reviews;
+                                _averageRating = avg;
+                                _updateHasMyReview(reviews);
+                              });
+                              nav.pop();
+                              AppSnackBar.show(overlay, 'Review added successfully!');
                             }
                           } catch (e) {
                             setDialogState(() => isSubmitting = false);
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
+                              AppSnackBar.showError(overlay, e);
                             }
                           }
                         },
@@ -430,11 +470,11 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                     decoration: InputDecoration(
                       hintText: 'Write your review...',
                       hintStyle: TextStyle(
-                        color: AppColors.darkBrown.withOpacity(0.4),
+                        color: AppColors.darkBrown.withValues(alpha: 0.4),
                         fontSize: 13,
                       ),
                       filled: true,
-                      fillColor: Colors.white.withOpacity(0.5),
+                      fillColor: Colors.white.withValues(alpha: 0.5),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(8),
                         borderSide: BorderSide.none,
@@ -453,6 +493,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   onPressed: isSubmitting
                       ? null
                       : () async {
+                          final nav = Navigator.of(context);
+                          final overlay = Overlay.of(context);
                           setDialogState(() => isSubmitting = true);
                           try {
                             await _reviewService.updateReview(
@@ -472,29 +514,19 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                                         .reduce((a, b) => a + b) /
                                     reviews.length;
 
-                            setState(() {
-                              _reviews = reviews;
-                              _averageRating = avg;
-                            });
-
                             if (mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Review updated!'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
+                              setState(() {
+                                _reviews = reviews;
+                                _averageRating = avg;
+                                _updateHasMyReview(reviews);
+                              });
+                              nav.pop();
+                              AppSnackBar.show(overlay, 'Review updated!');
                             }
                           } catch (e) {
                             setDialogState(() => isSubmitting = false);
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Error: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
+                              AppSnackBar.showError(overlay, e);
                             }
                           }
                         },
@@ -534,7 +566,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           content: Text(
             'Are you sure you want to delete your review?',
             style: TextStyle(
-              color: AppColors.darkBrown.withOpacity(0.8),
+              color: AppColors.darkBrown.withValues(alpha: 0.8),
               fontSize: 14,
             ),
           ),
@@ -546,6 +578,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
+                final nav = Navigator.of(context);
+                final overlay = Overlay.of(context);
                 try {
                   await _reviewService.deleteReview(review.id);
 
@@ -558,29 +592,19 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                               .reduce((a, b) => a + b) /
                           reviews.length;
 
-                  setState(() {
-                    _reviews = reviews;
-                    _averageRating = avg;
-                  });
-
                   if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Review deleted!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+                    setState(() {
+                      _reviews = reviews;
+                      _averageRating = avg;
+                      _updateHasMyReview(reviews);
+                    });
+                    nav.pop();
+                    AppSnackBar.show(overlay, 'Review deleted!');
                   }
                 } catch (e) {
                   if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+                    nav.pop();
+                    AppSnackBar.showError(overlay, e);
                   }
                 }
               },
@@ -598,6 +622,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final book = widget.book;
+
 
     return AppLayout(
       pageTitle: 'Book Details',
@@ -632,7 +657,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   ? TextOverflow.visible
                   : TextOverflow.ellipsis,
               style: TextStyle(
-                color: AppColors.darkBrown.withOpacity(0.72),
+                color: AppColors.darkBrown.withValues(alpha: 0.72),
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 height: 1.35,
@@ -646,7 +671,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 child: Text(
                   _descExpanded ? 'View less' : 'View more',
                   style: TextStyle(
-                    color: AppColors.darkBrown.withOpacity(0.6),
+                    color: AppColors.darkBrown.withValues(alpha: 0.6),
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -672,6 +697,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
             _ReviewsSection(
               reviews: _reviews,
+              hasMyReview: _hasMyReview,
               onAddReview: _showAddReviewDialog,
               onUpdateReview: _showUpdateReviewDialog,
               onDeleteReview: _showDeleteReviewDialog,
@@ -686,26 +712,17 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   child: _PrimaryActionButton(
                     text: 'Add to cart',
                     onTap: () async {
+                      final overlay = Overlay.of(context);
                       try {
                         final cartService = CartService();
                         await cartService.addItem(
                             widget.book.id, _quantity);
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Added to cart!'),
-                              backgroundColor: Colors.green,
-                            ),
-                          );
+                          AppSnackBar.show(overlay, 'Added to cart!');
                         }
                       } catch (e) {
                         if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Error: $e'),
-                              backgroundColor: Colors.red,
-                            ),
-                          );
+                          AppSnackBar.showError(overlay, e);
                         }
                       }
                     },
@@ -732,9 +749,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 height: 54,
                 child: _isLoadingTBR
                     ? _LoadingButton()
-                    : Builder(
-                        builder: (buttonContext) => ElevatedButton(
-                          onPressed: () => _showTBRMenu(buttonContext),
+                    : ElevatedButton(
+                          onPressed: () => _showTBRDialog(),
                           style: ElevatedButton.styleFrom(
                             elevation: 0,
                             backgroundColor: _isInTBR
@@ -755,7 +771,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                             ),
                           ),
                         ),
-                      ),
               ),
             ),
 
@@ -777,7 +792,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                   ? TextOverflow.visible
                   : TextOverflow.ellipsis,
               style: TextStyle(
-                color: AppColors.darkBrown.withOpacity(0.72),
+                color: AppColors.darkBrown.withValues(alpha: 0.72),
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
                 height: 1.35,
@@ -792,7 +807,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 child: Text(
                   _authorExpanded ? 'View less' : 'View more',
                   style: TextStyle(
-                    color: AppColors.darkBrown.withOpacity(0.6),
+                    color: AppColors.darkBrown.withValues(alpha: 0.6),
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -809,10 +824,10 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
   Widget _imageFallback() {
     return Container(
-      color: AppColors.pageBg.withOpacity(0.55),
+      color: AppColors.pageBg.withValues(alpha: 0.55),
       child: Icon(
         Icons.menu_book_rounded,
-        color: AppColors.darkBrown.withOpacity(0.45),
+        color: AppColors.darkBrown.withValues(alpha: 0.45),
         size: 42,
       ),
     );
@@ -869,7 +884,7 @@ class _TopSection extends StatelessWidget {
               Text(
                 book.author,
                 style: TextStyle(
-                  color: AppColors.darkBrown.withOpacity(0.55),
+                  color: AppColors.darkBrown.withValues(alpha: 0.55),
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                 ),
@@ -962,7 +977,7 @@ class _QuantitySelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _QuantityButton(icon: Icons.add, onTap: onIncrease),
+        _QuantityButton(icon: Icons.remove, onTap: onDecrease),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 18),
           child: Text(
@@ -974,7 +989,7 @@ class _QuantitySelector extends StatelessWidget {
             ),
           ),
         ),
-        _QuantityButton(icon: Icons.remove, onTap: onDecrease),
+        _QuantityButton(icon: Icons.add, onTap: onIncrease),
       ],
     );
   }
@@ -1007,12 +1022,14 @@ class _QuantityButton extends StatelessWidget {
 
 class _ReviewsSection extends StatelessWidget {
   final List<BookReview> reviews;
+  final bool hasMyReview;
   final VoidCallback onAddReview;
   final Function(BookReview) onUpdateReview;
   final Function(BookReview) onDeleteReview;
 
   const _ReviewsSection({
     required this.reviews,
+    required this.hasMyReview,
     required this.onAddReview,
     required this.onUpdateReview,
     required this.onDeleteReview,
@@ -1043,7 +1060,7 @@ class _ReviewsSection extends StatelessWidget {
             Text(
               'No reviews yet.',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.82),
+                color: Colors.white.withValues(alpha: 0.82),
                 fontSize: 12.5,
                 fontWeight: FontWeight.w500,
               ),
@@ -1083,17 +1100,18 @@ class _ReviewsSection extends StatelessWidget {
               width: 250,
               height: 44,
               child: ElevatedButton(
-                onPressed: onAddReview,
+                onPressed: hasMyReview ? null : onAddReview,
                 style: ElevatedButton.styleFrom(
                   elevation: 0,
-                  backgroundColor: AppColors.lightBrown,
+                  backgroundColor: AppColors.darkBrown,
+                  disabledBackgroundColor: AppColors.lightBrown,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                child: const Text(
-                  'Add a review',
-                  style: TextStyle(
+                child: Text(
+                  hasMyReview ? 'Already reviewed' : 'Add a review',
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,
@@ -1131,7 +1149,9 @@ class _ReviewTile extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    review.userFullName,
+                    review.userFullName.isNotEmpty
+                        ? review.userFullName
+                        : 'Anonymous',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
@@ -1159,7 +1179,7 @@ class _ReviewTile extends StatelessWidget {
                 Text(
                   review.comment!,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 11,
                     height: 1.3,
                   ),
@@ -1265,7 +1285,7 @@ class _LoadingButton extends StatelessWidget {
     return Container(
       height: 54,
       decoration: BoxDecoration(
-        color: AppColors.darkBrown.withOpacity(0.5),
+        color: AppColors.darkBrown.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(10),
       ),
       child: const Center(

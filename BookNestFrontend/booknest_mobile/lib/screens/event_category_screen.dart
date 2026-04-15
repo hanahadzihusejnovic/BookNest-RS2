@@ -163,7 +163,7 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? AppColors.darkBrown
-                                : AppColors.mediumBrown.withOpacity(0.3),
+                                : AppColors.mediumBrown.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -205,7 +205,7 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? AppColors.darkBrown
-                                : AppColors.mediumBrown.withOpacity(0.3),
+                                : AppColors.mediumBrown.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -364,7 +364,7 @@ class _SearchBar extends StatelessWidget {
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.35),
+        color: Colors.white.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -381,7 +381,7 @@ class _SearchBar extends StatelessWidget {
             isDense: true,
             contentPadding: EdgeInsets.zero,
             hintStyle: TextStyle(
-              color: AppColors.darkBrown.withOpacity(0.55),
+              color: AppColors.darkBrown.withValues(alpha: 0.55),
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
@@ -462,7 +462,7 @@ class _EventCategoryCard extends StatelessWidget {
                       Text(
                         '${event.organizerName} - organizer',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.82),
+                          color: Colors.white.withValues(alpha: 0.82),
                           fontSize: 11.5,
                           fontWeight: FontWeight.w500,
                         ),
@@ -552,7 +552,7 @@ class _EventInfoLine extends StatelessWidget {
           TextSpan(
             text: value,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.92),
+              color: Colors.white.withValues(alpha: 0.92),
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -587,10 +587,10 @@ class _EventImage extends StatelessWidget {
 
   Widget _fallback() {
     return Container(
-      color: Colors.white.withOpacity(0.22),
+      color: Colors.white.withValues(alpha: 0.22),
       child: Icon(
         Icons.event,
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         size: 28,
       ),
     );

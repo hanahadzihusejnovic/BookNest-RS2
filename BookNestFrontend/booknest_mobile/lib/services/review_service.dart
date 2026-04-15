@@ -34,8 +34,10 @@ class ReviewService {
   }
 
   Future<List<BookReview>> getBookReviews(int bookId) async {
+    final token = await _authService.getToken();
     final response = await http.get(
       Uri.parse('$baseUrl/Review/book/$bookId'),
+      headers: {'Authorization': 'Bearer $token'},
     );
 
     if (response.statusCode == 200) {
@@ -114,8 +116,10 @@ class ReviewService {
   }
 
   Future<List<BookReview>> getEventReviews(int eventId) async {
+    final token = await _authService.getToken();
     final response = await http.get(
       Uri.parse('$baseUrl/Review/event/$eventId'),
+      headers: {'Authorization': 'Bearer $token'},
     );
 
     if (response.statusCode == 200) {

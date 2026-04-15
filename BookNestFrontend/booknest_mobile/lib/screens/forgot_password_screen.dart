@@ -34,12 +34,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       await _authService.forgotPassword(_emailController.text);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('If the email exists, a reset token will be sent.'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppSnackBar.show(context, 'If the email exists, a reset token will be sent.');
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -55,9 +50,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
+    AppSnackBar.show(context, message, isError: true);
   }
 
   @override
@@ -157,7 +150,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     style: TextStyle(
                       fontFamily: 'Roboto',
                       fontSize: 14,
-                      color: AppColors.darkBrown.withOpacity(0.75),
+                      color: AppColors.darkBrown.withValues(alpha: 0.75),
                     ),
                   ),
                   const SizedBox(height: 40),

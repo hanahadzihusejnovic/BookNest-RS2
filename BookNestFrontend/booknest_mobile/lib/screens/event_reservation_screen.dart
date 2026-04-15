@@ -30,7 +30,6 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
   String _firstName = '';
   String _lastName = '';
   String _email = '';
-  String _address = '';
   String _phone = '';
 
   bool _isLoading = true;
@@ -80,7 +79,6 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
           _lastName = data['lastName'] ?? '';
           _email = data['emailAddress'] ?? '';
           _phone = data['phoneNumber'] ?? '';
-          _address = data['address'] ?? '';
           _isLoading = false;
         });
       } else {
@@ -96,12 +94,7 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
         (_cardNumberController.text.isEmpty ||
             _cvcController.text.isEmpty ||
             _expiryController.text.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all card details.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppSnackBar.show(context, 'Please fill in all card details.', isError: true);
       return;
     }
 
@@ -169,9 +162,7 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-      );
+      AppSnackBar.showError(context, e);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -179,9 +170,9 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
 
   Widget _eventFallback() {
     return Container(
-      color: AppColors.mediumBrown.withOpacity(0.35),
+      color: AppColors.mediumBrown.withValues(alpha: 0.35),
       child: Icon(Icons.event,
-          color: AppColors.darkBrown.withOpacity(0.45), size: 36),
+          color: AppColors.darkBrown.withValues(alpha: 0.45), size: 36),
     );
   }
 
@@ -254,7 +245,6 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
                       children: [
                         _InfoRow('First name', _firstName),
                         _InfoRow('Last name', _lastName),
-                        if (_address.isNotEmpty) _InfoRow('Address', _address),
                         if (_phone.isNotEmpty) _InfoRow('Phone', _phone),
                         _InfoRow('Email', _email),
                       ],
@@ -334,13 +324,13 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
                       child: Row(
                         children: [
                           Icon(Icons.info_outline,
-                              color: AppColors.darkBrown.withOpacity(0.6),
+                              color: AppColors.darkBrown.withValues(alpha: 0.6),
                               size: 18),
                           const SizedBox(width: 8),
                           Text(
                             'This event is free — no payment required.',
                             style: TextStyle(
-                                color: AppColors.darkBrown.withOpacity(0.7),
+                                color: AppColors.darkBrown.withValues(alpha: 0.7),
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500),
                           ),
@@ -444,7 +434,7 @@ class _SectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.pageBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.darkBrown.withOpacity(0.15)),
+        border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.15)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -533,7 +523,7 @@ class _CardField extends StatelessWidget {
       children: [
         Text(label,
             style: TextStyle(
-                color: Colors.white.withOpacity(0.7), fontSize: 11)),
+                color: Colors.white.withValues(alpha: 0.7), fontSize: 11)),
         const SizedBox(height: 4),
         TextField(
           controller: controller,
@@ -542,12 +532,12 @@ class _CardField extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: TextStyle(
-                color: Colors.white.withOpacity(0.4), fontSize: 12),
+                color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
             isDense: true,
             contentPadding: const EdgeInsets.symmetric(vertical: 6),
             enabledBorder: UnderlineInputBorder(
                 borderSide:
-                    BorderSide(color: Colors.white.withOpacity(0.4))),
+                    BorderSide(color: Colors.white.withValues(alpha: 0.4))),
             focusedBorder: const UnderlineInputBorder(
                 borderSide: BorderSide(color: Colors.white)),
           ),

@@ -105,15 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Admin accounts cannot access the mobile app.\nPlease use the admin web portal.',
-            ),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 4),
-          ),
-        );
+        AppSnackBar.show(context, 'Admin accounts cannot access the mobile app.\nPlease use the admin web portal.', isError: true);
       }
       
       setState(() => _isLoading = false);
@@ -133,13 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invalid account type. Please contact support.'),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 3),
-          ),
-        );
+        AppSnackBar.show(context, 'Invalid account type. Please contact support.', isError: true);
       }
       
       setState(() => _isLoading = false);
@@ -179,12 +165,7 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
-    );
+    AppSnackBar.show(context, message, isError: true);
   }
 
   @override
@@ -217,7 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   fontFamily: 'Roboto',
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.darkBrown.withOpacity(0.75),
+                  color: AppColors.darkBrown.withValues(alpha: 0.75),
                   height: 1.2,
                 ),
               ),

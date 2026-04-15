@@ -46,12 +46,7 @@ class _CartScreenState extends State<CartScreen> {
       setState(() => _cart = cart);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnackBar.showError(context, e);
       }
     }
   }
@@ -61,21 +56,11 @@ class _CartScreenState extends State<CartScreen> {
       final cart = await _cartService.removeItem(item.id);
       setState(() => _cart = cart);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Item removed!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppSnackBar.show(context, 'Removed from cart!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnackBar.showError(context, e);
       }
     }
   }
@@ -284,7 +269,7 @@ class _CartItemCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
       decoration: BoxDecoration(
-        color: AppColors.pageBg.withOpacity(0.92),
+        color: AppColors.pageBg.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -331,7 +316,7 @@ class _CartItemCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: AppColors.darkBrown.withOpacity(0.7),
+                    color: AppColors.darkBrown.withValues(alpha: 0.7),
                     fontSize: 9,
                     fontWeight: FontWeight.w500,
                   ),
@@ -341,7 +326,7 @@ class _CartItemCard extends StatelessWidget {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.mediumBrown.withOpacity(0.45),
+                    color: AppColors.mediumBrown.withValues(alpha: 0.45),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -412,10 +397,10 @@ class _CartItemCard extends StatelessWidget {
 
   Widget _fallback() {
     return Container(
-      color: Colors.white.withOpacity(0.45),
+      color: Colors.white.withValues(alpha: 0.45),
       child: Icon(
         Icons.menu_book_rounded,
-        color: AppColors.darkBrown.withOpacity(0.5),
+        color: AppColors.darkBrown.withValues(alpha: 0.5),
         size: 28,
       ),
     );

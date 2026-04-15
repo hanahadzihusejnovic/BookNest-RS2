@@ -54,28 +54,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Future<void> _removeFavorite(FavoriteModel item) async {
     try {
       await _favoriteService.removeFromFavoritesById(item.bookId);
-      setState(() {
-        _favorites.removeWhere((f) => f.id == item.id);
-        if (_currentPage > 0 && _currentPage >= _totalPages) {
-          _currentPage--;
-        }
-      });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Removed from favorites!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        setState(() {
+          _favorites.removeWhere((f) => f.id == item.id);
+          if (_currentPage > 0 && _currentPage >= _totalPages) {
+            _currentPage--;
+          }
+        });
+        AppSnackBar.show(context, 'Removed from favorites!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnackBar.showError(context, e);
       }
     }
   }

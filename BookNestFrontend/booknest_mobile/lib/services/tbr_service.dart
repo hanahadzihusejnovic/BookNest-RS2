@@ -93,8 +93,8 @@ class TBRService {
     );
     if (response.statusCode == 200) {
       final List<dynamic> list = jsonDecode(response.body);
-      final item = list.firstWhere(
-        (e) => e['bookId'] == bookId,
+      final item = list.cast<Map<String, dynamic>?>().firstWhere(
+        (e) => e?['bookId'] == bookId,
         orElse: () => null,
       );
       if (item != null) {

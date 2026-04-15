@@ -52,7 +52,7 @@ class BookCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.fromLTRB(8, 8, 8, 10),
         decoration: BoxDecoration(
-          color: AppColors.pageBg.withOpacity(0.92),
+          color: AppColors.pageBg.withValues(alpha: 0.92),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Column(
@@ -103,7 +103,7 @@ class BookCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: AppColors.darkBrown.withOpacity(0.7),
+                      color: AppColors.darkBrown.withValues(alpha: 0.7),
                       fontSize: 9,
                       fontWeight: FontWeight.w500,
                     ),
@@ -118,7 +118,7 @@ class BookCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: AppColors.darkBrown.withOpacity(0.55),
+                        color: AppColors.darkBrown.withValues(alpha: 0.55),
                         fontSize: 8.5,
                         fontWeight: FontWeight.w600,
                       ),
@@ -185,7 +185,7 @@ class BookCard extends StatelessWidget {
                       Text(
                         '${price!.toStringAsFixed(2)} BAM',
                         style: TextStyle(
-                          color: AppColors.darkBrown.withOpacity(0.82),
+                          color: AppColors.darkBrown.withValues(alpha: 0.82),
                           fontSize: 8.5,
                           fontWeight: FontWeight.w700,
                         ),
@@ -226,10 +226,10 @@ class BookCard extends StatelessWidget {
 
   Widget _fallback() {
     return Container(
-      color: Colors.white.withOpacity(0.45),
+      color: Colors.white.withValues(alpha: 0.45),
       child: Icon(
         Icons.menu_book_rounded,
-        color: AppColors.darkBrown.withOpacity(0.5),
+        color: AppColors.darkBrown.withValues(alpha: 0.5),
         size: 28,
       ),
     );

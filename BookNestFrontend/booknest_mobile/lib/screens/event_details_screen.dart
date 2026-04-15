@@ -4,6 +4,7 @@ import '../models/book.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import '../services/review_service.dart';
+import '../services/auth_service.dart';
 import '../screens/event_reservation_screen.dart';
 
 class EventDetailsScreen extends StatefulWidget {
@@ -20,15 +21,33 @@ class EventDetailsScreen extends StatefulWidget {
 
 class _EventDetailsScreenState extends State<EventDetailsScreen> {
   final _reviewService = ReviewService();
+  final _authService = AuthService();
   List<BookReview> _reviews = [];
   double _averageRating = 0;
   bool _isLoadingReviews = true;
   int _quantity = 1;
+  int? _currentUserId;
+  bool _hasMyReview = false;
 
   @override
   void initState() {
     super.initState();
     _loadReviews();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final userId = await _authService.getUserId();
+    if (mounted) {
+      setState(() {
+        _currentUserId = userId;
+        _hasMyReview = _reviews.any((r) => r.userId == userId);
+      });
+    }
+  }
+
+  void _updateHasMyReview(List<BookReview> reviews) {
+    _hasMyReview = reviews.any((r) => r.userId == _currentUserId);
   }
 
   Future<void> _loadReviews() async {
@@ -43,6 +62,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           _reviews = reviews;
           _averageRating = avg;
           _isLoadingReviews = false;
+          _updateHasMyReview(reviews);
         });
       }
     } catch (e) {
@@ -106,10 +126,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     decoration: InputDecoration(
                       hintText: 'Write your review...',
                       hintStyle: TextStyle(
-                          color: AppColors.darkBrown.withOpacity(0.4),
+                          color: AppColors.darkBrown.withValues(alpha: 0.4),
                           fontSize: 13),
                       filled: true,
-                      fillColor: Colors.white.withOpacity(0.5),
+                      fillColor: Colors.white.withValues(alpha: 0.5),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide.none),
@@ -127,6 +147,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   onPressed: isSubmitting
                       ? null
                       : () async {
+                          final nav = Navigator.of(context);
+                          final overlay = Overlay.of(context);
                           setDialogState(() => isSubmitting = true);
                           try {
                             await _reviewService.addEventReview(
@@ -144,26 +166,19 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                                         .map((r) => r.rating)
                                         .reduce((a, b) => a + b) /
                                     reviews.length;
-                            setState(() {
-                              _reviews = reviews;
-                              _averageRating = avg;
-                            });
                             if (mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Review added!'),
-                                    backgroundColor: Colors.green),
-                              );
+                              setState(() {
+                                _reviews = reviews;
+                                _averageRating = avg;
+                                _updateHasMyReview(reviews);
+                              });
+                              nav.pop();
+                              AppSnackBar.show(overlay, 'Review added!');
                             }
                           } catch (e) {
                             setDialogState(() => isSubmitting = false);
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text('Error: $e'),
-                                    backgroundColor: Colors.red),
-                              );
+                              AppSnackBar.showError(overlay, e);
                             }
                           }
                         },
@@ -243,10 +258,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     decoration: InputDecoration(
                       hintText: 'Write your review...',
                       hintStyle: TextStyle(
-                          color: AppColors.darkBrown.withOpacity(0.4),
+                          color: AppColors.darkBrown.withValues(alpha: 0.4),
                           fontSize: 13),
                       filled: true,
-                      fillColor: Colors.white.withOpacity(0.5),
+                      fillColor: Colors.white.withValues(alpha: 0.5),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide.none),
@@ -264,6 +279,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   onPressed: isSubmitting
                       ? null
                       : () async {
+                          final nav = Navigator.of(context);
+                          final overlay = Overlay.of(context);
                           setDialogState(() => isSubmitting = true);
                           try {
                             await _reviewService.updateReview(
@@ -281,26 +298,19 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                                         .map((r) => r.rating)
                                         .reduce((a, b) => a + b) /
                                     reviews.length;
-                            setState(() {
-                              _reviews = reviews;
-                              _averageRating = avg;
-                            });
                             if (mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                    content: Text('Review updated!'),
-                                    backgroundColor: Colors.green),
-                              );
+                              setState(() {
+                                _reviews = reviews;
+                                _averageRating = avg;
+                                _updateHasMyReview(reviews);
+                              });
+                              nav.pop();
+                              AppSnackBar.show(overlay, 'Review updated!');
                             }
                           } catch (e) {
                             setDialogState(() => isSubmitting = false);
                             if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                    content: Text('Error: $e'),
-                                    backgroundColor: Colors.red),
-                              );
+                              AppSnackBar.showError(overlay, e);
                             }
                           }
                         },
@@ -335,7 +345,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           content: Text(
             'Are you sure you want to delete your review?',
             style: TextStyle(
-                color: AppColors.darkBrown.withOpacity(0.8), fontSize: 14),
+                color: AppColors.darkBrown.withValues(alpha: 0.8), fontSize: 14),
           ),
           actions: [
             TextButton(
@@ -345,6 +355,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
+                final nav = Navigator.of(context);
+                final overlay = Overlay.of(context);
                 try {
                   await _reviewService.deleteReview(review.id);
                   final reviews =
@@ -355,26 +367,19 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                               .map((r) => r.rating)
                               .reduce((a, b) => a + b) /
                           reviews.length;
-                  setState(() {
-                    _reviews = reviews;
-                    _averageRating = avg;
-                  });
                   if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Review deleted!'),
-                          backgroundColor: Colors.green),
-                    );
+                    setState(() {
+                      _reviews = reviews;
+                      _averageRating = avg;
+                      _updateHasMyReview(reviews);
+                    });
+                    nav.pop();
+                    AppSnackBar.show(overlay, 'Review deleted!');
                   }
                 } catch (e) {
                   if (mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text('Error: $e'),
-                          backgroundColor: Colors.red),
-                    );
+                    nav.pop();
+                    AppSnackBar.showError(overlay, e);
                   }
                 }
               },
@@ -461,7 +466,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             Text(
               event.description ?? 'No description available.',
               style: TextStyle(
-                  color: AppColors.darkBrown.withOpacity(0.78),
+                  color: AppColors.darkBrown.withValues(alpha: 0.78),
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                   height: 1.35),
@@ -530,6 +535,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                         color: AppColors.darkBrown))
                 : _ReviewsSection(
                     reviews: _reviews,
+                    hasMyReview: _hasMyReview,
                     onAddReview: _showAddReviewDialog,
                     onUpdateReview: _showUpdateReviewDialog,
                     onDeleteReview: _showDeleteReviewDialog,
@@ -580,9 +586,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
   Widget _imageFallback() {
     return Container(
-      color: AppColors.mediumBrown.withOpacity(0.35),
+      color: AppColors.mediumBrown.withValues(alpha: 0.35),
       child: Icon(Icons.event,
-          color: AppColors.darkBrown.withOpacity(0.45), size: 56),
+          color: AppColors.darkBrown.withValues(alpha: 0.45), size: 56),
     );
   }
 }
@@ -600,7 +606,7 @@ class _PlainInfoLine extends StatelessWidget {
     return RichText(
       text: TextSpan(
         style: TextStyle(
-            color: AppColors.darkBrown.withOpacity(0.82),
+            color: AppColors.darkBrown.withValues(alpha: 0.82),
             fontSize: 13,
             height: 1.3),
         children: [
@@ -612,7 +618,7 @@ class _PlainInfoLine extends StatelessWidget {
           TextSpan(
             text: value,
             style: TextStyle(
-                color: AppColors.darkBrown.withOpacity(0.78),
+                color: AppColors.darkBrown.withValues(alpha: 0.78),
                 fontWeight: FontWeight.w500),
           ),
         ],
@@ -650,12 +656,14 @@ class _QuantityButton extends StatelessWidget {
 
 class _ReviewsSection extends StatelessWidget {
   final List<BookReview> reviews;
+  final bool hasMyReview;
   final VoidCallback onAddReview;
   final Function(BookReview) onUpdateReview;
   final Function(BookReview) onDeleteReview;
 
   const _ReviewsSection({
     required this.reviews,
+    required this.hasMyReview,
     required this.onAddReview,
     required this.onUpdateReview,
     required this.onDeleteReview,
@@ -682,7 +690,7 @@ class _ReviewsSection extends StatelessWidget {
           if (reviews.isEmpty)
             Text('No reviews yet.',
                 style: TextStyle(
-                    color: Colors.white.withOpacity(0.82),
+                    color: Colors.white.withValues(alpha: 0.82),
                     fontSize: 12.5,
                     fontWeight: FontWeight.w500))
           else if (reviews.length <= 2)
@@ -720,15 +728,17 @@ class _ReviewsSection extends StatelessWidget {
               width: 250,
               height: 44,
               child: ElevatedButton(
-                onPressed: onAddReview,
+                onPressed: hasMyReview ? null : onAddReview,
                 style: ElevatedButton.styleFrom(
                   elevation: 0,
-                  backgroundColor: AppColors.lightBrown,
+                  backgroundColor: AppColors.darkBrown,
+                  disabledBackgroundColor: AppColors.lightBrown,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10)),
                 ),
-                child: const Text('Add a review',
-                    style: TextStyle(
+                child: Text(
+                    hasMyReview ? 'Already reviewed' : 'Add a review',
+                    style: const TextStyle(
                         color: Colors.white,
                         fontSize: 13.5,
                         fontWeight: FontWeight.w700)),
@@ -760,7 +770,10 @@ class _ReviewTile extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Text(review.userFullName,
+                  Text(
+                      review.userFullName.isNotEmpty
+                          ? review.userFullName
+                          : 'Anonymous',
                       style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
@@ -783,7 +796,7 @@ class _ReviewTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(review.comment!,
                     style: TextStyle(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontSize: 11,
                         height: 1.3)),
               ],

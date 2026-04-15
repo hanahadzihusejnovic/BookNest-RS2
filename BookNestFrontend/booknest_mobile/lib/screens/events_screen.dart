@@ -275,7 +275,7 @@ class _EventsScreenState extends State<EventsScreen> {
                                           'No events found.',
                                           style: TextStyle(
                                             color:
-                                                Colors.white.withOpacity(0.8),
+                                                Colors.white.withValues(alpha: 0.8),
                                             fontSize: 13,
                                           ),
                                         ),
@@ -330,7 +330,7 @@ class _EventsScreenState extends State<EventsScreen> {
                                         'No recommended events right now.',
                                         style: TextStyle(
                                           color:
-                                              Colors.white.withOpacity(0.8),
+                                              Colors.white.withValues(alpha: 0.8),
                                           fontSize: 12.5,
                                         ),
                                       ),
@@ -386,7 +386,7 @@ class _SearchBar extends StatelessWidget {
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.35),
+        color: Colors.white.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -403,7 +403,7 @@ class _SearchBar extends StatelessWidget {
             isDense: true,
             contentPadding: EdgeInsets.zero,
             hintStyle: TextStyle(
-              color: AppColors.darkBrown.withOpacity(0.55),
+              color: AppColors.darkBrown.withValues(alpha: 0.55),
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
@@ -444,9 +444,9 @@ class _EventTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.pageBg.withOpacity(0.25),
+        color: AppColors.pageBg.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.12)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -466,7 +466,7 @@ class _EventTile extends StatelessWidget {
                 Text(
                   '${event.organizerName} - organizer',
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.75),
+                      color: Colors.white.withValues(alpha: 0.75),
                       fontSize: 10.5,
                       fontWeight: FontWeight.w500),
                 ),
@@ -484,7 +484,7 @@ class _EventTile extends StatelessWidget {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withValues(alpha: 0.85),
                       fontSize: 10.8,
                       fontWeight: FontWeight.w500,
                       height: 1.2),

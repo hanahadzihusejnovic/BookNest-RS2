@@ -60,12 +60,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password reset successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppSnackBar.show(context, 'Password reset successfully!');
         Navigator.popUntil(context, (route) => route.isFirst);
       }
     } catch (e) {
@@ -76,9 +71,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
+    AppSnackBar.show(context, message, isError: true);
   }
 
   Widget _buildField(

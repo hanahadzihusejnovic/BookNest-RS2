@@ -146,7 +146,7 @@ class _ShopScreenState extends State<ShopScreen> {
   void _closeCategoriesDropdown() {
     _catOverlay?.remove();
     _catOverlay = null;
-    setState(() => _catOpen = false);
+    if (mounted) setState(() => _catOpen = false);
   }
 
   void _showCategoriesDropdown() {
@@ -339,7 +339,7 @@ class _ShopScreenState extends State<ShopScreen> {
                     Text(
                       "Recommended for you!",
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.95),
+                        color: Colors.white.withValues(alpha: 0.95),
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -352,7 +352,7 @@ class _ShopScreenState extends State<ShopScreen> {
                               child: Text(
                                 "No books to show.",
                                 style: TextStyle(
-                                  color: AppColors.pageBg.withOpacity(0.9),
+                                  color: AppColors.pageBg.withValues(alpha: 0.9),
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -402,7 +402,7 @@ class _ShopScreenState extends State<ShopScreen> {
                           ? "Top in category!"
                           : "Top in ${cat.name} category!",
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.95),
+                        color: Colors.white.withValues(alpha: 0.95),
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
@@ -415,7 +415,7 @@ class _ShopScreenState extends State<ShopScreen> {
                               child: Text(
                                 "No books to show.",
                                 style: TextStyle(
-                                  color: AppColors.pageBg.withOpacity(0.9),
+                                  color: AppColors.pageBg.withValues(alpha: 0.9),
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -488,7 +488,7 @@ class _SearchBar extends StatelessWidget {
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.35),
+        color: Colors.white.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -505,7 +505,7 @@ class _SearchBar extends StatelessWidget {
             isDense: true,
             contentPadding: EdgeInsets.zero,
             hintStyle: TextStyle(
-              color: AppColors.darkBrown.withOpacity(0.55),
+              color: AppColors.darkBrown.withValues(alpha: 0.55),
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
