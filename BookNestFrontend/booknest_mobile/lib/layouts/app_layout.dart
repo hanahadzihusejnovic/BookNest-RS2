@@ -145,7 +145,7 @@ class _BookNestDrawer extends StatelessWidget {
                   Text(
                     'World of your stories!',
                     style: TextStyle(
-                      color: AppColors.pageBg.withOpacity(0.85),
+                      color: AppColors.pageBg.withValues(alpha: 0.85),
                       fontSize: 20,
                       fontWeight: FontWeight.w500,
                     ),
@@ -303,7 +303,7 @@ class _DrawerDivider extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Divider(
-        color: AppColors.pageBg.withOpacity(0.35),
+        color: AppColors.pageBg.withValues(alpha: 0.35),
         thickness: 1,
         height: 1,
       ),

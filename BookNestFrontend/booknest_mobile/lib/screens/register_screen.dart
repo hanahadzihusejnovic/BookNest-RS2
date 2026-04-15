@@ -170,15 +170,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.red),
-    );
+    AppSnackBar.show(context, message, isError: true);
   }
 
   void _showSuccess(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: Colors.green),
-    );
+    AppSnackBar.show(context, message);
   }
 
   Future<void> _selectDate() async {
@@ -248,7 +244,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   fontFamily: 'Roboto',
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.darkBrown.withOpacity(0.75),
+                  color: AppColors.darkBrown.withValues(alpha: 0.75),
                   height: 1.2,
                 ),
               ),

@@ -35,17 +35,6 @@ class FavoriteService {
     }
   }
 
-  Future<void> removeFromFavorites(int bookId) async {
-    final token = await _authService.getToken();
-    final response = await http.delete(
-      Uri.parse('$baseUrl/Favorite/remove/$bookId'),
-      headers: {'Authorization': 'Bearer $token'},
-    );
-    if (response.statusCode != 200) {
-      throw Exception('Failed to remove from favorites');
-    }
-  }
-
   Future<List<FavoriteModel>> getMyFavorites() async {
     final token = await _authService.getToken();
     final response = await http.get(

@@ -157,10 +157,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                               width: 80,
                               height: 80,
                               decoration: BoxDecoration(
-                                color: AppColors.pageBg.withOpacity(0.3),
+                                color: AppColors.pageBg.withValues(alpha: 0.3),
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.4),
+                                  color: Colors.white.withValues(alpha: 0.4),
                                   width: 2,
                                 ),
                               ),
@@ -233,7 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _avatarFallback() {
     return Icon(
       Icons.person_outline,
-      color: Colors.white.withOpacity(0.8),
+      color: Colors.white.withValues(alpha: 0.8),
       size: 40,
     );
   }
@@ -332,6 +332,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 onPressed: isSubmitting
                     ? null
                     : () async {
+                        final nav = Navigator.of(context);
+                        final overlay = Overlay.of(context);
                         setDialogState(() => isSubmitting = true);
                         try {
                           final updated =
@@ -354,26 +356,16 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 : countryController.text,
                             imageUrl: _user!.imageUrl,
                           );
-                          setState(() => _user = updated);
                           if (mounted) {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Profile updated!'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
+                            setState(() => _user = updated);
+                            nav.pop();
+                            AppSnackBar.show(overlay, 'Profile updated!');
                           }
                         } catch (e) {
                           setDialogState(
                               () => isSubmitting = false);
                           if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Error: $e'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
+                            AppSnackBar.showError(overlay, e);
                           }
                         }
                       },
@@ -418,7 +410,7 @@ class _InfoRow extends StatelessWidget {
       child: Text(
         '$label: $value',
         style: TextStyle(
-          color: Colors.white.withOpacity(0.88),
+          color: Colors.white.withValues(alpha: 0.88),
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),
@@ -719,7 +711,7 @@ class _ReservationCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.mediumBrown,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.12)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -890,7 +882,7 @@ class _EditField extends StatelessWidget {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
-                color: AppColors.darkBrown.withOpacity(0.5),
+                color: AppColors.darkBrown.withValues(alpha: 0.5),
                 fontSize: 15,
               ),
               border: InputBorder.none,

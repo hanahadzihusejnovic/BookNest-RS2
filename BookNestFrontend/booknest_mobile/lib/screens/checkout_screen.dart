@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/cart.dart';
@@ -39,9 +40,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String? _postalCodeError;
 
   String _paymentMethod = 'CashOnDelivery';
-  final _cardNumberController = TextEditingController();
-  final _cvcController = TextEditingController();
-  final _expiryController = TextEditingController();
+  CardFieldInputDetails? _cardDetails;
 
   bool _isLoading = true;
   bool _isSubmitting = false;
@@ -54,19 +53,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _loadUserInfo();
   }
 
-  @override
-  void dispose() {
-    _cardNumberController.dispose();
-    _cvcController.dispose();
-    _expiryController.dispose();
-    super.dispose();
-  }
-
   Future<void> _loadUserInfo() async {
     try {
       final token = await _authService.getToken();
       if (token == null) {
-        setState(() => _isLoading = false);
+        if (mounted) setState(() => _isLoading = false);
         return;
       }
 
@@ -80,23 +71,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        setState(() {
-          _firstName = data['firstName'] ?? '';
-          _lastName = data['lastName'] ?? '';
-          _email = data['emailAddress'] ?? '';
-          _phone = data['phoneNumber'] ?? '';
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _firstName = data['firstName'] ?? '';
+            _lastName = data['lastName'] ?? '';
+            _email = data['emailAddress'] ?? '';
+            _phone = data['phoneNumber'] ?? '';
+            _isLoading = false;
+          });
+        }
       } else {
-        setState(() => _isLoading = false);
+        if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _submitOrder() async {
-    // Reset errors
     setState(() {
       _addressError = null;
       _cityError = null;
@@ -126,15 +118,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (hasError) return;
 
     if (_paymentMethod == 'Card' &&
-        (_cardNumberController.text.isEmpty ||
-            _cvcController.text.isEmpty ||
-            _expiryController.text.isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please fill in all card details.'),
-          backgroundColor: Colors.red,
-        ),
-      );
+        (_cardDetails == null || !(_cardDetails!.complete))) {
+      AppSnackBar.show(context, 'Please enter valid card details.', isError: true);
       return;
     }
 
@@ -146,6 +131,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       final userId = await _authService.getUserId();
 
+      String? paymentIntentId;
+
+      // Ako je plaćanje karticom — kreiraj PaymentIntent i potvrdi ga putem Stripea
+      if (_paymentMethod == 'Card') {
+        // 1. Kreiraj PaymentIntent na backendu
+        final intentResponse = await http.post(
+          Uri.parse('$baseUrl/Order/create-payment-intent'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({'amount': widget.cart.totalPrice}),
+        );
+
+        if (intentResponse.statusCode != 200) {
+          throw Exception('Failed to create payment intent');
+        }
+
+        final intentData = jsonDecode(intentResponse.body);
+        final clientSecret = intentData['clientSecret'] as String;
+        paymentIntentId = intentData['paymentIntentId'] as String;
+
+        // 2. Potvrdi plaćanje putem Stripe SDK-a
+        await Stripe.instance.confirmPayment(
+          paymentIntentClientSecret: clientSecret,
+          data: const PaymentMethodParams.card(
+            paymentMethodData: PaymentMethodData(),
+          ),
+        );
+      }
+
+      // 3. Kreiraj order na backendu
       final body = {
         'userId': userId ?? 0,
         'shipping': {
@@ -155,9 +172,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           'postalCode': _postalCode,
         },
         'paymentMethod': _paymentMethod == 'CashOnDelivery' ? 0 : 1,
-        if (_paymentMethod == 'Card')
-          'transactionId':
-              '${_cardNumberController.text}-${_cvcController.text}-${_expiryController.text}',
+        if (paymentIntentId != null) 'transactionId': paymentIntentId,
       };
 
       final response = await http.post(
@@ -169,15 +184,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         body: jsonEncode(body),
       );
 
-      print('🔵 CHECKOUT: Status: ${response.statusCode}');
-      print('🔵 CHECKOUT: Body: ${response.body}');
-
       if (response.statusCode == 200) {
-      
         try {
           final cartService = CartService();
           await cartService.clearCart();
-        } catch (e) {
+        } catch (_) {
+          // clearCart greška ne blokira order success flow
         }
 
         if (!mounted) return;
@@ -205,24 +217,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.darkBrown,
                 ),
-                child: const Text('OK',
-                    style: TextStyle(color: Colors.white)),
+                child: const Text('OK', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
         );
       } else {
-        throw Exception(
-            jsonDecode(response.body)['message'] ?? 'Failed');
+        throw Exception(jsonDecode(response.body)['message'] ?? 'Failed');
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppSnackBar.showError(context, e);
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -255,37 +260,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         child: Column(
                           children: widget.cart.cartItems.map((item) {
                             return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.only(bottom: 10),
                               child: Row(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
-                                  ClipRRect(
-                                    borderRadius:
-                                        BorderRadius.circular(8),
-                                    child: SizedBox(
-                                      width: 60,
-                                      height: 90,
-                                      child: item.bookImageUrl != null &&
-                                              item.bookImageUrl!.isNotEmpty
-                                          ? Image.network(
-                                              item.bookImageUrl!,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
-                                                  _imageFallback(),
-                                            )
-                                          : _imageFallback(),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 14),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         _InfoRow('Title', item.bookTitle),
-                                        _InfoRow('Author',
-                                            item.bookAuthor ?? '-'),
+                                        _InfoRow(
+                                            'Author', item.bookAuthor ?? '-'),
                                         _InfoRow('Quantity',
                                             item.quantity.toString()),
                                         _InfoRow(
@@ -293,6 +279,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                           '${item.subtotal.toStringAsFixed(2)} BAM',
                                         ),
                                       ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: SizedBox(
+                                      width: 80,
+                                      height: 100,
+                                      child: item.bookImageUrl != null &&
+                                              item.bookImageUrl!.isNotEmpty
+                                          ? Image.network(
+                                              item.bookImageUrl!,
+                                              fit: BoxFit.contain,
+                                              errorBuilder: (_, __, ___) =>
+                                                  _imageFallback(),
+                                            )
+                                          : _imageFallback(),
                                     ),
                                   ),
                                 ],
@@ -314,8 +317,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       children: [
                         _InfoRow('First name', _firstName),
                         _InfoRow('Last name', _lastName),
-                        _InfoRow('Email', _email),
                         if (_phone.isNotEmpty) _InfoRow('Phone', _phone),
+                        _InfoRow('Email', _email),
                       ],
                     ),
                   ),
@@ -403,43 +406,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         ),
                         if (_paymentMethod == 'Card') ...[
                           const SizedBox(height: 10),
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.darkBrown,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: Column(
-                              children: [
-                                _CardField(
-                                  controller: _cardNumberController,
-                                  label: 'Card number',
-                                  hint: '1234 1234 1234 1234',
-                                  keyboardType: TextInputType.number,
-                                ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _CardField(
-                                        controller: _cvcController,
-                                        label: 'CVC',
-                                        hint: '123',
-                                        keyboardType:
-                                            TextInputType.number,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: _CardField(
-                                        controller: _expiryController,
-                                        label: 'Expiration date',
-                                        hint: 'MM/YY',
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: CardFormField(
+                              style: CardFormStyle(
+                                backgroundColor: AppColors.darkBrown,
+                                textColor: Colors.white,
+                                placeholderColor: Colors.white54,
+                                borderColor: Colors.transparent,
+                                borderRadius: 10,
+                                fontSize: 14,
+                              ),
+                              onCardChanged: (details) {
+                                setState(() => _cardDetails = details);
+                              },
                             ),
                           ),
                         ],
@@ -477,8 +457,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           onPressed: _isSubmitting ? null : _submitOrder,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.darkBrown,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 14),
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -508,8 +488,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           onPressed: () => Navigator.pop(context),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.darkBrown,
-                            padding: const EdgeInsets.symmetric(
-                                vertical: 14),
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -536,10 +516,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Widget _imageFallback() {
     return Container(
-      color: AppColors.pageBg.withOpacity(0.5),
+      color: AppColors.pageBg.withValues(alpha: 0.5),
       child: Icon(
         Icons.menu_book_rounded,
-        color: AppColors.darkBrown.withOpacity(0.5),
+        color: AppColors.darkBrown.withValues(alpha: 0.5),
         size: 24,
       ),
     );
@@ -563,7 +543,7 @@ class _SectionCard extends StatelessWidget {
         color: AppColors.pageBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.darkBrown.withOpacity(0.15),
+          color: AppColors.darkBrown.withValues(alpha: 0.15),
         ),
       ),
       child: Column(
@@ -638,7 +618,7 @@ class _ShippingField extends StatelessWidget {
               hintStyle: TextStyle(
                 color: error != null
                     ? Colors.red
-                    : AppColors.darkBrown.withOpacity(0.6),
+                    : AppColors.darkBrown.withValues(alpha: 0.6),
                 fontSize: 14,
               ),
               border: InputBorder.none,
@@ -700,44 +680,6 @@ class _PaymentOption extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _CardField extends StatelessWidget {
-  final TextEditingController controller;
-  final String label;
-  final String hint;
-  final TextInputType keyboardType;
-
-  const _CardField({
-    required this.controller,
-    required this.label,
-    required this.hint,
-    this.keyboardType = TextInputType.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white, fontSize: 12),
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        labelStyle: TextStyle(
-          color: Colors.white.withOpacity(0.7),
-          fontSize: 12,
-        ),
-        hintStyle: TextStyle(
-          color: Colors.white.withOpacity(0.4),
-          fontSize: 12,
-        ),
-        border: InputBorder.none,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
-      ),
     );
   }
 }

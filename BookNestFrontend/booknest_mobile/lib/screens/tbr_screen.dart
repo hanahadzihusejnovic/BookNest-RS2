@@ -85,21 +85,11 @@ class _TBRScreenState extends State<TBRScreen> {
         }
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Removed from TBR list!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppSnackBar.show(context, 'Removed from TBR list!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppSnackBar.showError(context, e);
       }
     }
   }
@@ -114,10 +104,11 @@ class _TBRScreenState extends State<TBRScreen> {
   }
 
   void _showFilterMenu(BuildContext buttonContext) {
-    final RenderBox button =
-        buttonContext.findRenderObject() as RenderBox;
-    final RenderBox overlay =
-        Overlay.of(buttonContext).context.findRenderObject() as RenderBox;
+    final RenderBox? button =
+        buttonContext.findRenderObject() as RenderBox?;
+    final RenderBox? overlay =
+        Overlay.of(buttonContext).context.findRenderObject() as RenderBox?;
+    if (button == null || overlay == null) return;
     final RelativeRect position = RelativeRect.fromRect(
       Rect.fromPoints(
         button.localToGlobal(Offset.zero, ancestor: overlay),

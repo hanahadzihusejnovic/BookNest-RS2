@@ -85,20 +85,10 @@ class _CategoryScreenState extends State<CategoryScreen> {
   try {
     await _cartService.addItem(book.id, 1);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${book.title} added to cart!'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    AppSnackBar.show(context, '${book.title} added to cart!');
   } catch (e) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error: $e'),
-        backgroundColor: Colors.red,
-      ),
-    );
+    AppSnackBar.showError(context, e);
   }
 }
 
@@ -106,31 +96,30 @@ Future<void> _addToFavorites(Book book) async {
   try {
     await _favoriteService.addToFavorites(book.id);
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${book.title} added to favorites!'),
-        backgroundColor: Colors.green,
-      ),
-    );
+    AppSnackBar.show(context, '${book.title} added to favorites!');
   } catch (e) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error: $e'),
-        backgroundColor: Colors.red,
-      ),
-    );
+    AppSnackBar.showError(context, e);
   }
 }
 
-  void _showTBRDialog(Book book) {
+  void _showTBRDialog(Book book) async {
+    final isInTBR = await _tbrService.isBookInTBR(book.id);
+    if (!mounted) return;
+
+    ReadingStatus? currentStatus;
+    if (isInTBR) {
+      currentStatus = await _tbrService.getTBRStatus(book.id);
+      if (!mounted) return;
+    }
+
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: AppColors.pageBg,
           title: Text(
-            'Add to TBR List',
+            isInTBR ? 'Update TBR Status' : 'Add to TBR List',
             style: TextStyle(
               color: AppColors.darkBrown,
               fontWeight: FontWeight.w800,
@@ -140,27 +129,43 @@ Future<void> _addToFavorites(Book book) async {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: ReadingStatus.values.map((status) {
+              final isSelected = currentStatus == status;
               return GestureDetector(
                 onTap: () async {
-                  Navigator.pop(context);
-                  try {
-                    await _tbrService.addToTBR(book.id, status);
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            '${book.title} added to TBR as ${status.label}!'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  } catch (e) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+                  final nav = Navigator.of(dialogContext);
+                  final overlay = Overlay.of(dialogContext);
+                  nav.pop();
+
+                  if (isInTBR) {
+                    if (currentStatus == status) {
+                      AppSnackBar.show(
+                        overlay,
+                        'Already in your ${status.label} list!',
+                        isError: true,
+                      );
+                      return;
+                    }
+
+                    final confirm = await _showChangeStatusDialog(status);
+                    if (!mounted || !confirm) return;
+
+                    try {
+                      await _tbrService.updateTBRStatus(book.id, status);
+                      if (mounted) {
+                        AppSnackBar.show(overlay, 'Moved to "${status.label}"!');
+                      }
+                    } catch (e) {
+                      if (mounted) AppSnackBar.showError(overlay, e);
+                    }
+                  } else {
+                    try {
+                      await _tbrService.addToTBR(book.id, status);
+                      if (mounted) {
+                        AppSnackBar.show(overlay, 'Added to TBR as "${status.label}"!');
+                      }
+                    } catch (e) {
+                      if (mounted) AppSnackBar.showError(overlay, e);
+                    }
                   }
                 },
                 child: Container(
@@ -169,7 +174,9 @@ Future<void> _addToFavorites(Book book) async {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 12, vertical: 10),
                   decoration: BoxDecoration(
-                    color: AppColors.mediumBrown.withOpacity(0.3),
+                    color: isSelected
+                        ? AppColors.mediumBrown.withValues(alpha: 0.5)
+                        : AppColors.mediumBrown.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -177,7 +184,7 @@ Future<void> _addToFavorites(Book book) async {
                     style: TextStyle(
                       color: AppColors.darkBrown,
                       fontSize: 13,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
                     ),
                   ),
                 ),
@@ -186,7 +193,7 @@ Future<void> _addToFavorites(Book book) async {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(dialogContext),
               child: Text(
                 'Cancel',
                 style: TextStyle(color: AppColors.darkBrown),
@@ -196,6 +203,44 @@ Future<void> _addToFavorites(Book book) async {
         );
       },
     );
+  }
+
+  Future<bool> _showChangeStatusDialog(ReadingStatus newStatus) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: AppColors.pageBg,
+          title: Text(
+            'Change reading status',
+            style: TextStyle(
+              color: AppColors.darkBrown,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          content: Text(
+            'Are you sure you want to change your reading status to "${newStatus.label}"?',
+            style: TextStyle(
+              color: AppColors.darkBrown.withValues(alpha: 0.8),
+              fontSize: 14,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('No', style: TextStyle(color: AppColors.darkBrown)),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.darkBrown),
+              child: const Text('Yes', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+    return result ?? false;
   }
 
   void _applySearch() {
@@ -285,7 +330,7 @@ Future<void> _addToFavorites(Book book) async {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? AppColors.darkBrown
-                                : AppColors.mediumBrown.withOpacity(0.3),
+                                : AppColors.mediumBrown.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -327,7 +372,7 @@ Future<void> _addToFavorites(Book book) async {
                           decoration: BoxDecoration(
                             color: isSelected
                                 ? AppColors.darkBrown
-                                : AppColors.mediumBrown.withOpacity(0.3),
+                                : AppColors.mediumBrown.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -564,7 +609,7 @@ class _SearchBar extends StatelessWidget {
       height: 40,
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.35),
+        color: Colors.white.withValues(alpha: 0.35),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
@@ -581,7 +626,7 @@ class _SearchBar extends StatelessWidget {
             isDense: true,
             contentPadding: EdgeInsets.zero,
             hintStyle: TextStyle(
-              color: AppColors.darkBrown.withOpacity(0.55),
+              color: AppColors.darkBrown.withValues(alpha: 0.55),
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),

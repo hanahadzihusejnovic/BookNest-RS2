@@ -28,7 +28,7 @@ class PaginationBar extends StatelessWidget {
               Icons.arrow_back,
               color: currentPage > 0
                   ? AppColors.darkBrown
-                  : AppColors.darkBrown.withOpacity(0.3),
+                  : AppColors.darkBrown.withValues(alpha: 0.3),
               size: 20,
             ),
           ),
@@ -48,7 +48,7 @@ class PaginationBar extends StatelessWidget {
               Icons.arrow_forward,
               color: currentPage < totalPages - 1
                   ? AppColors.darkBrown
-                  : AppColors.darkBrown.withOpacity(0.3),
+                  : AppColors.darkBrown.withValues(alpha: 0.3),
               size: 20,
             ),
           ),
