@@ -50,10 +50,11 @@ class EventModel {
   String get formattedDate {
     final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     final day = days[eventDate.weekday - 1];
+    final date = '${eventDate.day.toString().padLeft(2, '0')}.${eventDate.month.toString().padLeft(2, '0')}.${eventDate.year}.';
     final timeParts = eventTime.split(':');
     final hour = timeParts[0];
     final minute = timeParts[1];
-    return '$day at $hour:$minute';
+    return '$day, $date at $hour:$minute';
   }
 
   factory EventModel.fromJson(Map<String, dynamic> json) {

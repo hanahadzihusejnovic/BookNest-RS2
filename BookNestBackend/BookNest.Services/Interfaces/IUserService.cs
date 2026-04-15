@@ -13,5 +13,6 @@ namespace BookNest.Services.Interfaces
     public interface IUserService : IBaseCRUDService<UserResponse, UserSearchObject, UserInsertRequest, UserUpdateRequest>
     {
         Task<UserResponse?> UpdateSelfAsync(int userId, UserSelfUpdateRequest request, CancellationToken cancellationToken = default);
+        Task DeactivateSelfAsync(int userId, CancellationToken cancellationToken = default);
     }
 }

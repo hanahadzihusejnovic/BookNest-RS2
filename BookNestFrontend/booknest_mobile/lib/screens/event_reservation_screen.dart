@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../models/event.dart';
 import '../layouts/constants.dart';
@@ -36,9 +37,7 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
   bool _isSubmitting = false;
 
   String _paymentMethod = 'CashOnArrival';
-  final _cardNumberController = TextEditingController();
-  final _cvcController = TextEditingController();
-  final _expiryController = TextEditingController();
+  CardFieldInputDetails? _cardDetails;
 
   static const String baseUrl = 'http://10.0.2.2:7110/api';
 
@@ -48,14 +47,6 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
   void initState() {
     super.initState();
     _loadUserInfo();
-  }
-
-  @override
-  void dispose() {
-    _cardNumberController.dispose();
-    _cvcController.dispose();
-    _expiryController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadUserInfo() async {
@@ -74,40 +65,73 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        setState(() {
-          _firstName = data['firstName'] ?? '';
-          _lastName = data['lastName'] ?? '';
-          _email = data['emailAddress'] ?? '';
-          _phone = data['phoneNumber'] ?? '';
-          _isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            _firstName = data['firstName'] ?? '';
+            _lastName = data['lastName'] ?? '';
+            _email = data['emailAddress'] ?? '';
+            _phone = data['phoneNumber'] ?? '';
+            _isLoading = false;
+          });
+        }
       } else {
-        setState(() => _isLoading = false);
+        if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _submitReservation() async {
     if (_paymentMethod == 'Card' &&
-        (_cardNumberController.text.isEmpty ||
-            _cvcController.text.isEmpty ||
-            _expiryController.text.isEmpty)) {
-      AppSnackBar.show(context, 'Please fill in all card details.', isError: true);
+        (_cardDetails == null || !(_cardDetails!.complete))) {
+      AppSnackBar.show(context, 'Please enter valid card details.', isError: true);
       return;
     }
 
     setState(() => _isSubmitting = true);
 
     try {
+      final token = await _authService.getToken();
+      if (token == null) throw Exception('Not authenticated');
+
+      String? paymentIntentId;
+
+      // Ako je plaćanje karticom — kreiraj PaymentIntent i potvrdi ga putem Stripea
+      if (_paymentMethod == 'Card') {
+        // 1. Kreiraj PaymentIntent na backendu
+        final intentResponse = await http.post(
+          Uri.parse('$baseUrl/Order/create-payment-intent'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({'amount': _totalPrice}),
+        );
+
+        if (intentResponse.statusCode != 200) {
+          throw Exception('Failed to create payment intent');
+        }
+
+        final intentData = jsonDecode(intentResponse.body);
+        final clientSecret = intentData['clientSecret'] as String;
+        paymentIntentId = intentData['paymentIntentId'] as String;
+
+        // 2. Potvrdi plaćanje putem Stripe SDK-a
+        await Stripe.instance.confirmPayment(
+          paymentIntentClientSecret: clientSecret,
+          data: const PaymentMethodParams.card(
+            paymentMethodData: PaymentMethodData(),
+          ),
+        );
+      }
+
+      // 3. Kreiraj rezervaciju na backendu
       final reservation = await _reservationService.reserveEvent(
         eventId: widget.event.id,
         quantity: widget.quantity,
         paymentMethod: _paymentMethod == 'CashOnArrival' ? 0 : 1,
-        transactionId: _paymentMethod == 'Card'
-            ? '${_cardNumberController.text}-${_cvcController.text}-${_expiryController.text}'
-            : null,
+        transactionId: paymentIntentId,
       );
 
       if (!mounted) return;
@@ -154,8 +178,7 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
               },
               style:
                   ElevatedButton.styleFrom(backgroundColor: AppColors.darkBrown),
-              child:
-                  const Text('OK', style: TextStyle(color: Colors.white)),
+              child: const Text('OK', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -276,42 +299,20 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
                           ),
                           if (_paymentMethod == 'Card') ...[
                             const SizedBox(height: 10),
-                            Container(
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppColors.darkBrown,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Column(
-                                children: [
-                                  _CardField(
-                                    controller: _cardNumberController,
-                                    label: 'Card number',
-                                    hint: '1234 1234 1234 1234',
-                                    keyboardType: TextInputType.number,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: _CardField(
-                                          controller: _cvcController,
-                                          label: 'CVC',
-                                          hint: '123',
-                                          keyboardType: TextInputType.number,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: _CardField(
-                                          controller: _expiryController,
-                                          label: 'Expiration date',
-                                          hint: 'MM/YY',
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: CardFormField(
+                                style: CardFormStyle(
+                                  backgroundColor: AppColors.darkBrown,
+                                  textColor: Colors.white,
+                                  placeholderColor: Colors.white54,
+                                  borderColor: Colors.transparent,
+                                  borderRadius: 10,
+                                  fontSize: 14,
+                                ),
+                                onCardChanged: (details) {
+                                  setState(() => _cardDetails = details);
+                                },
                               ),
                             ),
                           ],
@@ -498,50 +499,6 @@ class _PaymentOption extends StatelessWidget {
                 color: AppColors.darkBrown,
                 fontSize: 14,
                 fontWeight: FontWeight.w500)),
-      ],
-    );
-  }
-}
-
-class _CardField extends StatelessWidget {
-  final TextEditingController controller;
-  final String label;
-  final String hint;
-  final TextInputType keyboardType;
-
-  const _CardField({
-    required this.controller,
-    required this.label,
-    required this.hint,
-    this.keyboardType = TextInputType.text,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7), fontSize: 11)),
-        const SizedBox(height: 4),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          style: const TextStyle(color: Colors.white, fontSize: 13),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(
-                color: Colors.white.withValues(alpha: 0.4), fontSize: 12),
-            isDense: true,
-            contentPadding: const EdgeInsets.symmetric(vertical: 6),
-            enabledBorder: UnderlineInputBorder(
-                borderSide:
-                    BorderSide(color: Colors.white.withValues(alpha: 0.4))),
-            focusedBorder: const UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white)),
-          ),
-        ),
       ],
     );
   }

@@ -58,4 +58,14 @@ class UserService {
     }
     throw Exception('Failed to update profile');
   }
+
+  Future<void> deleteSelf() async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/User/delete-self'),
+      headers: await _headers(),
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Failed to delete account');
+    }
+  }
 }

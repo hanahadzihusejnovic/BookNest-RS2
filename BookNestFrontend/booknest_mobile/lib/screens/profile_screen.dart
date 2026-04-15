@@ -11,6 +11,8 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../services/reservation_service.dart';
 import '../widgets/book_card.dart';
 import '../widgets/pagination_bar.dart';
+import '../services/book_service.dart';
+import 'book_details_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -466,7 +468,9 @@ class _ProfileButton extends StatelessWidget {
   class _MyBooksTabState extends State<_MyBooksTab>
       with AutomaticKeepAliveClientMixin {
     final _orderService = OrderService();
+    final _bookService = BookService();
     List<OrderItemModel> _books = [];
+    Map<int, int> _bookQuantities = {}; // bookId → total quantity bought (best-effort)
     bool _isLoading = true;
     String? _error;
 
@@ -493,12 +497,26 @@ class _ProfileButton extends StatelessWidget {
     Future<void> _loadBooks() async {
       try {
         final orders = await _orderService.getMyOrders();
-        // Izvuci sve knjige iz svih narudžbi
-        final allBooks = orders
-            .expand((order) => order.orderItems)
-            .toList();
+        final allItems = orders.expand((order) => order.orderItems).toList();
+
+        // Deduplicate by bookId, summing quantities
+        // Deduplicate by bookId; fall back to title+author if bookId repeats as 0
+        final Map<String, OrderItemModel> uniqueBooks = {};
+        final Map<String, int> quantities = {};
+        for (final item in allItems) {
+          final key = item.bookId > 0
+              ? 'id:${item.bookId}'
+              : 'title:${item.bookTitle.toLowerCase().trim()}';
+          quantities[key] = (quantities[key] ?? 0) + item.quantity;
+          uniqueBooks.putIfAbsent(key, () => item);
+        }
+
         setState(() {
-          _books = allBooks;
+          _books = uniqueBooks.values.toList();
+          _bookQuantities = {
+            for (final entry in quantities.entries)
+              uniqueBooks[entry.key]!.bookId: entry.value,
+          };
           _isLoading = false;
         });
       } catch (e) {
@@ -566,15 +584,32 @@ class _ProfileButton extends StatelessWidget {
                                         crossAxisCount: 3,
                                         mainAxisSpacing: 14,
                                         crossAxisSpacing: 14,
-                                        childAspectRatio: 0.58,
+                                        childAspectRatio: 0.50,
                                       ),
                                       itemBuilder: (context, index) {
                                         final item = _currentPageItems[index];
+                                        final qty = _bookQuantities[item.bookId] ?? 1;
                                         return BookCard(
                                           title: item.bookTitle,
                                           author: item.bookAuthorName,
                                           imageUrl: item.bookImageUrl,
-                                          style: BookCardStyle.plain,
+                                          style: BookCardStyle.details,
+                                          statusLabel: qty > 1 ? 'Bought: $qty books' : null,
+                                          onTap: () async {
+                                            try {
+                                              final book = await _bookService.getBookById(item.bookId);
+                                              if (!context.mounted) return;
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => BookDetailsScreen(book: book),
+                                                ),
+                                              );
+                                            } catch (e) {
+                                              if (!context.mounted) return;
+                                              AppSnackBar.showError(context, e);
+                                            }
+                                          },
                                         );
                                       },
                                     ),

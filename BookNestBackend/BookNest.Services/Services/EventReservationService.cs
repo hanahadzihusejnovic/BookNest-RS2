@@ -179,7 +179,7 @@ namespace BookNest.Services.Services
                 TotalPrice = totalPrice,
                 EventDateTime = eventDateTime,
                 ReservationDate = DateTime.UtcNow,
-                ReservationStatus = ReservationStatus.Confirmed,
+                ReservationStatus = ReservationStatus.Pending,
                 TicketQRCodeLink = GenerateQRCodeLink() 
             };
 

@@ -289,5 +289,15 @@ namespace BookNest.Services.Services
 
             return _mapper.Map<UserResponse>(user);
         }
+
+        public async Task DeactivateSelfAsync(int userId, CancellationToken cancellationToken = default)
+        {
+            var user = await _dbContext.Users.FindAsync(new object[] { userId }, cancellationToken);
+            if (user == null) throw new Exception("User not found.");
+
+            user.IsActive = false;
+            user.DeactivatedAt = DateTime.UtcNow;
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
     }
 }
