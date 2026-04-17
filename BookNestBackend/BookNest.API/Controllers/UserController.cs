@@ -2,6 +2,7 @@
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
+using BookNest.Services.BaseInterfaces;
 using BookNest.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,10 +16,12 @@ namespace BookNest.API.Controllers
     public class UserController : BaseCRUDController<UserResponse, UserSearchObject, UserInsertRequest, UserUpdateRequest>
     {
         private readonly IUserService _userService;
+        private readonly IImageService _imageService;
 
-        public UserController(IUserService service) : base(service)
+        public UserController(IUserService service, IImageService imageService) : base(service)
         {
             _userService = service;
+            _imageService = imageService;
         }
 
         [Authorize(Roles = "Admin")]
@@ -88,6 +91,19 @@ namespace BookNest.API.Controllers
             await _userService.DeactivateSelfAsync(userId);
             return Ok();
         }
+
+        [HttpPost("upload-image")]
+        public async Task<IActionResult> UploadImage(IFormFile image)
+        {
+            if (image == null || image.Length == 0)
+                return BadRequest("No image provided.");
+
+            var uniqueName = $"{Guid.NewGuid()}-{image.FileName}";
+            using var stream = image.OpenReadStream();
+            var imageUrl = await _imageService.UploadImageAsync(stream, uniqueName, "user-images");
+            return Ok(new { imageUrl });
+        }
+
 
     }
 }

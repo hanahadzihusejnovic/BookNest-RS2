@@ -3,6 +3,7 @@ using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
 using BookNest.Services.BaseInterfaces;
+using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
 using BookNest.Services.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -45,33 +46,24 @@ namespace BookNest.API.Controllers
 
         [HttpPost("upload-cover")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<object>> UploadCoverImage(IFormFile file)
+        public async Task<ActionResult<object>> UploadCoverImage(IFormFile file, [FromQuery] string? category = null)
         {
             if (file == null || file.Length == 0)
-            {
                 return BadRequest("No file uploaded");
-            }
 
             var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
             if (!allowedExtensions.Contains(extension))
-            {
                 return BadRequest("Only image files are allowed");
-            }
 
-            try
-            {
-                using var stream = file.OpenReadStream();
-                var imageUrl = await _imageService.UploadImageAsync(stream, file.FileName);
-
-                return Ok(new { url = imageUrl });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, $"Error uploading image: {ex.Message}");
-            }
+            var folder = category?.ToLower() ?? "misc";
+            var uniqueName = $"{folder}/{Guid.NewGuid()}-{file.FileName}";
+            using var stream = file.OpenReadStream();
+            var imageUrl = await _imageService.UploadImageAsync(stream, uniqueName, "book-covers");
+            return Ok(new { url = imageUrl });
         }
+
 
         [HttpGet("recommended")]
         public async Task<ActionResult<List<BookResponse>>> GetRecommended([FromQuery] int count = 6)
