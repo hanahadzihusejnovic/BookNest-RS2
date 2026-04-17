@@ -8,7 +8,6 @@ namespace BookNest.Infrastructure.Services
     public class AzureBlobImageService : IImageService
     {
         private readonly BlobServiceClient _blobServiceClient;
-        private readonly string _containerName = "book-covers";
 
         public AzureBlobImageService(IConfiguration configuration)
         {
@@ -16,31 +15,23 @@ namespace BookNest.Infrastructure.Services
             _blobServiceClient = new BlobServiceClient(connectionString);
         }
 
-        public async Task<string> UploadImageAsync(Stream imageStream, string fileName)
+        public async Task<string> UploadImageAsync(Stream imageStream, string fileName, string containerName)
         {
-            var uniqueFileName = $"{Guid.NewGuid()}-{fileName}";
-
-            var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
+            var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
             await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
-
-            var blobClient = containerClient.GetBlobClient(uniqueFileName);
-
-            await blobClient.UploadAsync(imageStream, new BlobHttpHeaders
-            {
-                ContentType = GetContentType(fileName)
-            });
-
+            var blobClient = containerClient.GetBlobClient(fileName); // koristi fileName direktno
+            await blobClient.UploadAsync(imageStream, new BlobHttpHeaders { ContentType = GetContentType(fileName) });
             return blobClient.Uri.ToString();
         }
 
-        public async Task<bool> DeleteImageAsync(string imageUrl)
+        public async Task<bool> DeleteImageAsync(string imageUrl, string containerName)
         {
             try
             {
                 var uri = new Uri(imageUrl);
                 var fileName = Path.GetFileName(uri.LocalPath);
 
-                var containerClient = _blobServiceClient.GetBlobContainerClient(_containerName);
+                var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
                 var blobClient = containerClient.GetBlobClient(fileName);
 
                 await blobClient.DeleteIfExistsAsync();
@@ -51,6 +42,7 @@ namespace BookNest.Infrastructure.Services
                 return false;
             }
         }
+
 
         private string GetContentType(string fileName)
         {

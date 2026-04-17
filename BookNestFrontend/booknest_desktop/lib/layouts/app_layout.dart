@@ -1,31 +1,28 @@
 import 'package:flutter/material.dart';
 import '../layouts/constants.dart';
-import '../screens/home_screen.dart';
-import '../screens/shop_screen.dart';
-import '../screens/profile_screen.dart';
+import '../screens/dashboard_screen.dart';
+import '../screens/users_screen.dart';
+import '../screens/books_screen.dart';
+import '../screens/orders_screen.dart';
 import '../screens/events_screen.dart';
-import '../screens/about_screen.dart';
+import '../screens/reservations_screen.dart';
 import '../screens/settings_screen.dart';
 
 class AppLayout extends StatelessWidget {
   final String pageTitle;
   final Widget body;
-  final bool showBackButton;
-  final bool showPageActionsRow;
 
   const AppLayout({
     super.key,
     required this.pageTitle,
     required this.body,
-    this.showBackButton = false,
-    this.showPageActionsRow = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.pageBg,
-      drawer: _BookNestDrawer(currentPage: pageTitle),
+      drawer: _AdminDrawer(currentPage: pageTitle),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,34 +32,26 @@ class AppLayout extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Gornji red: back/BookNest + hamburger
+                  // Header: BookNest logo + hamburger
                   Row(
                     children: [
-                      if (showBackButton) ...[
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Icon(Icons.arrow_back,
-                              color: AppColors.darkBrown, size: 26),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
+                            const Text(
                               'BookNest',
                               style: TextStyle(
                                 color: AppColors.darkBrown,
-                                fontSize: 30,
+                                fontSize: 42,
                                 fontWeight: FontWeight.w900,
                               ),
                             ),
-                            Text(
+                            const Text(
                               'World of your stories!',
                               style: TextStyle(
                                 color: AppColors.darkBrown,
-                                fontSize: 18,
+                                fontSize: 24,
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
@@ -72,41 +61,43 @@ class AppLayout extends StatelessWidget {
                       Builder(
                         builder: (ctx) => GestureDetector(
                           onTap: () => Scaffold.of(ctx).openDrawer(),
-                          child: Icon(Icons.menu,
-                              color: AppColors.darkBrown, size: 26),
+                          child: const Icon(
+                            Icons.menu,
+                            color: AppColors.darkBrown,
+                            size: 26,
+                          ),
                         ),
                       ),
                     ],
                   ),
 
-                  if (showPageActionsRow) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            pageTitle,
-                            style: TextStyle(
-                              color: AppColors.darkBrown,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: 0.5,
-                            ),
+                  const SizedBox(height: 12),
+
+                  // Page title + bell
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          pageTitle,
+                          style: const TextStyle(
+                            color: AppColors.darkBrown,
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
                           ),
                         ),
-                        GestureDetector(
-                          onTap: () {},
-                          child: Icon(Icons.notifications_none,
-                              color: AppColors.darkBrown, size: 22),
-                        ),
-                      ],
-                    ),
-                  ],
+                      ),
+                      const Icon(
+                        Icons.notifications_none,
+                        color: AppColors.darkBrown,
+                        size: 26,
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
 
-            // Body sadržaj
             Expanded(child: body),
           ],
         ),
@@ -117,16 +108,16 @@ class AppLayout extends StatelessWidget {
 
 /* ----------------------- DRAWER ----------------------- */
 
-class _BookNestDrawer extends StatelessWidget {
+class _AdminDrawer extends StatelessWidget {
   final String currentPage;
 
-  const _BookNestDrawer({required this.currentPage});
+  const _AdminDrawer({required this.currentPage});
 
   @override
   Widget build(BuildContext context) {
     return Drawer(
       backgroundColor: AppColors.darkBrown,
-      width: MediaQuery.of(context).size.width * 0.72,
+      width: 280,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,31 +149,49 @@ class _BookNestDrawer extends StatelessWidget {
             const SizedBox(height: 18),
 
             _DrawerItem(
-              title: 'HOME',
-              isActive: currentPage == 'HOME',
+              title: 'DASHBOARD',
+              isActive: currentPage == 'ADMIN DASHBOARD',
               onTap: () {
                 Navigator.pop(context);
-                if (currentPage != 'HOME') {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const HomeScreen()),
-                  );
+                if (currentPage != 'ADMIN DASHBOARD') {
+                  Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const DashboardScreen()));
                 }
               },
             ),
             _DrawerDivider(),
             _DrawerItem(
-              title: 'SHOP',
-              isActive: currentPage == 'SHOP',
+              title: 'USERS',
+              isActive: currentPage == 'USERS',
               onTap: () {
                 Navigator.pop(context);
-                if (currentPage != 'SHOP') {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const ShopScreen()),
-                  );
+                if (currentPage != 'USERS') {
+                  Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const UsersScreen()));
+                }
+              },
+            ),
+            _DrawerDivider(),
+            _DrawerItem(
+              title: 'BOOKS',
+              isActive: currentPage == 'BOOKS',
+              onTap: () {
+                Navigator.pop(context);
+                if (currentPage != 'BOOKS') {
+                  Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const BooksScreen()));
+                }
+              },
+            ),
+            _DrawerDivider(),
+            _DrawerItem(
+              title: 'ORDERS',
+              isActive: currentPage == 'ORDERS',
+              onTap: () {
+                Navigator.pop(context);
+                if (currentPage != 'ORDERS') {
+                  Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const OrdersScreen()));
                 }
               },
             ),
@@ -193,26 +202,20 @@ class _BookNestDrawer extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 if (currentPage != 'EVENTS') {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const EventsScreen(),
-                    ),
-                  );
+                  Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const EventsScreen()));
                 }
               },
             ),
             _DrawerDivider(),
             _DrawerItem(
-              title: 'ABOUT US',
-              isActive: currentPage == 'ABOUT US',
+              title: 'RESERVATIONS',
+              isActive: currentPage == 'RESERVATIONS',
               onTap: () {
                 Navigator.pop(context);
-                if (currentPage != 'ABOUT US') {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const AboutScreen()),
-                  );
+                if (currentPage != 'RESERVATIONS') {
+                  Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const ReservationsScreen()));
                 }
               },
             ),
@@ -223,10 +226,8 @@ class _BookNestDrawer extends StatelessWidget {
               onTap: () {
                 Navigator.pop(context);
                 if (currentPage != 'SETTINGS') {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                  );
+                  Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const SettingsScreen()));
                 }
               },
             ),
@@ -236,16 +237,9 @@ class _BookNestDrawer extends StatelessWidget {
 
             // MY PROFILE
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               child: InkWell(
-                onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const ProfileScreen()),
-                );
-              },
+                onTap: () => Navigator.pop(context),
                 borderRadius: BorderRadius.circular(18),
                 child: Row(
                   children: [
@@ -256,7 +250,7 @@ class _BookNestDrawer extends StatelessWidget {
                         border: Border.all(color: AppColors.pageBg, width: 1.5),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.person_outline,
+                      child: const Icon(Icons.person_outline,
                           color: AppColors.pageBg, size: 22),
                     ),
                     const SizedBox(width: 12),
