@@ -1,7 +1,9 @@
 ﻿using BookNest.API.BaseControllers;
+using BookNest.Infrastructure.Services;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
+using BookNest.Services.BaseInterfaces;
 using BookNest.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,10 +17,12 @@ namespace BookNest.API.Controllers
     public class EventController : BaseCRUDController<EventResponse, EventSearchObject, EventInsertRequest, EventUpdateRequest>
     {
         private readonly IEventService _eventService;
+        private readonly IImageService _imageService;
 
-        public EventController(IEventService eventService) : base(eventService)
+        public EventController(IEventService eventService, IImageService imageService) : base(eventService)
         {
             _eventService = eventService;
+            _imageService = imageService;
         }
 
         [Authorize(Roles = "Admin")]
@@ -59,6 +63,26 @@ namespace BookNest.API.Controllers
 
             var events = await _eventService.GetContentBasedRecommendationsAsync(userId, count);
             return Ok(events);
+        }
+
+        [HttpPost("upload-image")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<object>> UploadImage(IFormFile file, [FromQuery] string? category = null)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No file uploaded");
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            if (!allowedExtensions.Contains(extension))
+                return BadRequest("Only image files are allowed");
+
+            var folder = category?.ToLower() ?? "misc";
+            var uniqueName = $"{folder}/{Guid.NewGuid()}-{file.FileName}";
+            using var stream = file.OpenReadStream();
+            var url = await _imageService.UploadImageAsync(stream, uniqueName, "event-images");
+            return Ok(new { url });
         }
     }
 }

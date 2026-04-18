@@ -4,6 +4,8 @@ import '../layouts/constants.dart';
 import '../services/dashboard_service.dart';
 import 'users_screen.dart';
 import 'books_screen.dart';
+import 'orders_screen.dart';
+import 'events_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -95,7 +97,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     statLabel: 'Active:',
                     value: _fmt(_pendingOrders),
                     isLoading: _isLoading,
-                    onTap: () {},
+                    onTap: () => Navigator.pushReplacement(context,
+                        MaterialPageRoute(builder: (_) => const OrdersScreen())),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -106,7 +109,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     statLabel: 'Upcoming:',
                     value: _fmt(_upcomingEvents),
                     isLoading: _isLoading,
-                    onTap: () {},
+                    onTap: () => Navigator.pushReplacement(context,
+                        MaterialPageRoute(builder: (_) => const EventsScreen())),
                   ),
                 ),
               ],
