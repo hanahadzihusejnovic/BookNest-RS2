@@ -6,6 +6,7 @@ import 'users_screen.dart';
 import 'books_screen.dart';
 import 'orders_screen.dart';
 import 'events_screen.dart';
+import 'reservations_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -21,6 +22,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int? _totalBooks;
   int? _pendingOrders;
   int? _upcomingEvents;
+  int? _pendingReservations;
   bool _isLoading = true;
 
   @override
@@ -36,6 +38,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _dashboardService.getTotalBooks(),
         _dashboardService.getPendingOrdersCount(),
         _dashboardService.getUpcomingEventsCount(),
+        _dashboardService.getPendingReservationsCount(),
       ]);
 
       if (!mounted) return;
@@ -44,6 +47,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _totalBooks = results[1];
         _pendingOrders = results[2];
         _upcomingEvents = results[3];
+        _pendingReservations = results[4];
         _isLoading = false;
       });
     } catch (e) {
@@ -54,6 +58,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   String _fmt(int? value) => _isLoading ? '...' : (value?.toString() ?? '-');
 
+  void _navigate(Widget screen) {
+    Navigator.pushReplacement(
+        context, MaterialPageRoute(builder: (_) => screen));
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppLayout(
@@ -63,7 +72,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Stat cards
+            // Top row: Users, Books, Events
             Row(
               children: [
                 Expanded(
@@ -73,8 +82,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     statLabel: 'Total:',
                     value: _fmt(_totalUsers),
                     isLoading: _isLoading,
-                    onTap: () => Navigator.pushReplacement(context,
-                        MaterialPageRoute(builder: (_) => const UsersScreen())),
+                    onTap: () => _navigate(const UsersScreen()),
                   ),
                 ),
                 const SizedBox(width: 14),
@@ -85,34 +93,52 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     statLabel: 'Total:',
                     value: _fmt(_totalBooks),
                     isLoading: _isLoading,
-                    onTap: () => Navigator.pushReplacement(context,
-                        MaterialPageRoute(builder: (_) => const BooksScreen())),
+                    onTap: () => _navigate(const BooksScreen()),
                   ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
+                  child: _StatCard(
+                    icon: Icons.event_outlined,
+                    label: 'EVENTS',
+                    statLabel: 'Upcoming:',
+                    value: _fmt(_upcomingEvents),
+                    isLoading: _isLoading,
+                    onTap: () => _navigate(const EventsScreen()),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // Bottom row: Orders, Reservations
+            Row(
+              children: [
+                const Spacer(),
+                Expanded(
+                  flex: 3,
                   child: _StatCard(
                     icon: Icons.shopping_cart_outlined,
                     label: 'ORDERS',
                     statLabel: 'Active:',
                     value: _fmt(_pendingOrders),
                     isLoading: _isLoading,
-                    onTap: () => Navigator.pushReplacement(context,
-                        MaterialPageRoute(builder: (_) => const OrdersScreen())),
+                    onTap: () => _navigate(const OrdersScreen()),
                   ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
+                  flex: 3,
                   child: _StatCard(
-                    icon: Icons.grid_view_outlined,
-                    label: 'EVENTS',
-                    statLabel: 'Upcoming:',
-                    value: _fmt(_upcomingEvents),
+                    icon: Icons.confirmation_number_outlined,
+                    label: 'RESERVATIONS',
+                    statLabel: 'Active:',
+                    value: _fmt(_pendingReservations),
                     isLoading: _isLoading,
-                    onTap: () => Navigator.pushReplacement(context,
-                        MaterialPageRoute(builder: (_) => const EventsScreen())),
+                    onTap: () => _navigate(const ReservationsScreen()),
                   ),
                 ),
+                const Spacer(),
               ],
             ),
 
@@ -177,7 +203,6 @@ class _StatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Icon + label
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -212,9 +237,7 @@ class _StatCard extends StatelessWidget {
                 width: 24,
                 height: 24,
                 child: CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
+                    color: Colors.white, strokeWidth: 2),
               ),
             )
           else
@@ -239,8 +262,7 @@ class _StatCard extends StatelessWidget {
                 elevation: 0,
                 backgroundColor: AppColors.darkBrown,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                    borderRadius: BorderRadius.circular(8)),
                 padding: EdgeInsets.zero,
               ),
               child: const Text(

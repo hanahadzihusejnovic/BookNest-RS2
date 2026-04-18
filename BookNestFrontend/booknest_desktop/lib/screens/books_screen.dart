@@ -10,6 +10,7 @@ import '../services/book_service.dart';
 import '../services/category_service.dart';
 import '../services/author_service.dart';
 import '../widgets/pagination_bar.dart';
+import '../widgets/admin_table.dart';
 
 class BooksScreen extends StatefulWidget {
   const BooksScreen({super.key});
@@ -190,7 +191,7 @@ class _BooksScreenState extends State<BooksScreen> {
                 style: const TextStyle(
                     color: AppColors.darkBrown, fontSize: 14),
                 decoration: const InputDecoration(
-                  hintText: 'Search by name, author',
+                  hintText: 'Search by title, author',
                   hintStyle:
                       TextStyle(color: AppColors.mediumBrown, fontSize: 14),
                   border: InputBorder.none,
@@ -206,11 +207,11 @@ class _BooksScreenState extends State<BooksScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
                 children: const [
-                  SizedBox(width: 60),
-                  _ColHeader('Name', flex: 3),
-                  _ColHeader('Category', flex: 2),
-                  _ColHeader('Author', flex: 2),
-                  _ColHeader('Stock', flex: 2),
+                  SizedBox(width: 56),
+                  AdminColHeader('Title', flex: 3),
+                  AdminColHeader('Category', flex: 2),
+                  AdminColHeader('Author', flex: 2),
+                  AdminColHeader('Stock', flex: 2),
                   SizedBox(width: 120),
                 ],
               ),
@@ -247,105 +248,28 @@ class _BooksScreenState extends State<BooksScreen> {
                                 ),
                                 itemBuilder: (context, index) {
                                   final book = _currentPageItems[index];
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 10),
-                                    child: Row(
-                                      children: [
-                                        // Cover image
-                                        Container(
-                                          width: 44,
-                                          height: 44,
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            border: Border.all(
-                                              color: AppColors.mediumBrown,
-                                              width: 1.5,
-                                            ),
-                                          ),
-                                          child: ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(5),
-                                            child: book.imageUrl != null
-                                                ? Image.network(
-                                                    book.imageUrl!,
-                                                    fit: BoxFit.contain,
-                                                    errorBuilder:
-                                                        (_, __, ___) =>
-                                                            const Icon(
-                                                      Icons.book_outlined,
-                                                      color: AppColors
-                                                          .mediumBrown,
-                                                      size: 22,
-                                                    ),
-                                                  )
-                                                : const Icon(
-                                                    Icons.book_outlined,
-                                                    color:
-                                                        AppColors.mediumBrown,
-                                                    size: 22,
-                                                  ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-
-                                        Expanded(
-                                            flex: 3,
-                                            child: Text(book.title,
-                                                style: _rowStyle,
-                                                overflow:
-                                                    TextOverflow.ellipsis)),
-                                        Expanded(
-                                            flex: 2,
-                                            child: Text(
-                                                book.categories.isNotEmpty
-                                                    ? book.categories.first
-                                                    : '-',
-                                                style: _rowStyle,
-                                                overflow:
-                                                    TextOverflow.ellipsis)),
-                                        Expanded(
-                                            flex: 2,
-                                            child: Text(book.author,
-                                                style: _rowStyle,
-                                                overflow:
-                                                    TextOverflow.ellipsis)),
-                                        Expanded(
-                                            flex: 2,
-                                            child: Text(
-                                                book.stock?.toString() ?? '-',
-                                                style: _rowStyle)),
-
-                                        SizedBox(
-                                          width: 120,
-                                          height: 34,
-                                          child: ElevatedButton(
-                                            onPressed: () {},
-                                            style: ElevatedButton.styleFrom(
-                                              elevation: 0,
-                                              backgroundColor:
-                                                  AppColors.darkBrown,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              padding: EdgeInsets.zero,
-                                            ),
-                                            child: const Text(
-                                              'Click for more\ndetails',
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w700,
-                                                height: 1.3,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                  return AdminListRow(
+                                    leading: AdminThumbnail(
+                                      imageUrl: book.imageUrl,
+                                      fallbackIcon: Icons.book_outlined,
                                     ),
+                                    columns: [
+                                      AdminColumn(flex: 3, text: book.title),
+                                      AdminColumn(
+                                        flex: 2,
+                                        text: book.categories.isNotEmpty
+                                            ? book.categories.first
+                                            : '-',
+                                      ),
+                                      AdminColumn(flex: 2, text: book.author),
+                                      AdminColumn(
+                                          flex: 2,
+                                          text: book.stock?.toString() ?? '-'),
+                                    ],
+                                    actions: const [
+                                      AdminActionButton(
+                                          label: 'Click for more\ndetails'),
+                                    ],
                                   );
                                 },
                               ),
@@ -463,41 +387,11 @@ class _BooksScreenState extends State<BooksScreen> {
     setState(() => _catOpen = true);
   }
 
-  static const _rowStyle = TextStyle(
-    color: AppColors.darkBrown,
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-  );
-
   @override
   void dispose() {
     _closeCategoriesDropdown();
     _searchController.dispose();
     super.dispose();
-  }
-}
-
-/* ----------------------- COLUMN HEADER ----------------------- */
-
-class _ColHeader extends StatelessWidget {
-  final String text;
-  final int flex;
-
-  const _ColHeader(this.text, {required this.flex});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: AppColors.darkBrown,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
   }
 }
 
@@ -815,7 +709,7 @@ class _AddBookDialogState extends State<_AddBookDialog> {
                       children: [
                         _BookField(
                           controller: _titleController,
-                          hint: 'Name',
+                          hint: 'Title',
                           error: _titleError,
                           onChanged: (_) =>
                               setState(() => _titleError = null),

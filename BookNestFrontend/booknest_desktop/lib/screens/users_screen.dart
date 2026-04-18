@@ -4,6 +4,7 @@ import '../layouts/constants.dart';
 import '../models/user.dart';
 import '../services/user_service.dart';
 import '../widgets/pagination_bar.dart';
+import '../widgets/admin_table.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -82,7 +83,6 @@ class _UsersScreenState extends State<UsersScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Search bar
             Container(
               height: 42,
               decoration: BoxDecoration(
@@ -103,112 +103,50 @@ class _UsersScreenState extends State<UsersScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Column headers
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
                 children: const [
                   SizedBox(width: 56),
-                  _ColHeader('First Name', flex: 2),
-                  _ColHeader('Last Name', flex: 2),
-                  _ColHeader('Username', flex: 2),
-                  _ColHeader('Registration Date', flex: 2),
+                  AdminColHeader('First Name', flex: 2),
+                  AdminColHeader('Last Name', flex: 2),
+                  AdminColHeader('Username', flex: 2),
+                  AdminColHeader('Registration Date', flex: 2),
                   SizedBox(width: 120),
                 ],
               ),
             ),
             Divider(color: AppColors.darkBrown.withValues(alpha: 0.25), thickness: 1, height: 12),
 
-            // Users list
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator(color: AppColors.darkBrown))
                   : _filteredUsers.isEmpty
                       ? const Center(
-                          child: Text(
-                            'No users found.',
-                            style: TextStyle(color: AppColors.mediumBrown, fontSize: 14),
-                          ),
-                        )
+                          child: Text('No users found.',
+                              style: TextStyle(color: AppColors.mediumBrown, fontSize: 14)))
                       : Column(
                           children: [
                             Expanded(
                               child: ListView.separated(
                                 itemCount: _currentPageItems.length,
                                 separatorBuilder: (_, __) => Divider(
-                                  color: AppColors.darkBrown.withValues(alpha: 0.15),
-                                  thickness: 1,
-                                  height: 1,
-                                ),
+                                    color: AppColors.darkBrown.withValues(alpha: 0.15),
+                                    thickness: 1,
+                                    height: 1),
                                 itemBuilder: (context, index) {
                                   final user = _currentPageItems[index];
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                    child: Row(
-                                      children: [
-                                        // Avatar
-                                        Container(
-                                          width: 44,
-                                          height: 44,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            border: Border.all(
-                                              color: AppColors.mediumBrown,
-                                              width: 1.5,
-                                            ),
-                                          ),
-                                          child: ClipOval(
-                                            child: user.imageUrl != null
-                                                ? Image.network(
-                                                    user.imageUrl!,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder: (_, __, ___) => const Icon(
-                                                      Icons.person_outline,
-                                                      color: AppColors.mediumBrown,
-                                                      size: 22,
-                                                    ),
-                                                  )
-                                                : const Icon(
-                                                    Icons.person_outline,
-                                                    color: AppColors.mediumBrown,
-                                                    size: 22,
-                                                  ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-
-                                        Expanded(flex: 2, child: Text(user.firstName, style: _rowStyle)),
-                                        Expanded(flex: 2, child: Text(user.lastName, style: _rowStyle)),
-                                        Expanded(flex: 2, child: Text(user.username, style: _rowStyle)),
-                                        Expanded(flex: 2, child: Text(_formatDate(user.createdAt), style: _rowStyle)),
-
-                                        SizedBox(
-                                          width: 120,
-                                          height: 34,
-                                          child: ElevatedButton(
-                                            onPressed: () {},
-                                            style: ElevatedButton.styleFrom(
-                                              elevation: 0,
-                                              backgroundColor: AppColors.darkBrown,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              padding: EdgeInsets.zero,
-                                            ),
-                                            child: const Text(
-                                              'Click for more\ndetails',
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w700,
-                                                height: 1.3,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                  return AdminListRow(
+                                    leading: AdminAvatar(imageUrl: user.imageUrl),
+                                    columns: [
+                                      AdminColumn(flex: 2, text: user.firstName),
+                                      AdminColumn(flex: 2, text: user.lastName),
+                                      AdminColumn(flex: 2, text: user.username),
+                                      AdminColumn(flex: 2, text: _formatDate(user.createdAt)),
+                                    ],
+                                    actions: const [
+                                      AdminActionButton(label: 'Click for more\ndetails'),
+                                    ],
                                   );
                                 },
                               ),
@@ -228,39 +166,9 @@ class _UsersScreenState extends State<UsersScreen> {
     );
   }
 
-  static const _rowStyle = TextStyle(
-    color: AppColors.darkBrown,
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-  );
-
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-}
-
-/* ----------------------- COLUMN HEADER ----------------------- */
-
-class _ColHeader extends StatelessWidget {
-  final String text;
-  final int flex;
-
-  const _ColHeader(this.text, {required this.flex});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: AppColors.darkBrown,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
   }
 }

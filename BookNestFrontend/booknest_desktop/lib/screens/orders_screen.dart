@@ -4,6 +4,7 @@ import '../layouts/constants.dart';
 import '../models/order.dart';
 import '../services/order_service.dart';
 import '../widgets/pagination_bar.dart';
+import '../widgets/admin_table.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -92,7 +93,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Search bar
             Container(
               height: 42,
               decoration: BoxDecoration(
@@ -113,114 +113,61 @@ class _OrdersScreenState extends State<OrdersScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Column headers
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
                 children: const [
-                  _ColHeader('Items', flex: 2),
-                  _ColHeader('User', flex: 3),
-                  _ColHeader('Order Status', flex: 3),
-                  _ColHeader('Order Date', flex: 3),
-                  _ColHeader('Price', flex: 2),
+                  AdminColHeader('Items', flex: 2),
+                  AdminColHeader('User', flex: 3),
+                  AdminColHeader('Order Status', flex: 3),
+                  AdminColHeader('Order Date', flex: 3),
+                  AdminColHeader('Price', flex: 2),
                   SizedBox(width: 120),
                 ],
               ),
             ),
-            Divider(
-                color: AppColors.darkBrown.withValues(alpha: 0.25),
-                thickness: 1,
-                height: 12),
+            Divider(color: AppColors.darkBrown.withValues(alpha: 0.25), thickness: 1, height: 12),
 
-            // Orders list
             Expanded(
               child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.darkBrown))
+                  ? const Center(child: CircularProgressIndicator(color: AppColors.darkBrown))
                   : _filteredOrders.isEmpty
                       ? const Center(
                           child: Text('No orders found.',
-                              style: TextStyle(
-                                  color: AppColors.mediumBrown, fontSize: 14)))
+                              style: TextStyle(color: AppColors.mediumBrown, fontSize: 14)))
                       : Column(
                           children: [
                             Expanded(
                               child: ListView.separated(
                                 itemCount: _currentPageItems.length,
                                 separatorBuilder: (_, __) => Divider(
-                                  color: AppColors.darkBrown.withValues(alpha: 0.15),
-                                  thickness: 1,
-                                  height: 1,
-                                ),
+                                    color: AppColors.darkBrown.withValues(alpha: 0.15),
+                                    thickness: 1,
+                                    height: 1),
                                 itemBuilder: (context, index) {
                                   final order = _currentPageItems[index];
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 12),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          flex: 2,
-                                          child: Text(
-                                            '${order.itemCount} ${order.itemCount == 1 ? 'book' : 'books'}',
-                                            style: _rowStyle,
-                                          ),
-                                        ),
-                                        Expanded(
-                                          flex: 3,
-                                          child: Text(order.userFullName,
-                                              style: _rowStyle,
-                                              overflow: TextOverflow.ellipsis),
-                                        ),
-                                        Expanded(
-                                          flex: 3,
-                                          child: Text(
-                                            order.status,
-                                            style: _rowStyle.copyWith(
-                                              color: _statusColor(order.status),
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                        Expanded(
-                                          flex: 3,
-                                          child: Text(_formatDate(order.orderDate),
-                                              style: _rowStyle),
-                                        ),
-                                        Expanded(
-                                          flex: 2,
-                                          child: Text(
-                                            '${order.totalPrice.toStringAsFixed(2)} BAM',
-                                            style: _rowStyle,
-                                          ),
-                                        ),
-                                        SizedBox(
-                                          width: 120,
-                                          height: 34,
-                                          child: ElevatedButton(
-                                            onPressed: () {},
-                                            style: ElevatedButton.styleFrom(
-                                              elevation: 0,
-                                              backgroundColor: AppColors.darkBrown,
-                                              shape: RoundedRectangleBorder(
-                                                borderRadius: BorderRadius.circular(8),
-                                              ),
-                                              padding: EdgeInsets.zero,
-                                            ),
-                                            child: const Text(
-                                              'Click for more\ndetails',
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w700,
-                                                height: 1.3,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                  return AdminListRow(
+                                    columns: [
+                                      AdminColumn(
+                                        flex: 2,
+                                        text: '${order.itemCount} ${order.itemCount == 1 ? 'book' : 'books'}',
+                                      ),
+                                      AdminColumn(flex: 3, text: order.userFullName),
+                                      AdminColumn(
+                                        flex: 3,
+                                        text: order.status,
+                                        color: _statusColor(order.status),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      AdminColumn(flex: 3, text: _formatDate(order.orderDate)),
+                                      AdminColumn(
+                                        flex: 2,
+                                        text: '${order.totalPrice.toStringAsFixed(2)} BAM',
+                                      ),
+                                    ],
+                                    actions: const [
+                                      AdminActionButton(label: 'Click for more\ndetails'),
+                                    ],
                                   );
                                 },
                               ),
@@ -240,39 +187,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
-  static const _rowStyle = TextStyle(
-    color: AppColors.darkBrown,
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-  );
-
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
-  }
-}
-
-/* ----------------------- COLUMN HEADER ----------------------- */
-
-class _ColHeader extends StatelessWidget {
-  final String text;
-  final int flex;
-
-  const _ColHeader(this.text, {required this.flex});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: AppColors.darkBrown,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
   }
 }

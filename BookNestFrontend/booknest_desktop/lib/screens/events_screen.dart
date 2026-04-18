@@ -10,6 +10,7 @@ import '../services/event_service.dart';
 import '../services/event_category_service.dart';
 import '../services/organizer_service.dart';
 import '../widgets/pagination_bar.dart';
+import '../widgets/admin_table.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -308,11 +309,11 @@ class _EventsScreenState extends State<EventsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
                 children: const [
-                  SizedBox(width: 60),
-                  _ColHeader('Name', flex: 3),
-                  _ColHeader('Category', flex: 2),
-                  _ColHeader('Organizator', flex: 2),
-                  _ColHeader('Date & Time', flex: 3),
+                  SizedBox(width: 56),
+                  AdminColHeader('Name', flex: 3),
+                  AdminColHeader('Category', flex: 2),
+                  AdminColHeader('Organizator', flex: 2),
+                  AdminColHeader('Date & Time', flex: 3),
                   SizedBox(width: 120),
                 ],
               ),
@@ -346,96 +347,20 @@ class _EventsScreenState extends State<EventsScreen> {
                                 ),
                                 itemBuilder: (context, index) {
                                   final event = _currentPageItems[index];
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 10),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 44,
-                                          height: 44,
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(6),
-                                            border: Border.all(
-                                                color: AppColors.mediumBrown,
-                                                width: 1.5),
-                                          ),
-                                          child: ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(5),
-                                            child: event.imageUrl != null &&
-                                                    event.imageUrl!.isNotEmpty
-                                                ? Image.network(
-                                                    event.imageUrl!,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder: (_, __, ___) =>
-                                                        const Icon(
-                                                            Icons.event_outlined,
-                                                            color: AppColors
-                                                                .mediumBrown,
-                                                            size: 22),
-                                                  )
-                                                : const Icon(
-                                                    Icons.event_outlined,
-                                                    color: AppColors.mediumBrown,
-                                                    size: 22),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                            flex: 3,
-                                            child: Text(event.name,
-                                                style: _rowStyle,
-                                                overflow:
-                                                    TextOverflow.ellipsis)),
-                                        Expanded(
-                                            flex: 2,
-                                            child: Text(
-                                                event.eventCategoryName,
-                                                style: _rowStyle,
-                                                overflow:
-                                                    TextOverflow.ellipsis)),
-                                        Expanded(
-                                            flex: 2,
-                                            child: Text(event.organizerName,
-                                                style: _rowStyle,
-                                                overflow:
-                                                    TextOverflow.ellipsis)),
-                                        Expanded(
-                                            flex: 3,
-                                            child: Text(
-                                                _formatDateTime(event),
-                                                style: _rowStyle,
-                                                overflow:
-                                                    TextOverflow.ellipsis)),
-                                        SizedBox(
-                                          width: 120,
-                                          height: 34,
-                                          child: ElevatedButton(
-                                            onPressed: () {},
-                                            style: ElevatedButton.styleFrom(
-                                              elevation: 0,
-                                              backgroundColor:
-                                                  AppColors.darkBrown,
-                                              shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(8)),
-                                              padding: EdgeInsets.zero,
-                                            ),
-                                            child: const Text(
-                                              'Click for more\ndetails',
-                                              textAlign: TextAlign.center,
-                                              style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.w700,
-                                                  height: 1.3),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                  return AdminListRow(
+                                    leading: AdminThumbnail(
+                                      imageUrl: event.imageUrl,
+                                      fallbackIcon: Icons.event_outlined,
                                     ),
+                                    columns: [
+                                      AdminColumn(flex: 3, text: event.name),
+                                      AdminColumn(flex: 2, text: event.eventCategoryName),
+                                      AdminColumn(flex: 2, text: event.organizerName),
+                                      AdminColumn(flex: 3, text: _formatDateTime(event)),
+                                    ],
+                                    actions: const [
+                                      AdminActionButton(label: 'Click for more\ndetails'),
+                                    ],
                                   );
                                 },
                               ),
@@ -456,12 +381,6 @@ class _EventsScreenState extends State<EventsScreen> {
     );
   }
 
-  static const _rowStyle = TextStyle(
-    color: AppColors.darkBrown,
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-  );
-
   @override
   void dispose() {
     _closeCategoriesDropdown();
@@ -470,25 +389,6 @@ class _EventsScreenState extends State<EventsScreen> {
   }
 }
 
-/* ----------------------- COLUMN HEADER ----------------------- */
-
-class _ColHeader extends StatelessWidget {
-  final String text;
-  final int flex;
-  const _ColHeader(this.text, {required this.flex});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      flex: flex,
-      child: Text(text,
-          style: const TextStyle(
-              color: AppColors.darkBrown,
-              fontSize: 13,
-              fontWeight: FontWeight.w600)),
-    );
-  }
-}
 
 /* ----------------------- ADD EVENT DIALOG ----------------------- */
 
