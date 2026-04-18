@@ -54,6 +54,19 @@ class DashboardService {
     throw Exception('Failed to load orders count');
   }
 
+  // Broj rezervacija sa statusom Pending
+  Future<int> getPendingReservationsCount() async {
+    final response = await http.get(
+      Uri.parse('${AppConstants.baseUrl}/EventReservation?ReservationStatus=0&PageSize=1'),
+      headers: await _headers(),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['totalCount'] ?? 0;
+    }
+    throw Exception('Failed to load reservations count');
+  }
+
   // Broj nadolazećih evenata (datum > danas)
   Future<int> getUpcomingEventsCount() async {
     final response = await http.get(
