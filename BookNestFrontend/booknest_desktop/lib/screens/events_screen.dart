@@ -11,6 +11,7 @@ import '../services/event_category_service.dart';
 import '../services/organizer_service.dart';
 import '../widgets/pagination_bar.dart';
 import '../widgets/admin_table.dart';
+import 'event_detail_screen.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -358,8 +359,16 @@ class _EventsScreenState extends State<EventsScreen> {
                                       AdminColumn(flex: 2, text: event.organizerName),
                                       AdminColumn(flex: 3, text: _formatDateTime(event)),
                                     ],
-                                    actions: const [
-                                      AdminActionButton(label: 'Click for more\ndetails'),
+                                    actions: [
+                                      AdminActionButton(
+                                        label: 'Click for more\ndetails',
+                                        onPressed: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => EventDetailScreen(eventId: event.id),
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   );
                                 },
