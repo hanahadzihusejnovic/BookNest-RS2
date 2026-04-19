@@ -5,6 +5,7 @@ import '../models/user.dart';
 import '../services/user_service.dart';
 import '../widgets/pagination_bar.dart';
 import '../widgets/admin_table.dart';
+import 'user_detail_screen.dart';
 
 class UsersScreen extends StatefulWidget {
   const UsersScreen({super.key});
@@ -144,8 +145,16 @@ class _UsersScreenState extends State<UsersScreen> {
                                       AdminColumn(flex: 2, text: user.username),
                                       AdminColumn(flex: 2, text: _formatDate(user.createdAt)),
                                     ],
-                                    actions: const [
-                                      AdminActionButton(label: 'Click for more\ndetails'),
+                                    actions: [
+                                      AdminActionButton(
+                                        label: 'Click for more\ndetails',
+                                        onPressed: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => UserDetailScreen(userId: user.id),
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   );
                                 },

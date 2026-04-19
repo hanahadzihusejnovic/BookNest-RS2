@@ -26,4 +26,22 @@ class OrderService {
     }
     throw Exception('Failed to load orders');
   }
+
+  Future<void> updateStatus(int id, int status) async {
+    final token = await _authService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+    final body = <String, dynamic>{'status': status};
+    if (status == 2) body['shippedDate'] = DateTime.now().toIso8601String();
+    final response = await http.put(
+      Uri.parse('${AppConstants.baseUrl}/Order/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Failed to update order status: ${response.statusCode} ${response.body}');
+    }
+  }
 }

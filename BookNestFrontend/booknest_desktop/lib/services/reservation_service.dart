@@ -26,4 +26,20 @@ class ReservationService {
     }
     throw Exception('Failed to load reservations');
   }
+
+  Future<void> updateStatus(int id, int status) async {
+    final token = await _authService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+    final response = await http.put(
+      Uri.parse('${AppConstants.baseUrl}/EventReservation/$id'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({'reservationStatus': status}),
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Failed to update reservation status: ${response.statusCode} ${response.body}');
+    }
+  }
 }
