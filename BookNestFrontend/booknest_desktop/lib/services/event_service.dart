@@ -3,6 +3,7 @@ import 'dart:io';
 import '../layouts/constants.dart';
 import 'package:http/http.dart' as http;
 import '../models/event.dart';
+import '../models/reservation.dart';
 import 'auth_service.dart';
 
 class EventService {
@@ -34,6 +35,57 @@ class EventService {
       return items.map((e) => Event.fromJson(e)).toList();
     }
     throw Exception('Failed to load events');
+  }
+
+  Future<Event> getEvent(int id) async {
+    final token = await _authService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+    final response = await http.get(
+      Uri.parse('${AppConstants.baseUrl}/Event/$id'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) return Event.fromJson(jsonDecode(response.body));
+    throw Exception('Failed to load event');
+  }
+
+  Future<List<Reservation>> getEventReservations(int eventId) async {
+    final token = await _authService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+    final uri = Uri.parse('${AppConstants.baseUrl}/EventReservation/event/$eventId');
+    final response = await http.get(
+      uri,
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> items = jsonDecode(response.body);
+      return items.map((e) => Reservation.fromJson(e)).toList();
+    }
+    throw Exception('Failed to load event reservations');
+  }
+
+  Future<void> updateEvent(int id, Map<String, dynamic> body) async {
+    final token = await _authService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+    final response = await http.put(
+      Uri.parse('${AppConstants.baseUrl}/Event/$id'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+      body: jsonEncode(body),
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Failed to update event');
+    }
+  }
+
+  Future<void> deleteEvent(int id) async {
+    final token = await _authService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+    final response = await http.delete(
+      Uri.parse('${AppConstants.baseUrl}/Event/$id'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Failed to delete event');
+    }
   }
 
   Future<void> createEvent(Map<String, dynamic> body) async {
