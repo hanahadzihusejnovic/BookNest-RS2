@@ -200,24 +200,46 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _DetailRow('Name:', book.title),
-        const SizedBox(height: 10),
-        _DetailRow('Author:', book.author),
-        const SizedBox(height: 10),
-        _DetailRow('Category:', book.categories.isNotEmpty ? book.categories.join(', ') : '-'),
-        const SizedBox(height: 10),
-        _DetailRow('Price:', '${book.price?.toStringAsFixed(0) ?? '-'} BAM'),
-        const SizedBox(height: 10),
+        Text(
+          book.title,
+          style: const TextStyle(
+              color: AppColors.darkBrown,
+              fontSize: 24,
+              fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DetailRow('Author:', book.author),
+                  const SizedBox(height: 10),
+                  DetailRow('Category:', book.categories.isNotEmpty ? book.categories.join(', ') : '-'),
+                  const SizedBox(height: 10),
+                  DetailRow('Price:', '${book.price?.toStringAsFixed(0) ?? '-'} BAM'),
+                ],
+              ),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DetailRow('Date Added:', _fmt(book.publicationDate)),
+                  const SizedBox(height: 10),
+                  DetailRow('Books Available:', book.stock != null ? '${book.stock}' : '-'),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
         _ExpandableDetail('Description:', book.description),
         const SizedBox(height: 10),
         _ExpandableDetail('About the author:', book.authorBiography),
-        const SizedBox(height: 10),
-        _DetailRow('Date Added:', _fmt(book.publicationDate)),
-        const SizedBox(height: 10),
-        _DetailRow(
-          'Books Available:',
-          book.stock != null ? '${book.stock}' : '-',
-        ),
       ],
     );
   }
@@ -225,13 +247,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   Widget _buildActionButtons() {
     return Column(
       children: [
-        _DetailActionButton(
+        DetailActionButton(
           icon: Icons.edit_outlined,
           label: 'EDIT BOOK',
           onTap: _openEditDialog,
         ),
         const SizedBox(height: 12),
-        _DetailActionButton(
+        DetailActionButton(
           icon: Icons.delete_outline,
           label: 'DELETE BOOK',
           onTap: _deleteBook,
@@ -396,34 +418,6 @@ class _ExpandableDetailState extends State<_ExpandableDetail> {
           ),
         ],
       ],
-    );
-  }
-}
-
-class _DetailActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _DetailActionButton({required this.icon, required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 160,
-      height: 42,
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 18),
-        label: Text(label),
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: AppColors.darkBrown,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 0.4),
-        ),
-      ),
     );
   }
 }

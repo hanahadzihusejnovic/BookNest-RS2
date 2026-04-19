@@ -2,6 +2,7 @@ import 'dart:convert';
 import '../layouts/constants.dart';
 import 'package:http/http.dart' as http;
 import '../models/order.dart';
+import '../models/order_detail.dart';
 import 'auth_service.dart';
 
 class OrderService {
@@ -25,6 +26,19 @@ class OrderService {
       return items.map((e) => Order.fromJson(e)).toList();
     }
     throw Exception('Failed to load orders');
+  }
+
+  Future<OrderDetail> getOrder(int id) async {
+    final token = await _authService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+    final response = await http.get(
+      Uri.parse('${AppConstants.baseUrl}/Order/$id'),
+      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode == 200) {
+      return OrderDetail.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to load order');
   }
 
   Future<void> updateStatus(int id, int status) async {

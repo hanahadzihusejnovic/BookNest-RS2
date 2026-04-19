@@ -148,6 +148,90 @@ class AdminAvatar extends StatelessWidget {
   }
 }
 
+class DetailActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final double width;
+
+  const DetailActionButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.width = 160,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: 42,
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 18),
+        label: Text(label),
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: AppColors.darkBrown,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          textStyle: const TextStyle(
+              fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 0.4),
+        ),
+      ),
+    );
+  }
+}
+
+class DetailRow extends StatelessWidget {
+  final String label;
+  final String? value;
+
+  const DetailRow(this.label, this.value, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 130,
+          child: Text(label,
+              style: const TextStyle(
+                  color: AppColors.darkBrown,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15)),
+        ),
+        Expanded(
+          child: Text(value ?? '-',
+              style: const TextStyle(color: AppColors.darkBrown, fontSize: 15)),
+        ),
+      ],
+    );
+  }
+}
+
+class StarRating extends StatelessWidget {
+  final int rating;
+
+  const StarRating(this.rating, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: List.generate(
+        5,
+        (i) => Icon(
+          i < rating ? Icons.star : Icons.star_border,
+          size: 14,
+          color: const Color(0xFFE8A838),
+        ),
+      ),
+    );
+  }
+}
+
 class AdminListRow extends StatelessWidget {
   final Widget? leading;
   final List<AdminColumn> columns;

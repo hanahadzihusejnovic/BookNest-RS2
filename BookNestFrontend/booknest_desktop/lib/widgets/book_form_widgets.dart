@@ -140,3 +140,65 @@ class BookFormDropdownTrigger extends StatelessWidget {
     );
   }
 }
+
+class FormDateTimeTrigger extends StatelessWidget {
+  final String label;
+  final bool hasValue;
+  final String? error;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const FormDateTimeTrigger({
+    super.key,
+    required this.label,
+    required this.hasValue,
+    required this.icon,
+    required this.onTap,
+    this.error,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: Container(
+            height: 42,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: AppColors.lightBrown.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: error != null ? Colors.red.shade300 : Colors.transparent,
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: hasValue
+                          ? Colors.white
+                          : error != null
+                              ? Colors.red.shade300
+                              : Colors.white.withValues(alpha: 0.5),
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                Icon(icon, color: AppColors.lightBrown, size: 18),
+              ],
+            ),
+          ),
+        ),
+        if (error != null) ...[
+          const SizedBox(height: 4),
+          Text(error!, style: TextStyle(fontSize: 11, color: Colors.red.shade300)),
+        ],
+      ],
+    );
+  }
+}

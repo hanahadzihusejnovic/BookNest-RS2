@@ -237,15 +237,15 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _DetailRow('Category:', event.eventCategoryName),
+                        DetailRow('Category:', event.eventCategoryName),
                         const SizedBox(height: 10),
-                        _DetailRow('Organizer:', event.organizerName),
+                        DetailRow('Organizer:', event.organizerName),
                         const SizedBox(height: 10),
-                        _DetailRow('Date:', _fmtDate(event.eventDate)),
+                        DetailRow('Date:', _fmtDate(event.eventDate)),
                         const SizedBox(height: 10),
-                        _DetailRow('Time:', _fmtTime(event.eventTime)),
+                        DetailRow('Time:', _fmtTime(event.eventTime)),
                         const SizedBox(height: 10),
-                        _DetailRow('Ticket Price:',
+                        DetailRow('Ticket Price:',
                             event.ticketPrice == 0 ? 'Free' : '${event.ticketPrice.toStringAsFixed(2)} BAM'),
                       ],
                     ),
@@ -257,20 +257,20 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (isOnline)
-                          _DetailRow('Location:', 'Online event')
+                          DetailRow('Location:', 'Online event')
                         else ...[
-                          _DetailRow('Address:', event.address ?? '-'),
+                          DetailRow('Address:', event.address ?? '-'),
                           const SizedBox(height: 10),
-                          _DetailRow('City:', event.city ?? '-'),
+                          DetailRow('City:', event.city ?? '-'),
                           const SizedBox(height: 10),
-                          _DetailRow('Country:', event.country ?? '-'),
+                          DetailRow('Country:', event.country ?? '-'),
                         ],
                         const SizedBox(height: 10),
-                        _DetailRow('Capacity:', '${event.capacity} seats'),
+                        DetailRow('Capacity:', '${event.capacity} seats'),
                         const SizedBox(height: 10),
-                        _DetailRow('Reserved:', '${event.reservedSeats} seats'),
+                        DetailRow('Reserved:', '${event.reservedSeats} seats'),
                         const SizedBox(height: 10),
-                        _DetailRow('Available:', '$available seats'),
+                        DetailRow('Available:', '$available seats'),
                       ],
                     ),
                   ),
@@ -296,9 +296,9 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         // Action buttons
         Column(
           children: [
-            _EventActionButton(icon: Icons.edit_outlined, label: 'EDIT EVENT', onTap: _openEditDialog),
+            DetailActionButton(icon: Icons.edit_outlined, label: 'EDIT EVENT', onTap: _openEditDialog),
             const SizedBox(height: 12),
-            _EventActionButton(icon: Icons.delete_outline, label: 'DELETE EVENT', onTap: _deleteEvent),
+            DetailActionButton(icon: Icons.delete_outline, label: 'DELETE EVENT', onTap: _deleteEvent),
           ],
         ),
       ],
@@ -392,34 +392,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   }
 }
 
-class _EventActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _EventActionButton({required this.icon, required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 160,
-      height: 42,
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 18),
-        label: Text(label),
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: AppColors.darkBrown,
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12, letterSpacing: 0.4),
-        ),
-      ),
-    );
-  }
-}
-
 class _Badge extends StatelessWidget {
   final String label;
   final Color? color;
@@ -443,34 +415,6 @@ class _Badge extends StatelessWidget {
           fontWeight: FontWeight.w600,
         ),
       ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _DetailRow(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 130,
-          child: Text(label,
-              style: const TextStyle(
-                  color: AppColors.darkBrown,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15)),
-        ),
-        Expanded(
-          child: Text(value,
-              style: const TextStyle(color: AppColors.darkBrown, fontSize: 15)),
-        ),
-      ],
     );
   }
 }

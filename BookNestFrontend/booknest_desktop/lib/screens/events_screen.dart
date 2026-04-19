@@ -11,6 +11,7 @@ import '../services/event_category_service.dart';
 import '../services/organizer_service.dart';
 import '../widgets/pagination_bar.dart';
 import '../widgets/admin_table.dart';
+import '../widgets/book_form_widgets.dart';
 import 'event_detail_screen.dart';
 
 class EventsScreen extends StatefulWidget {
@@ -781,7 +782,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                   Expanded(
                     child: Column(
                       children: [
-                        _EventField(
+                        BookFormField(
                           controller: _nameController,
                           hint: 'Name',
                           error: _nameError,
@@ -789,7 +790,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                               setState(() => _nameError = null),
                         ),
                         const SizedBox(height: 14),
-                        _EventOverlayDropdownTrigger(
+                        BookFormDropdownTrigger(
                           link: _categoryLink,
                           hint: 'Category',
                           selectedLabel: _selectedCategory?.name,
@@ -798,7 +799,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                           onTap: _toggleCategoryDropdown,
                         ),
                         const SizedBox(height: 14),
-                        _EventOverlayDropdownTrigger(
+                        BookFormDropdownTrigger(
                           link: _organizerLink,
                           hint: 'Organizer',
                           selectedLabel: _selectedOrganizer?.name,
@@ -808,7 +809,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                           onTap: _toggleOrganizerDropdown,
                         ),
                         const SizedBox(height: 14),
-                        _EventOverlayDropdownTrigger(
+                        BookFormDropdownTrigger(
                           link: _eventTypeLink,
                           hint: 'Event Type',
                           selectedLabel: _selectedEventType != null
@@ -889,7 +890,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                   Expanded(
                     child: Column(
                       children: [
-                        _EventField(
+                        BookFormField(
                           controller: _descriptionController,
                           hint: 'Description (optional)',
                           maxLines: 3,
@@ -898,7 +899,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                         const SizedBox(height: 14),
 
                         // Date picker
-                        _DateTimeTrigger(
+                        FormDateTimeTrigger(
                           label: _selectedDate != null
                               ? '${_selectedDate!.day}.${_selectedDate!.month}.${_selectedDate!.year}'
                               : 'Event Date',
@@ -910,7 +911,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                         const SizedBox(height: 14),
 
                         // Time picker
-                        _DateTimeTrigger(
+                        FormDateTimeTrigger(
                           label: _selectedTime != null
                               ? _selectedTime!.format(context)
                               : 'Event Time',
@@ -921,7 +922,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                         ),
                         const SizedBox(height: 14),
 
-                        _EventField(
+                        BookFormField(
                           controller: _priceController,
                           hint: 'Ticket Price',
                           error: _priceError,
@@ -930,7 +931,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                               setState(() => _priceError = null),
                         ),
                         const SizedBox(height: 14),
-                        _EventField(
+                        BookFormField(
                           controller: _capacityController,
                           hint: 'Capacity',
                           error: _capacityError,
@@ -939,7 +940,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                               setState(() => _capacityError = null),
                         ),
                         const SizedBox(height: 14),
-                        _EventField(
+                        BookFormField(
                           controller: _addressController,
                           hint: _selectedEventType == 1 ? 'Address' : 'Address (optional)',
                           error: _addressError,
@@ -949,7 +950,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                         Row(
                           children: [
                             Expanded(
-                              child: _EventField(
+                              child: BookFormField(
                                 controller: _cityController,
                                 hint: _selectedEventType == 1 ? 'City' : 'City (optional)',
                                 error: _cityError,
@@ -958,7 +959,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                             ),
                             const SizedBox(width: 10),
                             Expanded(
-                              child: _EventField(
+                              child: BookFormField(
                                 controller: _countryController,
                                 hint: _selectedEventType == 1 ? 'Country' : 'Country (optional)',
                                 error: _countryError,
@@ -1057,213 +1058,3 @@ class _AddEventDialogState extends State<_AddEventDialog> {
   }
 }
 
-/* ----------------------- EVENT FIELD ----------------------- */
-
-class _EventField extends StatelessWidget {
-  final TextEditingController controller;
-  final String hint;
-  final String? error;
-  final int maxLines;
-  final TextInputType? keyboardType;
-  final ValueChanged<String> onChanged;
-
-  const _EventField({
-    required this.controller,
-    required this.hint,
-    required this.onChanged,
-    this.error,
-    this.maxLines = 1,
-    this.keyboardType,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(
-          color: error != null
-              ? Colors.red.shade300
-              : Colors.white.withValues(alpha: 0.5),
-          fontSize: 14,
-        ),
-        filled: true,
-        fillColor: AppColors.lightBrown.withValues(alpha: 0.2),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(
-              color: error != null ? Colors.red.shade300 : Colors.transparent),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(
-              color: error != null ? Colors.red.shade300 : Colors.transparent),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.lightBrown),
-        ),
-        errorText: error,
-        errorStyle: TextStyle(color: Colors.red.shade300, fontSize: 11),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      ),
-    );
-  }
-}
-
-/* ----------------------- OVERLAY DROPDOWN TRIGGER ----------------------- */
-
-class _EventOverlayDropdownTrigger extends StatelessWidget {
-  final LayerLink link;
-  final String hint;
-  final String? selectedLabel;
-  final bool isOpen;
-  final String? error;
-  final bool loading;
-  final VoidCallback onTap;
-
-  const _EventOverlayDropdownTrigger({
-    required this.link,
-    required this.hint,
-    required this.isOpen,
-    required this.onTap,
-    this.selectedLabel,
-    this.error,
-    this.loading = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CompositedTransformTarget(
-          link: link,
-          child: GestureDetector(
-            onTap: onTap,
-            child: Container(
-              height: 42,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: AppColors.lightBrown.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: error != null
-                      ? Colors.red.shade300
-                      : Colors.transparent,
-                ),
-              ),
-              child: loading
-                  ? const Center(
-                      child: SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            color: AppColors.lightBrown, strokeWidth: 2),
-                      ),
-                    )
-                  : Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            selectedLabel ?? hint,
-                            style: TextStyle(
-                              color: selectedLabel != null
-                                  ? Colors.white
-                                  : error != null
-                                      ? Colors.red.shade300
-                                      : Colors.white.withValues(alpha: 0.5),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                        Icon(
-                          isOpen
-                              ? Icons.arrow_drop_up
-                              : Icons.arrow_drop_down,
-                          color: AppColors.lightBrown,
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-        ),
-        if (error != null) ...[
-          const SizedBox(height: 4),
-          Text(error!,
-              style: TextStyle(fontSize: 11, color: Colors.red.shade300)),
-        ],
-      ],
-    );
-  }
-}
-
-/* ----------------------- DATE/TIME TRIGGER ----------------------- */
-
-class _DateTimeTrigger extends StatelessWidget {
-  final String label;
-  final bool hasValue;
-  final String? error;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _DateTimeTrigger({
-    required this.label,
-    required this.hasValue,
-    required this.icon,
-    required this.onTap,
-    this.error,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: onTap,
-          child: Container(
-            height: 42,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            decoration: BoxDecoration(
-              color: AppColors.lightBrown.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: error != null ? Colors.red.shade300 : Colors.transparent,
-              ),
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: hasValue
-                          ? Colors.white
-                          : error != null
-                              ? Colors.red.shade300
-                              : Colors.white.withValues(alpha: 0.5),
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-                Icon(icon, color: AppColors.lightBrown, size: 18),
-              ],
-            ),
-          ),
-        ),
-        if (error != null) ...[
-          const SizedBox(height: 4),
-          Text(error!,
-              style: TextStyle(fontSize: 11, color: Colors.red.shade300)),
-        ],
-      ],
-    );
-  }
-}

@@ -285,25 +285,50 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _DetailRow('First Name:', user.firstName),
-        const SizedBox(height: 10),
-        _DetailRow('Last Name:', user.lastName),
-        const SizedBox(height: 10),
-        _DetailRow('Username:', user.username),
-        const SizedBox(height: 10),
-        _DetailRow('Email:', user.emailAddress),
-        const SizedBox(height: 10),
-        _DetailRow('Date of Birth:', _fmt(user.dateOfBirth)),
-        const SizedBox(height: 10),
-        _DetailRow('Phone:', user.phoneNumber ?? '-'),
-        const SizedBox(height: 10),
-        _DetailRow('Address:', user.address ?? '-'),
-        const SizedBox(height: 10),
-        _DetailRow('City:', user.city ?? '-'),
-        const SizedBox(height: 10),
-        _DetailRow('Country:', user.country ?? '-'),
-        const SizedBox(height: 10),
-        _DetailRow('Member Since:', _fmt(user.createdAt)),
+        Text(
+          user.username,
+          style: const TextStyle(
+              color: AppColors.darkBrown,
+              fontSize: 24,
+              fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 20),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DetailRow('First Name:', user.firstName),
+                  const SizedBox(height: 10),
+                  DetailRow('Last Name:', user.lastName),
+                  const SizedBox(height: 10),
+                  DetailRow('Email:', user.emailAddress),
+                  const SizedBox(height: 10),
+                  DetailRow('Phone:', user.phoneNumber ?? '-'),
+                  const SizedBox(height: 10),
+                  DetailRow('Member Since:', _fmt(user.createdAt)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 24),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DetailRow('Date of Birth:', _fmt(user.dateOfBirth)),
+                  const SizedBox(height: 10),
+                  DetailRow('Address:', user.address ?? '-'),
+                  const SizedBox(height: 10),
+                  DetailRow('City:', user.city ?? '-'),
+                  const SizedBox(height: 10),
+                  DetailRow('Country:', user.country ?? '-'),
+                ],
+              ),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -311,13 +336,13 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   Widget _buildActionButtons() {
     return Column(
       children: [
-        _UserActionButton(
+        DetailActionButton(
           icon: Icons.edit_outlined,
           label: 'EDIT USER',
           onTap: _openEditDialog,
         ),
         const SizedBox(height: 12),
-        _UserActionButton(
+        DetailActionButton(
           icon: Icons.delete_outline,
           label: 'DELETE USER',
           onTap: _deleteUser,
@@ -367,7 +392,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                 child: Row(
                   children: [
                     Expanded(flex: 3, child: Text(r.bookTitle ?? '-', style: adminRowStyle, overflow: TextOverflow.ellipsis)),
-                    Expanded(flex: 2, child: _StarRow(r.rating)),
+                    Expanded(flex: 2, child: StarRating(r.rating)),
                     Expanded(flex: 4, child: Text(r.comment ?? '-', style: adminRowStyle, overflow: TextOverflow.ellipsis)),
                     Expanded(flex: 2, child: Text(_fmt(r.createdAt), style: adminRowStyle)),
                     SizedBox(
@@ -545,87 +570,6 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             },
           ),
       ],
-    );
-  }
-}
-
-// ─── Shared widgets ──────────────────────────────────────────────────────────
-
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String? value;
-
-  const _DetailRow(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 130,
-          child: Text(label,
-              style: const TextStyle(
-                  color: AppColors.darkBrown,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15)),
-        ),
-        Expanded(
-          child: Text(value ?? '-',
-              style: const TextStyle(color: AppColors.darkBrown, fontSize: 15)),
-        ),
-      ],
-    );
-  }
-}
-
-class _StarRow extends StatelessWidget {
-  final int rating;
-  const _StarRow(this.rating);
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: List.generate(
-        5,
-        (i) => Icon(
-          i < rating ? Icons.star : Icons.star_border,
-          size: 14,
-          color: const Color(0xFFE8A838),
-        ),
-      ),
-    );
-  }
-}
-
-class _UserActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _UserActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 160,
-      height: 42,
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: Icon(icon, size: 18, color: Colors.white),
-        label: Text(label,
-            style: const TextStyle(
-                color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
-        style: ElevatedButton.styleFrom(
-          elevation: 0,
-          backgroundColor: AppColors.darkBrown,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      ),
     );
   }
 }
