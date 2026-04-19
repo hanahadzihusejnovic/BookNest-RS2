@@ -130,13 +130,4 @@ class AuthService {
     return roles.contains('Admin');
   }
 
-  // Forgot Password
-  Future<void> forgotPassword(String email) async {
-    await _apiService.forgotPassword(email);
-  }
-
-  // Reset Password
-  Future<void> resetPassword(String token, String newPassword, String confirmPassword) async {
-    await _apiService.resetPassword(token, newPassword, confirmPassword);
-  }
 }

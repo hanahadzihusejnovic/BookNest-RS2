@@ -663,21 +663,23 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 height: 1.35,
               ),
             ),
-            const SizedBox(height: 6),
-            GestureDetector(
-              onTap: () => setState(() => _descExpanded = !_descExpanded),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  _descExpanded ? 'View less' : 'View more',
-                  style: TextStyle(
-                    color: AppColors.darkBrown.withValues(alpha: 0.6),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+            if ((book.description?.length ?? 0) > 150) ...[
+              const SizedBox(height: 6),
+              GestureDetector(
+                onTap: () => setState(() => _descExpanded = !_descExpanded),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    _descExpanded ? 'View less' : 'View more',
+                    style: TextStyle(
+                      color: AppColors.darkBrown.withValues(alpha: 0.6),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
 
             const SizedBox(height: 18),
 
@@ -798,22 +800,23 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 height: 1.35,
               ),
             ),
-            const SizedBox(height: 6),
-            GestureDetector(
-              onTap: () =>
-                  setState(() => _authorExpanded = !_authorExpanded),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  _authorExpanded ? 'View less' : 'View more',
-                  style: TextStyle(
-                    color: AppColors.darkBrown.withValues(alpha: 0.6),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+            if ((book.authorBiography?.length ?? 0) > 150) ...[
+              const SizedBox(height: 6),
+              GestureDetector(
+                onTap: () => setState(() => _authorExpanded = !_authorExpanded),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    _authorExpanded ? 'View less' : 'View more',
+                    style: TextStyle(
+                      color: AppColors.darkBrown.withValues(alpha: 0.6),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
 
             const SizedBox(height: 30),
           ],
