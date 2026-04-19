@@ -95,19 +95,15 @@ class AdminThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: 44,
       height: 44,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.mediumBrown, width: 1.5),
-      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(5),
         child: imageUrl != null && imageUrl!.isNotEmpty
             ? Image.network(
                 imageUrl!,
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) =>
                     Icon(fallbackIcon, color: AppColors.mediumBrown, size: 22),
               )

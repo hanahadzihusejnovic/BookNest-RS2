@@ -77,39 +77,5 @@ class ApiService {
     return response;
   }
 
-  // Forgot Password
-  Future<void> forgotPassword(String email) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${AppConstants.baseUrl}/Auth/forgot-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email}),
-      );
-      if (response.statusCode != 200) {
-        throw Exception('Request failed: ${response.body}');
-      }
-    } catch (e) {
-      throw Exception('Error during forgot password: $e');
-    }
-  }
 
-  // Reset Password
-  Future<void> resetPassword(String token, String newPassword, String confirmPassword) async {
-    try {
-      final response = await http.post(
-        Uri.parse('${AppConstants.baseUrl}/Auth/reset-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'token': token,
-          'newPassword': newPassword,
-          'confirmPassword': confirmPassword,
-        }),
-      );
-      if (response.statusCode != 200) {
-        throw Exception('Request failed: ${response.body}');
-      }
-    } catch (e) {
-      throw Exception('Error during reset password: $e');
-    }
-  }
 }

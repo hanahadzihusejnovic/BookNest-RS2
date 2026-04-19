@@ -11,6 +11,8 @@ import '../services/category_service.dart';
 import '../services/author_service.dart';
 import '../widgets/pagination_bar.dart';
 import '../widgets/admin_table.dart';
+import '../widgets/book_form_widgets.dart';
+import 'book_detail_screen.dart';
 
 class BooksScreen extends StatefulWidget {
   const BooksScreen({super.key});
@@ -266,9 +268,16 @@ class _BooksScreenState extends State<BooksScreen> {
                                           flex: 2,
                                           text: book.stock?.toString() ?? '-'),
                                     ],
-                                    actions: const [
+                                    actions: [
                                       AdminActionButton(
-                                          label: 'Click for more\ndetails'),
+                                        label: 'Click for more\ndetails',
+                                        onPressed: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => BookDetailScreen(bookId: book.id),
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   );
                                 },
@@ -707,7 +716,7 @@ class _AddBookDialogState extends State<_AddBookDialog> {
                   Expanded(
                     child: Column(
                       children: [
-                        _BookField(
+                        BookFormField(
                           controller: _titleController,
                           hint: 'Title',
                           error: _titleError,
@@ -715,7 +724,7 @@ class _AddBookDialogState extends State<_AddBookDialog> {
                               setState(() => _titleError = null),
                         ),
                         const SizedBox(height: 16),
-                        _OverlayDropdownTrigger(
+                        BookFormDropdownTrigger(
                           link: _authorLink,
                           hint: 'Author',
                           selectedLabel: _selectedAuthor?.name,
@@ -725,7 +734,7 @@ class _AddBookDialogState extends State<_AddBookDialog> {
                           onTap: _toggleAuthorDropdown,
                         ),
                         const SizedBox(height: 16),
-                        _OverlayDropdownTrigger(
+                        BookFormDropdownTrigger(
                           link: _categoryLink,
                           hint: 'Category',
                           selectedLabel: _selectedCategory?.name,
@@ -807,7 +816,7 @@ class _AddBookDialogState extends State<_AddBookDialog> {
                   Expanded(
                     child: Column(
                       children: [
-                        _BookField(
+                        BookFormField(
                           controller: _descriptionController,
                           hint: 'Description',
                           error: _descriptionError,
@@ -816,7 +825,7 @@ class _AddBookDialogState extends State<_AddBookDialog> {
                               setState(() => _descriptionError = null),
                         ),
                         const SizedBox(height: 16),
-                        _BookField(
+                        BookFormField(
                           controller: _priceController,
                           hint: 'Price',
                           error: _priceError,
@@ -825,7 +834,7 @@ class _AddBookDialogState extends State<_AddBookDialog> {
                               setState(() => _priceError = null),
                         ),
                         const SizedBox(height: 16),
-                        _BookField(
+                        BookFormField(
                           controller: _stockController,
                           hint: 'Stock',
                           error: _stockError,
@@ -834,7 +843,7 @@ class _AddBookDialogState extends State<_AddBookDialog> {
                               setState(() => _stockError = null),
                         ),
                         const SizedBox(height: 16),
-                        _BookField(
+                        BookFormField(
                           controller: _pageCountController,
                           hint: 'Page count (optional)',
                           keyboardType: TextInputType.number,
@@ -914,152 +923,3 @@ class _AddBookDialogState extends State<_AddBookDialog> {
   }
 }
 
-/* ----------------------- BOOK FIELD ----------------------- */
-
-class _BookField extends StatelessWidget {
-  final TextEditingController controller;
-  final String hint;
-  final String? error;
-  final int maxLines;
-  final TextInputType? keyboardType;
-  final ValueChanged<String> onChanged;
-
-  const _BookField({
-    required this.controller,
-    required this.hint,
-    required this.onChanged,
-    this.error,
-    this.maxLines = 1,
-    this.keyboardType,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      maxLines: maxLines,
-      keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: TextStyle(
-          color: error != null
-              ? Colors.red.shade300
-              : Colors.white.withValues(alpha: 0.5),
-          fontSize: 14,
-        ),
-        filled: true,
-        fillColor: AppColors.lightBrown.withValues(alpha: 0.2),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(
-            color: error != null ? Colors.red.shade300 : Colors.transparent,
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(
-            color: error != null ? Colors.red.shade300 : Colors.transparent,
-          ),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.lightBrown),
-        ),
-        errorText: error,
-        errorStyle: TextStyle(color: Colors.red.shade300, fontSize: 11),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      ),
-    );
-  }
-}
-
-/* ----------------------- OVERLAY DROPDOWN TRIGGER ----------------------- */
-
-class _OverlayDropdownTrigger extends StatelessWidget {
-  final LayerLink link;
-  final String hint;
-  final String? selectedLabel;
-  final bool isOpen;
-  final String? error;
-  final bool loading;
-  final VoidCallback onTap;
-
-  const _OverlayDropdownTrigger({
-    required this.link,
-    required this.hint,
-    required this.isOpen,
-    required this.onTap,
-    this.selectedLabel,
-    this.error,
-    this.loading = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CompositedTransformTarget(
-          link: link,
-          child: GestureDetector(
-            onTap: onTap,
-            child: Container(
-              height: 42,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: AppColors.lightBrown.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: error != null
-                      ? Colors.red.shade300
-                      : Colors.transparent,
-                ),
-              ),
-              child: loading
-                  ? const Center(
-                      child: SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            color: AppColors.lightBrown, strokeWidth: 2),
-                      ),
-                    )
-                  : Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            selectedLabel ?? hint,
-                            style: TextStyle(
-                              color: selectedLabel != null
-                                  ? Colors.white
-                                  : error != null
-                                      ? Colors.red.shade300
-                                      : Colors.white.withValues(alpha: 0.5),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                        Icon(
-                          isOpen
-                              ? Icons.arrow_drop_up
-                              : Icons.arrow_drop_down,
-                          color: AppColors.lightBrown,
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-        ),
-        if (error != null) ...[
-          const SizedBox(height: 4),
-          Text(error!,
-              style:
-                  TextStyle(fontSize: 11, color: Colors.red.shade300)),
-        ],
-      ],
-    );
-  }
-}
