@@ -5,6 +5,7 @@ import '../models/order.dart';
 import '../services/order_service.dart';
 import '../widgets/pagination_bar.dart';
 import '../widgets/admin_table.dart';
+import 'order_detail_screen.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -165,8 +166,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                         text: '${order.totalPrice.toStringAsFixed(2)} BAM',
                                       ),
                                     ],
-                                    actions: const [
-                                      AdminActionButton(label: 'Click for more\ndetails'),
+                                    actions: [
+                                      AdminActionButton(
+                                        label: 'Click for more\ndetails',
+                                        onPressed: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => OrderDetailScreen(orderId: order.id),
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   );
                                 },
