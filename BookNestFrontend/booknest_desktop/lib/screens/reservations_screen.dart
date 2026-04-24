@@ -5,6 +5,7 @@ import '../models/reservation.dart';
 import '../services/reservation_service.dart';
 import '../widgets/pagination_bar.dart';
 import '../widgets/admin_table.dart';
+import 'reservation_detail_screen.dart';
 
 class ReservationsScreen extends StatefulWidget {
   const ReservationsScreen({super.key});
@@ -174,9 +175,17 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                                         fontWeight: FontWeight.w600,
                                       ),
                                     ],
-                                    actions: const [
-                                      AdminActionButton(label: 'Send a\nreminder!'),
-                                      AdminActionButton(label: 'Click for more\ndetails'),
+                                    actions: [
+                                      const AdminActionButton(label: 'Send a\nreminder!'),
+                                      AdminActionButton(
+                                        label: 'Click for more\ndetails',
+                                        onPressed: () => Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) => ReservationDetailScreen(reservationId: r.id),
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   );
                                 },

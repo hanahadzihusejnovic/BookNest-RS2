@@ -393,7 +393,8 @@ class _EventsScreenState extends State<EventsScreen> {
 
   @override
   void dispose() {
-    _closeCategoriesDropdown();
+    _catOverlay?.remove();
+    _catOverlay = null;
     _searchController.dispose();
     super.dispose();
   }
@@ -1046,7 +1047,9 @@ class _AddEventDialogState extends State<_AddEventDialog> {
 
   @override
   void dispose() {
-    _closeAll();
+    _categoryOverlay?.remove();
+    _organizerOverlay?.remove();
+    _eventTypeOverlay?.remove();
     _nameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();

@@ -893,9 +893,9 @@ class _EditEventDialogState extends State<_EditEventDialog> {
 
   @override
   void dispose() {
-    _closeCategoryDropdown();
-    _closeOrganizerDropdown();
-    _closeEventTypeDropdown();
+    _categoryOverlay?.remove();
+    _organizerOverlay?.remove();
+    _eventTypeOverlay?.remove();
     _nameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();

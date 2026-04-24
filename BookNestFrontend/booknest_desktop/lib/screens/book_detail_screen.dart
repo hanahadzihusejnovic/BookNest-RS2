@@ -876,8 +876,8 @@ class _EditBookDialogState extends State<_EditBookDialog> {
 
   @override
   void dispose() {
-    _closeAuthorDropdown();
-    _closeCategoryDropdown();
+    _authorOverlay?.remove();
+    _categoryOverlay?.remove();
     _titleController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();

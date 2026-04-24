@@ -398,7 +398,8 @@ class _BooksScreenState extends State<BooksScreen> {
 
   @override
   void dispose() {
-    _closeCategoriesDropdown();
+    _catOverlay?.remove();
+    _catOverlay = null;
     _searchController.dispose();
     super.dispose();
   }
@@ -912,8 +913,8 @@ class _AddBookDialogState extends State<_AddBookDialog> {
 
   @override
   void dispose() {
-    _closeAuthorDropdown();
-    _closeCategoryDialogDropdown();
+    _authorOverlay?.remove();
+    _categoryOverlay?.remove();
     _titleController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
