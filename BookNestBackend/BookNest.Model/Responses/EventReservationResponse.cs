@@ -23,5 +23,7 @@ namespace BookNest.Model.Responses
         public ReservationStatus ReservationStatus { get; set; }
         public string? TicketQRCodeLink { get; set; }
         public PaymentResponse Payment { get; set; } = null!;
+        public string? EventImageUrl { get; set; }
+        public decimal TicketPrice { get; set; }
     }
 }
