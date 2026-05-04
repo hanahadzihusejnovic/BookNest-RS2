@@ -109,5 +109,20 @@ namespace BookNest.API.Controllers
         {
             return await base.Delete(id);
         }
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("{id}/send-reminder")]
+        public async Task<ActionResult> SendReminder(int id)
+        {
+            try
+            {
+                await _eventReservationService.SendReminderAsync(id);
+                return Ok(new { message = "Reminder sent successfully." });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

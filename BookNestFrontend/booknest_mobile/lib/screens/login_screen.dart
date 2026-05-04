@@ -4,6 +4,7 @@ import 'home_screen.dart';
 import 'register_screen.dart';
 import '../layouts/constants.dart';
 import 'forgot_password_screen.dart';
+import '../services/notification_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -145,6 +146,11 @@ class _LoginScreenState extends State<LoginScreen> {
       print('🗑️ LOGIN: Clearing Remember Me credentials...');
       await _authService.clearRememberMe();
     }
+
+    final userId = await _authService.getUserId();
+      if (userId != null) {
+        await NotificationService().connect(userId);
+      }
 
     if (mounted) {
       Navigator.pushReplacement(

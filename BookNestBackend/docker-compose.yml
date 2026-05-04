@@ -16,6 +16,19 @@ services:
       - booknest-network
     restart: unless-stopped
 
+  booknest-subscriber:
+    build:
+      context: .
+      dockerfile: BookNest.Subscriber/Dockerfile
+    container_name: booknest-subscriber
+    ports:
+      - "7111:7111"
+    depends_on:
+      - rabbitmq
+    networks:
+      - booknest-network
+    restart: unless-stopped
+
 networks:
   booknest-network:
     driver: bridge

@@ -6,6 +6,7 @@ import '../screens/profile_screen.dart';
 import '../screens/events_screen.dart';
 import '../screens/about_screen.dart';
 import '../screens/settings_screen.dart';
+import '../services/notification_service.dart';
 
 class AppLayout extends StatelessWidget {
   final String pageTitle;
@@ -94,11 +95,7 @@ class AppLayout extends StatelessWidget {
                             ),
                           ),
                         ),
-                        GestureDetector(
-                          onTap: () {},
-                          child: Icon(Icons.notifications_none,
-                              color: AppColors.darkBrown, size: 22),
-                        ),
+                        const NotificationBell(),
                       ],
                     ),
                   ],
@@ -239,13 +236,13 @@ class _BookNestDrawer extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: InkWell(
                 onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (context) => const ProfileScreen()),
-                );
-              },
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const ProfileScreen()),
+                  );
+                },
                 borderRadius: BorderRadius.circular(18),
                 child: Row(
                   children: [
@@ -320,6 +317,132 @@ class _DrawerDivider extends StatelessWidget {
         color: AppColors.pageBg.withValues(alpha: 0.35),
         thickness: 1,
         height: 1,
+      ),
+    );
+  }
+}
+
+/* ----------------------- NOTIFICATION BELL ----------------------- */
+
+class NotificationBell extends StatefulWidget {
+  const NotificationBell({super.key});
+
+  @override
+  State<NotificationBell> createState() => _NotificationBellState();
+}
+
+class _NotificationBellState extends State<NotificationBell> {
+  final _service = NotificationService();
+  int _unread = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _unread = _service.unreadCount;
+    _service.addListener(_onNotification);
+  }
+
+  void _onNotification(Map<String, dynamic> notification) {
+    if (!mounted) return;
+    setState(() => _unread = _service.unreadCount);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${notification['title']}\n${notification['message']}'),
+        backgroundColor: AppColors.darkBrown,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _service.removeListener(_onNotification);
+    super.dispose();
+  }
+
+  void _showNotificationsPanel(BuildContext context) {
+    _service.markAllRead();
+    setState(() => _unread = 0);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.pageBg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        final notifications = _service.notifications;
+        if (notifications.isEmpty) {
+          return const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(
+              child: Text(
+                'No notifications yet.',
+                style: TextStyle(color: AppColors.darkBrown),
+              ),
+            ),
+          );
+        }
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: notifications.length,
+          separatorBuilder: (_, __) => Divider(
+            color: AppColors.darkBrown.withValues(alpha: 0.2),
+          ),
+          itemBuilder: (_, i) {
+            final n = notifications[i];
+            return ListTile(
+              leading: Icon(Icons.notifications,
+                  color: AppColors.darkBrown, size: 22),
+              title: Text(
+                n['title'] ?? '',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.darkBrown,
+                ),
+              ),
+              subtitle: Text(
+                n['message'] ?? '',
+                style: TextStyle(
+                  color: AppColors.darkBrown.withValues(alpha: 0.75),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showNotificationsPanel(context),
+      child: Stack(
+        children: [
+          Icon(Icons.notifications_none,
+              color: AppColors.darkBrown, size: 22),
+          if (_unread > 0)
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$_unread',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

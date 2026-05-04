@@ -15,6 +15,7 @@ using System.Text;
 using Microsoft.OpenApi.Models;
 using BookNest.Infrastructure.Services;
 using BookNest.Services.MessageQueue;
+using BookNest.API.Hubs;
 
 namespace BookNest.API
 {
@@ -113,6 +114,8 @@ namespace BookNest.API
 
             builder.Services.AddControllers();
 
+            builder.Services.AddSignalR();
+
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 
             // ===== SWAGGER WITH JWT SUPPORT =====
@@ -169,6 +172,8 @@ namespace BookNest.API
 
 
             app.MapControllers();
+
+            app.MapHub<NotificationHub>("/hubs/notifications");
 
             app.Run();
         }

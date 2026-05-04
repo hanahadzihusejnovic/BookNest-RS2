@@ -8,8 +8,10 @@ namespace BookNest.Model.Enums
 {
     public enum NotificationType
     {
-        BookNotification,
-        EventNotification,
-        SystemNotification
+        OrderStatusChanged,
+        ReservationStatusChanged,
+        EventReminder,
+        BookUnavailable,
+        EventCancelled
     }
 }

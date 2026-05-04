@@ -13,16 +13,21 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using BookNest.Services.MessageQueue;
+using BookNest.Model.Messages;
 
 namespace BookNest.Services.Services
 {
     public class EventReservationService : BaseCRUDService<EventReservationResponse, EventReservationSearchObject, EventReservation, EventReservationInsertRequest, EventReservationUpdateRequest>, IEventReservationService
     {
         private readonly BookNestDbContext _dbContext;
+        private readonly IRabbitMqPublisher _publisher;
 
-        public EventReservationService(BookNestDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
+        public EventReservationService(BookNestDbContext dbContext, IMapper mapper,
+            IRabbitMqPublisher publisher) : base(dbContext, mapper)
         {
             _dbContext = dbContext;
+            _publisher = publisher;
         }
 
         protected override IQueryable<EventReservation> ApplyFilter(IQueryable<EventReservation> query, EventReservationSearchObject search)
@@ -253,16 +258,33 @@ namespace BookNest.Services.Services
 
         public override async Task<EventReservationResponse?> UpdateAsync(int id, EventReservationUpdateRequest request, CancellationToken cancellationToken = default)
         {
-            var reservation = await _dbContext.EventReservations.FindAsync(new object[] { id }, cancellationToken);
+            var reservation = await _dbContext.EventReservations
+                .Include(r => r.Event)
+                .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
-            if (reservation == null)
-            {
-                return null;
-            }
+            if (reservation == null) return null;
 
             reservation.ReservationStatus = request.ReservationStatus;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            var (title, message) = request.ReservationStatus switch
+            {
+                ReservationStatus.Confirmed => ("Reservation confirmed", $"Your reservation for '{reservation.Event.Name}' has been confirmed."),
+                ReservationStatus.Cancelled => ("Reservation cancelled", $"Your reservation for '{reservation.Event.Name}' has been cancelled."),
+                ReservationStatus.Attended => ("Thank you for attending", $"We hope you enjoyed '{reservation.Event.Name}'!"),
+                _ => ("Reservation updated", $"Your reservation for '{reservation.Event.Name}' has been updated.")
+            };
+
+            await _publisher.PublishAsync("notifications-queue", new NotificationMessage
+            {
+                UserId = reservation.UserId,
+                EventId = reservation.EventId,
+                Title = title,
+                Message = message,
+                NotificationType = "ReservationStatusChanged",
+                SendAt = DateTime.UtcNow
+            });
 
             return await GetByIdAsync(id, cancellationToken);
         }
@@ -270,6 +292,26 @@ namespace BookNest.Services.Services
         private string GenerateQRCodeLink()
         {
             return $"https://booknest.com/tickets/{Guid.NewGuid()}";
+        }
+
+        public async Task SendReminderAsync(int reservationId, CancellationToken cancellationToken = default)
+        {
+            var reservation = await _dbContext.EventReservations
+                .Include(r => r.Event)
+                .FirstOrDefaultAsync(r => r.Id == reservationId, cancellationToken);
+
+            if (reservation == null)
+                throw new Exception("Reservation not found.");
+
+            await _publisher.PublishAsync("notifications-queue", new NotificationMessage
+            {
+                UserId = reservation.UserId,
+                EventId = reservation.EventId,
+                Title = "Event reminder",
+                Message = $"Reminder: '{reservation.Event.Name}' is coming up on {reservation.Event.EventDate:dd.MM.yyyy} at {reservation.Event.EventTime:hh\\:mm}.",
+                NotificationType = "EventReminder",
+                SendAt = DateTime.UtcNow
+            });
         }
     }
 }
