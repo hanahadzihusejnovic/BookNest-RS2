@@ -14,16 +14,21 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Mvc;
+using BookNest.Services.MessageQueue;
+using BookNest.Model.Messages;
 
 namespace BookNest.Services.Services
 {
     public class OrderService : BaseCRUDService<OrderResponse, OrderSearchObject, Order, OrderInsertRequest, OrderUpdateRequest>, IOrderService
     {
         private readonly BookNestDbContext _dbContext;
+        private readonly IRabbitMqPublisher _publisher;
 
-        public OrderService(BookNestDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
+        public OrderService(BookNestDbContext dbContext, IMapper mapper,
+            IRabbitMqPublisher publisher) : base(dbContext, mapper)
         {
             _dbContext = dbContext;
+            _publisher = publisher;
         }
 
         protected override IQueryable<Order> ApplyFilter(IQueryable<Order> query, OrderSearchObject search)
@@ -195,19 +200,37 @@ namespace BookNest.Services.Services
             return _mapper.Map<List<OrderResponse>>(orders);
         }
 
-        public override async Task<OrderResponse?> UpdateAsync(int id, OrderUpdateRequest request, CancellationToken cancellationToken = default)
+        public override async Task<OrderResponse?> UpdateAsync(int id, OrderUpdateRequest request,
+    CancellationToken cancellationToken = default)
         {
-            var order = await _dbContext.Orders.FindAsync(new object[] { id }, cancellationToken);
+            var order = await _dbContext.Orders
+                .Include(o => o.User)
+                .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
-            if (order == null)
-            {
-                return null;
-            }
+            if (order == null) return null;
 
             order.Status = request.Status;
             order.ShippedDate = request.ShippedDate;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            var (title, message) = request.Status switch
+            {
+                OrderStatus.Processing => ("Order is being processed", $"Your order #{order.Id} is now being processed."),
+                OrderStatus.Shipped => ("Order has been shipped", $"Your order #{order.Id} is on its way!"),
+                OrderStatus.Delivered => ("Order delivered", $"Your order #{order.Id} has been delivered."),
+                OrderStatus.Cancelled => ("Order cancelled", $"Your order #{order.Id} has been cancelled."),
+                _ => ("Order updated", $"Your order #{order.Id} status has been updated.")
+            };
+
+            await _publisher.PublishAsync("notifications-queue", new NotificationMessage
+            {
+                UserId = order.UserId,
+                Title = title,
+                Message = message,
+                NotificationType = "OrderStatusChanged",
+                SendAt = DateTime.UtcNow
+            });
 
             return await GetByIdAsync(id, cancellationToken);
         }

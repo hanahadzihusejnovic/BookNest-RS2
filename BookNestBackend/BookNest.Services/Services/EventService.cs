@@ -12,15 +12,22 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BookNest.Services.MessageQueue;
+using BookNest.Model.Messages;
+using BookNest.Model.Enums;
 
 namespace BookNest.Services.Services
 {
     public class EventService : BaseCRUDService<EventResponse, EventSearchObject,Event, EventInsertRequest, EventUpdateRequest>, IEventService
     {
         private readonly BookNestDbContext _dbContext;
-        public EventService(BookNestDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
+        private readonly IRabbitMqPublisher _publisher;
+
+        public EventService(BookNestDbContext dbContext, IMapper mapper,
+            IRabbitMqPublisher publisher) : base(dbContext, mapper)
         {
             _dbContext = dbContext;
+            _publisher = publisher;
         }
 
         protected override IQueryable<Event> ApplyFilter(IQueryable<Event> query, EventSearchObject search)
@@ -222,6 +229,43 @@ namespace BookNest.Services.Services
                 .ToListAsync(cancellationToken);
 
             return _mapper.Map<List<EventResponse>>(recommended);
+        }
+
+        public override async Task<EventResponse?> UpdateAsync(int id, EventUpdateRequest request,
+    CancellationToken cancellationToken = default)
+        {
+            var eventEntity = await _dbContext.Events
+                .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+
+            if (eventEntity == null) return null;
+
+            bool wasActive = eventEntity.IsActive;
+
+            _mapper.Map(request, eventEntity);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            if (wasActive && !request.IsActive)
+            {
+                var affectedReservations = await _dbContext.EventReservations
+                    .Where(r => r.EventId == id &&
+                                r.ReservationStatus != ReservationStatus.Cancelled)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var reservation in affectedReservations)
+                {
+                    await _publisher.PublishAsync("notifications-queue", new NotificationMessage
+                    {
+                        UserId = reservation.UserId,
+                        EventId = id,
+                        Title = "Event cancelled",
+                        Message = $"Unfortunately, the event '{eventEntity.Name}' has been cancelled.",
+                        NotificationType = "EventCancelled",
+                        SendAt = DateTime.UtcNow
+                    });
+                }
+            }
+
+            return await GetByIdAsync(id, cancellationToken);
         }
     }
 }

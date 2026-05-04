@@ -29,6 +29,10 @@ namespace BookNest.Services.Database.Entities
         public Event? Event { get; set; }
 
         [Required]
+        [MaxLength(200)]
+        public string Title { get; set; } = string.Empty;
+
+        [Required]
         [MaxLength(500)]
         public string Message { get; set; } = string.Empty;
 

@@ -12,15 +12,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using BookNest.Services.MessageQueue;
+using BookNest.Model.Messages;
 
 namespace BookNest.Services.Services
 {
     public class BookService : BaseCRUDService<BookResponse, BookSearchObject, Book, BookInsertRequest, BookUpdateRequest>, IBookService
     {
         private readonly BookNestDbContext _dbContext;
-        public BookService(BookNestDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
+        private readonly IRabbitMqPublisher _publisher;
+
+        public BookService(BookNestDbContext dbContext, IMapper mapper,
+            IRabbitMqPublisher publisher) : base(dbContext, mapper)
         {
             _dbContext = dbContext;
+            _publisher = publisher;
         }
 
         protected override IQueryable<Book> ApplyFilter(IQueryable<Book> query, BookSearchObject search)
@@ -157,10 +163,9 @@ namespace BookNest.Services.Services
         {
             var book = await _dbContext.Books.FindAsync(id);
 
-            if(book == null)
-            {
-                return null;
-            }
+            if (book == null) return null;
+
+            bool wasInStock = book.Stock > 0;
 
             _mapper.Map(request, book);
 
@@ -170,11 +175,11 @@ namespace BookNest.Services.Services
 
             _dbContext.BookCategories.RemoveRange(existingCategories);
 
-            if(request.CategoryIds != null && request.CategoryIds.Count > 0)
+            if (request.CategoryIds != null && request.CategoryIds.Count > 0)
             {
-                foreach(var categoryId in request.CategoryIds)
+                foreach (var categoryId in request.CategoryIds)
                 {
-                    if(await _dbContext.Categories.AnyAsync(c => c.Id == categoryId))
+                    if (await _dbContext.Categories.AnyAsync(c => c.Id == categoryId))
                     {
                         var bookCategory = new BookCategory
                         {
@@ -187,6 +192,29 @@ namespace BookNest.Services.Services
             }
 
             await _dbContext.SaveChangesAsync();
+
+            // Ako je knjiga upravo postala nedostupna (bio stock > 0, sad je 0)
+            if (wasInStock && request.Stock == 0)
+            {
+                var affectedCartItems = await _dbContext.CartItems
+                    .Include(ci => ci.Cart)
+                    .Where(ci => ci.BookId == id)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var cartItem in affectedCartItems)
+                {
+                    await _publisher.PublishAsync("notifications-queue", new NotificationMessage
+                    {
+                        UserId = cartItem.Cart.UserId,  // ← ovdje izmjena
+                        BookId = id,
+                        Title = "Book no longer available",
+                        Message = $"'{book.Title}' that you have in your cart is no longer available.",
+                        NotificationType = "BookUnavailable",
+                        SendAt = DateTime.UtcNow
+                    });
+                }
+            }
+
             return await GetBookWithCategoryAsync(book.Id);
         }
 
