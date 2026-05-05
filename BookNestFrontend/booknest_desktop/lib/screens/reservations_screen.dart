@@ -176,7 +176,19 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                                       ),
                                     ],
                                     actions: [
-                                      const AdminActionButton(label: 'Send a\nreminder!'),
+                                      AdminActionButton(
+                                        label: 'Send a\nreminder!',
+                                        onPressed: () async {
+                                          try {
+                                            await _reservationService.sendReminder(r.id);
+                                            if (!mounted) return;
+                                            AppSnackBar.show(context, 'Reminder sent successfully!');
+                                          } catch (e) {
+                                            if (!mounted) return;
+                                            AppSnackBar.show(context, 'Failed to send reminder', isError: true);
+                                          }
+                                        },
+                                      ),
                                       AdminActionButton(
                                         label: 'Click for more\ndetails',
                                         onPressed: () => Navigator.push(
