@@ -88,6 +88,7 @@ namespace BookNest.API
             builder.Services.AddScoped<IReviewService, ReviewService>();
             builder.Services.AddScoped<IEventReservationService, EventReservationService>();
             builder.Services.AddScoped<IImageService, AzureBlobImageService>();
+            builder.Services.AddScoped<IDashboardService, DashboardService>();
 
             builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
             builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();

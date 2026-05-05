@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../layouts/app_layout.dart';
 import '../layouts/constants.dart';
@@ -23,6 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int? _pendingOrders;
   int? _upcomingEvents;
   int? _pendingReservations;
+  List<Map<String, dynamic>> _categoryStats = [];
   bool _isLoading = true;
 
   @override
@@ -41,6 +43,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _dashboardService.getPendingReservationsCount(),
       ]);
 
+      final categoryStats = await _dashboardService.getCategoryStats();
+
       if (!mounted) return;
       setState(() {
         _totalUsers = results[0];
@@ -48,6 +52,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         _pendingOrders = results[2];
         _upcomingEvents = results[3];
         _pendingReservations = results[4];
+        _categoryStats = categoryStats;
         _isLoading = false;
       });
     } catch (e) {
@@ -161,7 +166,130 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 fontWeight: FontWeight.w500,
               ),
             ),
+            const SizedBox(height: 16),
+
+            // Bar chart
+            if (_isLoading)
+              const Center(
+                child: CircularProgressIndicator(color: AppColors.darkBrown),
+              )
+            else if (_categoryStats.isEmpty)
+              const Text(
+                'No data available.',
+                style: TextStyle(color: AppColors.mediumBrown),
+              )
+            else
+              _CategoryBarChart(stats: _categoryStats),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryBarChart extends StatelessWidget {
+  final List<Map<String, dynamic>> stats;
+
+  const _CategoryBarChart({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    final maxY = stats
+        .map((e) => (e['orderCount'] as int).toDouble())
+        .reduce((a, b) => a > b ? a : b);
+
+    return Container(
+      height: 300,
+      padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
+      decoration: BoxDecoration(
+        color: AppColors.mediumBrown.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: BarChart(
+        BarChartData(
+          maxY: maxY + 2,
+          barTouchData: BarTouchData(
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipColor: (_) => AppColors.darkBrown,
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                return BarTooltipItem(
+                  '${stats[groupIndex]['categoryName']}\n${rod.toY.toInt()} orders',
+                  const TextStyle(color: Colors.white, fontSize: 12),
+                );
+              },
+            ),
+          ),
+          titlesData: FlTitlesData(
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  final index = value.toInt();
+                  if (index < 0 || index >= stats.length) {
+                    return const SizedBox.shrink();
+                  }
+                  return Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(
+                      stats[index]['categoryName'],
+                      style: const TextStyle(
+                        color: AppColors.darkBrown,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  );
+                },
+                reservedSize: 32,
+              ),
+            ),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 28,
+                getTitlesWidget: (value, meta) {
+                  if (value % 2 != 0) return const SizedBox.shrink();
+                  return Text(
+                    value.toInt().toString(),
+                    style: const TextStyle(
+                      color: AppColors.darkBrown,
+                      fontSize: 11,
+                    ),
+                  );
+                },
+              ),
+            ),
+            topTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(
+                sideTitles: SideTitles(showTitles: false)),
+          ),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            getDrawingHorizontalLine: (value) => FlLine(
+              color: AppColors.darkBrown.withValues(alpha: 0.1),
+              strokeWidth: 1,
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          barGroups: stats.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            return BarChartGroupData(
+              x: index,
+              barRods: [
+                BarChartRodData(
+                  toY: (item['orderCount'] as int).toDouble(),
+                  color: AppColors.darkBrown,
+                  width: 32,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(6),
+                  ),
+                ),
+              ],
+            );
+          }).toList(),
         ),
       ),
     );

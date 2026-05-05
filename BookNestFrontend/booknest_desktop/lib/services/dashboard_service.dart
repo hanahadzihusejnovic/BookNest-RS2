@@ -83,4 +83,16 @@ class DashboardService {
     }
     throw Exception('Failed to load events count');
   }
+
+  Future<List<Map<String, dynamic>>> getCategoryStats() async {
+    final response = await http.get(
+      Uri.parse('${AppConstants.baseUrl}/Dashboard/category-stats'),
+      headers: await _headers(),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((e) => Map<String, dynamic>.from(e)).toList();
+    }
+    throw Exception('Failed to load category stats');
+  }
 }
