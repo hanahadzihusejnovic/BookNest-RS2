@@ -56,4 +56,19 @@ class ReservationService {
       throw Exception('Failed to update reservation status: ${response.statusCode} ${response.body}');
     }
   }
+
+  Future<void> sendReminder(int id) async {
+    final token = await _authService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+    final response = await http.post(
+      Uri.parse('${AppConstants.baseUrl}/EventReservation/$id/send-reminder'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to send reminder: ${response.statusCode}');
+    }
+  }
 }

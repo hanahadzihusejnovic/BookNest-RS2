@@ -36,7 +36,6 @@ class AppLayout extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Gornji red: back/BookNest + hamburger
                   Row(
                     children: [
                       if (showBackButton) ...[
@@ -103,7 +102,6 @@ class AppLayout extends StatelessWidget {
               ),
             ),
 
-            // Body sadržaj
             Expanded(child: body),
           ],
         ),
@@ -162,8 +160,7 @@ class _BookNestDrawer extends StatelessWidget {
                 if (currentPage != 'HOME') {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(
-                        builder: (context) => const HomeScreen()),
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
                   );
                 }
               },
@@ -177,8 +174,7 @@ class _BookNestDrawer extends StatelessWidget {
                 if (currentPage != 'SHOP') {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(
-                        builder: (context) => const ShopScreen()),
+                    MaterialPageRoute(builder: (context) => const ShopScreen()),
                   );
                 }
               },
@@ -192,9 +188,7 @@ class _BookNestDrawer extends StatelessWidget {
                 if (currentPage != 'EVENTS') {
                   Navigator.pushReplacement(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const EventsScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const EventsScreen()),
                   );
                 }
               },
@@ -231,7 +225,6 @@ class _BookNestDrawer extends StatelessWidget {
 
             const Spacer(),
 
-            // MY PROFILE
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: InkWell(
@@ -239,8 +232,7 @@ class _BookNestDrawer extends StatelessWidget {
                   Navigator.pop(context);
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                        builder: (context) => const ProfileScreen()),
+                    MaterialPageRoute(builder: (context) => const ProfileScreen()),
                   );
                 },
                 borderRadius: BorderRadius.circular(18),
@@ -334,6 +326,8 @@ class NotificationBell extends StatefulWidget {
 class _NotificationBellState extends State<NotificationBell> {
   final _service = NotificationService();
   int _unread = 0;
+  OverlayEntry? _overlayEntry;
+  final LayerLink _layerLink = LayerLink();
 
   @override
   void initState() {
@@ -356,93 +350,142 @@ class _NotificationBellState extends State<NotificationBell> {
 
   @override
   void dispose() {
+    _closePanel();
     _service.removeListener(_onNotification);
     super.dispose();
   }
 
-  void _showNotificationsPanel(BuildContext context) {
+  void _closePanel() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  void _togglePanel() {
+    if (_overlayEntry != null) {
+      _closePanel();
+      return;
+    }
+
     _service.markAllRead();
     setState(() => _unread = 0);
 
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.pageBg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) {
-        final notifications = _service.notifications;
-        if (notifications.isEmpty) {
-          return const Padding(
-            padding: EdgeInsets.all(32),
-            child: Center(
-              child: Text(
-                'No notifications yet.',
-                style: TextStyle(color: AppColors.darkBrown),
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          // Tap van panela zatvara ga
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _closePanel,
+              behavior: HitTestBehavior.translucent,
+            ),
+          ),
+          // Panel
+          CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            offset: const Offset(-240, 28),
+            child: Material(
+              elevation: 8,
+              borderRadius: BorderRadius.circular(12),
+              color: AppColors.darkBrown,
+              child: Container(
+                width: 260,
+                constraints: const BoxConstraints(maxHeight: 320),
+                decoration: BoxDecoration(
+                  color: AppColors.darkBrown,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: _service.notifications.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          'No notifications yet.',
+                          style: TextStyle(
+                            color: AppColors.pageBg,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      )
+                    : ListView.separated(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        itemCount: _service.notifications.length,
+                        separatorBuilder: (_, __) => Divider(
+                          color: Colors.white,
+                          height: 1,
+                        ),
+                        itemBuilder: (_, i) {
+                          final n = _service.notifications[i];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  n['title'] ?? '',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  n['message'] ?? '',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
               ),
             ),
-          );
-        }
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: notifications.length,
-          separatorBuilder: (_, __) => Divider(
-            color: AppColors.darkBrown.withValues(alpha: 0.2),
           ),
-          itemBuilder: (_, i) {
-            final n = notifications[i];
-            return ListTile(
-              leading: Icon(Icons.notifications,
-                  color: AppColors.darkBrown, size: 22),
-              title: Text(
-                n['title'] ?? '',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.darkBrown,
-                ),
-              ),
-              subtitle: Text(
-                n['message'] ?? '',
-                style: TextStyle(
-                  color: AppColors.darkBrown.withValues(alpha: 0.75),
-                ),
-              ),
-            );
-          },
-        );
-      },
+        ],
+      ),
     );
+
+    Overlay.of(context).insert(_overlayEntry!);
   }
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => _showNotificationsPanel(context),
-      child: Stack(
-        children: [
-          Icon(Icons.notifications_none,
-              color: AppColors.darkBrown, size: 22),
-          if (_unread > 0)
-            Positioned(
-              right: 0,
-              top: 0,
-              child: Container(
-                padding: const EdgeInsets.all(3),
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-                child: Text(
-                  '$_unread',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: GestureDetector(
+        onTap: _togglePanel,
+        child: Stack(
+          children: [
+            Icon(Icons.notifications_none,
+                color: AppColors.darkBrown, size: 22),
+            if (_unread > 0)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '$_unread',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
