@@ -1,17 +1,16 @@
 ﻿using BookNest.Subscriber.Models;
 using MailKit.Net.Smtp;
 using MimeKit;
+using BookNest.Subscriber.Services.Interfaces;
 
 namespace BookNest.Subscriber.Services
 {
     public class EmailService : IEmailService
     {
-        private readonly IConfiguration _configuration;
         private readonly ILogger<EmailService> _logger;
 
-        public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
+        public EmailService(ILogger<EmailService> logger)
         {
-            _configuration = configuration;
             _logger = logger;
         }
 
@@ -19,23 +18,19 @@ namespace BookNest.Subscriber.Services
         {
             try
             {
-                _logger.LogInformation($"📧 Sending password reset email to: {message.Email}");
+                _logger.LogInformation("Sending password reset email to: {Email}", message.Email);
 
                 var emailMessage = new MimeMessage();
 
-                // From
                 emailMessage.From.Add(new MailboxAddress(
-                    _configuration["Smtp:FromName"],
-                    _configuration["Smtp:FromEmail"]
+                    Environment.GetEnvironmentVariable("SMTP_FROM_NAME"),
+                    Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL")
                 ));
 
-                // To
                 emailMessage.To.Add(new MailboxAddress(message.UserName, message.Email));
 
-                // Subject
                 emailMessage.Subject = "BookNest - Password Reset Request";
 
-                // Body
                 var bodyBuilder = new BodyBuilder
                 {
                     HtmlBody = $@"
@@ -59,24 +54,24 @@ namespace BookNest.Subscriber.Services
                 using var client = new SmtpClient();
 
                 await client.ConnectAsync(
-                    _configuration["Smtp:Host"],
-                    int.Parse(_configuration["Smtp:Port"] ?? "587"),
+                    Environment.GetEnvironmentVariable("SMTP_HOST"),
+                    int.Parse(Environment.GetEnvironmentVariable("SMTP_PORT") ?? "587"),
                     MailKit.Security.SecureSocketOptions.StartTls
                 );
 
                 await client.AuthenticateAsync(
-                    _configuration["Smtp:Username"],
-                    _configuration["Smtp:Password"]
+                    Environment.GetEnvironmentVariable("SMTP_USERNAME"),
+                    Environment.GetEnvironmentVariable("SMTP_PASSWORD")
                 );
 
                 await client.SendAsync(emailMessage);
                 await client.DisconnectAsync(true);
 
-                _logger.LogInformation($"✅ Email sent successfully to: {message.Email}");
+                _logger.LogInformation("Email sent successfully to: {Email}", message.Email);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"❌ Failed to send email to {message.Email}: {ex.Message}");
+                _logger.LogError(ex, "Failed to send email to {Email}", message.Email);
                 throw;
             }
         }

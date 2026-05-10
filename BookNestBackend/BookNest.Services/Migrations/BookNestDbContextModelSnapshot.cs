@@ -194,6 +194,47 @@ namespace BookNest.Services.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("BookNest.Services.Database.Entities.City", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CountryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CountryId");
+
+                    b.ToTable("Cities");
+                });
+
+            modelBuilder.Entity("BookNest.Services.Database.Entities.Country", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Countries");
+                });
+
             modelBuilder.Entity("BookNest.Services.Database.Entities.Event", b =>
                 {
                     b.Property<int>("Id")
@@ -208,11 +249,11 @@ namespace BookNest.Services.Migrations
                     b.Property<int>("Capacity")
                         .HasColumnType("int");
 
-                    b.Property<string>("City")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("CityId")
+                        .HasColumnType("int");
 
-                    b.Property<string>("Country")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("CountryId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
@@ -252,6 +293,10 @@ namespace BookNest.Services.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CityId");
+
+                    b.HasIndex("CountryId");
 
                     b.HasIndex("EventCategoryId");
 
@@ -609,6 +654,29 @@ namespace BookNest.Services.Migrations
                     b.ToTable("Reviews");
                 });
 
+            modelBuilder.Entity("BookNest.Services.Database.Entities.RevokedToken", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("RevokedTokens");
+                });
+
             modelBuilder.Entity("BookNest.Services.Database.Entities.Role", b =>
                 {
                     b.Property<int>("Id")
@@ -640,15 +708,11 @@ namespace BookNest.Services.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                    b.Property<int>("CityId")
+                        .HasColumnType("int");
 
-                    b.Property<string>("Country")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("CountryId")
+                        .HasColumnType("int");
 
                     b.Property<string>("PostalCode")
                         .IsRequired()
@@ -659,6 +723,10 @@ namespace BookNest.Services.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CityId");
+
+                    b.HasIndex("CountryId");
 
                     b.ToTable("Shippings");
                 });
@@ -703,11 +771,11 @@ namespace BookNest.Services.Migrations
                     b.Property<string>("Address")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("City")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("CityId")
+                        .HasColumnType("int");
 
-                    b.Property<string>("Country")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("CountryId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -756,6 +824,10 @@ namespace BookNest.Services.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CityId");
+
+                    b.HasIndex("CountryId");
+
                     b.ToTable("Users");
                 });
 
@@ -790,7 +862,7 @@ namespace BookNest.Services.Migrations
                     b.HasOne("BookNest.Services.Database.Entities.Author", "Author")
                         .WithMany("Books")
                         .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Author");
@@ -807,7 +879,7 @@ namespace BookNest.Services.Migrations
                     b.HasOne("BookNest.Services.Database.Entities.Category", "Category")
                         .WithMany("BookCategories")
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Book");
@@ -831,7 +903,7 @@ namespace BookNest.Services.Migrations
                     b.HasOne("BookNest.Services.Database.Entities.Book", "Book")
                         .WithMany("CartItems")
                         .HasForeignKey("BookId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BookNest.Services.Database.Entities.Cart", "Cart")
@@ -845,19 +917,44 @@ namespace BookNest.Services.Migrations
                     b.Navigation("Cart");
                 });
 
+            modelBuilder.Entity("BookNest.Services.Database.Entities.City", b =>
+                {
+                    b.HasOne("BookNest.Services.Database.Entities.Country", "Country")
+                        .WithMany("Cities")
+                        .HasForeignKey("CountryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Country");
+                });
+
             modelBuilder.Entity("BookNest.Services.Database.Entities.Event", b =>
                 {
+                    b.HasOne("BookNest.Services.Database.Entities.City", "City")
+                        .WithMany("Events")
+                        .HasForeignKey("CityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BookNest.Services.Database.Entities.Country", "Country")
+                        .WithMany("Events")
+                        .HasForeignKey("CountryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("BookNest.Services.Database.Entities.EventCategory", "EventCategory")
                         .WithMany("Events")
                         .HasForeignKey("EventCategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BookNest.Services.Database.Entities.Organizer", "Organizer")
                         .WithMany("Events")
                         .HasForeignKey("OrganizerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("City");
+
+                    b.Navigation("Country");
 
                     b.Navigation("EventCategory");
 
@@ -869,13 +966,13 @@ namespace BookNest.Services.Migrations
                     b.HasOne("BookNest.Services.Database.Entities.Event", "Event")
                         .WithMany("EventReservations")
                         .HasForeignKey("EventId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BookNest.Services.Database.Entities.User", "User")
                         .WithMany("EventReservations")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Event");
@@ -888,7 +985,7 @@ namespace BookNest.Services.Migrations
                     b.HasOne("BookNest.Services.Database.Entities.Book", "Book")
                         .WithMany("Favorites")
                         .HasForeignKey("BookId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BookNest.Services.Database.Entities.User", "User")
@@ -906,11 +1003,13 @@ namespace BookNest.Services.Migrations
                 {
                     b.HasOne("BookNest.Services.Database.Entities.Book", "Book")
                         .WithMany()
-                        .HasForeignKey("BookId");
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("BookNest.Services.Database.Entities.Event", "Event")
                         .WithMany("Notifications")
-                        .HasForeignKey("EventId");
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("BookNest.Services.Database.Entities.User", "User")
                         .WithMany("Notifications")
@@ -930,13 +1029,13 @@ namespace BookNest.Services.Migrations
                     b.HasOne("BookNest.Services.Database.Entities.Shipping", "Shipping")
                         .WithMany("Orders")
                         .HasForeignKey("ShippingId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BookNest.Services.Database.Entities.User", "User")
                         .WithMany("Orders")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Shipping");
@@ -949,7 +1048,7 @@ namespace BookNest.Services.Migrations
                     b.HasOne("BookNest.Services.Database.Entities.Book", "Book")
                         .WithMany()
                         .HasForeignKey("BookId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BookNest.Services.Database.Entities.Order", "Order")
@@ -978,16 +1077,18 @@ namespace BookNest.Services.Migrations
                 {
                     b.HasOne("BookNest.Services.Database.Entities.EventReservation", "EventReservation")
                         .WithOne("Payment")
-                        .HasForeignKey("BookNest.Services.Database.Entities.Payment", "EventReservationId");
+                        .HasForeignKey("BookNest.Services.Database.Entities.Payment", "EventReservationId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("BookNest.Services.Database.Entities.Order", "Order")
                         .WithOne("Payment")
-                        .HasForeignKey("BookNest.Services.Database.Entities.Payment", "OrderId");
+                        .HasForeignKey("BookNest.Services.Database.Entities.Payment", "OrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("BookNest.Services.Database.Entities.User", "User")
                         .WithMany("Payments")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("EventReservation");
@@ -1001,11 +1102,13 @@ namespace BookNest.Services.Migrations
                 {
                     b.HasOne("BookNest.Services.Database.Entities.Book", "Book")
                         .WithMany("Reviews")
-                        .HasForeignKey("BookId");
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("BookNest.Services.Database.Entities.Event", "Event")
                         .WithMany("Reviews")
-                        .HasForeignKey("EventId");
+                        .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("BookNest.Services.Database.Entities.User", "User")
                         .WithMany("Reviews")
@@ -1020,12 +1123,31 @@ namespace BookNest.Services.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("BookNest.Services.Database.Entities.Shipping", b =>
+                {
+                    b.HasOne("BookNest.Services.Database.Entities.City", "City")
+                        .WithMany("Shippings")
+                        .HasForeignKey("CityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BookNest.Services.Database.Entities.Country", "Country")
+                        .WithMany("Shippings")
+                        .HasForeignKey("CountryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("City");
+
+                    b.Navigation("Country");
+                });
+
             modelBuilder.Entity("BookNest.Services.Database.Entities.TBRList", b =>
                 {
                     b.HasOne("BookNest.Services.Database.Entities.Book", "Book")
                         .WithMany("TBRList")
                         .HasForeignKey("BookId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BookNest.Services.Database.Entities.User", "User")
@@ -1039,12 +1161,29 @@ namespace BookNest.Services.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("BookNest.Services.Database.Entities.User", b =>
+                {
+                    b.HasOne("BookNest.Services.Database.Entities.City", "City")
+                        .WithMany("Users")
+                        .HasForeignKey("CityId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("BookNest.Services.Database.Entities.Country", "Country")
+                        .WithMany("Users")
+                        .HasForeignKey("CountryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("City");
+
+                    b.Navigation("Country");
+                });
+
             modelBuilder.Entity("BookNest.Services.Database.Entities.UserRole", b =>
                 {
                     b.HasOne("BookNest.Services.Database.Entities.Role", "Role")
                         .WithMany("UserRoles")
                         .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("BookNest.Services.Database.Entities.User", "User")
@@ -1084,6 +1223,26 @@ namespace BookNest.Services.Migrations
             modelBuilder.Entity("BookNest.Services.Database.Entities.Category", b =>
                 {
                     b.Navigation("BookCategories");
+                });
+
+            modelBuilder.Entity("BookNest.Services.Database.Entities.City", b =>
+                {
+                    b.Navigation("Events");
+
+                    b.Navigation("Shippings");
+
+                    b.Navigation("Users");
+                });
+
+            modelBuilder.Entity("BookNest.Services.Database.Entities.Country", b =>
+                {
+                    b.Navigation("Cities");
+
+                    b.Navigation("Events");
+
+                    b.Navigation("Shippings");
+
+                    b.Navigation("Users");
                 });
 
             modelBuilder.Entity("BookNest.Services.Database.Entities.Event", b =>

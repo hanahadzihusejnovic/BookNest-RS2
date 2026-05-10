@@ -3,61 +3,88 @@ import '../models/login_request.dart';
 import '../models/login_response.dart';
 import 'api_service.dart';
 import '../models/register_request.dart';
+import 'package:http/http.dart' as http;
+import '../layouts/constants.dart';
 
 class AuthService {
   final ApiService _apiService = ApiService();
 
-  // Ključevi za SharedPreferences
   static const String _tokenKey = 'auth_token';
   static const String _userIdKey = 'user_id';
   static const String _usernameKey = 'username';
   static const String _firstNameKey = 'first_name';
   static const String _lastNameKey = 'last_name';
   static const String _emailKey = 'email';
-  static const String _rolesKey = 'roles'; // ← DODANO
-  
-  // Remember Me ključevi
+  static const String _rolesKey = 'roles';
+  static const String _expiresAtKey = 'expires_at'; // ← NOVO
+
   static const String _rememberMeKey = 'remember_me';
   static const String _savedUsernameKey = 'saved_username';
   static const String _savedPasswordKey = 'saved_password';
 
-  // Login
   Future<LoginResponse> login(String username, String password) async {
     final request = LoginRequest(username: username, password: password);
     final response = await _apiService.login(request);
-
     await _saveUserData(response);
-
     return response;
   }
 
-  // Register
   Future<void> register(RegisterRequest request) async {
     await _apiService.register(request);
   }
 
-  // Logout
   Future<void> logout() async {
+    try {
+      final token = await getToken();
+      if (token != null && token.isNotEmpty) {
+        await http.post(
+          Uri.parse('${AppConstants.baseUrl}/Auth/logout'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
+      }
+    } catch (e) {
+      print('⚠️ LOGOUT: Server logout failed: $e');
+    }
+
     final prefs = await SharedPreferences.getInstance();
-    
+
     final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
     final savedUsername = prefs.getString(_savedUsernameKey);
     final savedPassword = prefs.getString(_savedPasswordKey);
-    
-    await prefs.clear(); // Obriši sve podatke
-    
+
+    await prefs.clear();
+
     if (rememberMe && savedUsername != null && savedPassword != null) {
       await prefs.setBool(_rememberMeKey, true);
       await prefs.setString(_savedUsernameKey, savedUsername);
       await prefs.setString(_savedPasswordKey, savedPassword);
     }
-    
-    print('✅ LOGOUT: User data cleared (including roles)');
+
+    print('✅ LOGOUT: User data cleared');
   }
 
   Future<bool> isLoggedIn() async {
-    final token = await getToken();
-    return token != null && token.isNotEmpty;
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(_tokenKey);
+
+    if (token == null || token.isEmpty) return false;
+
+    // Provjeri je li token istekao
+    final expiresAtStr = prefs.getString(_expiresAtKey);
+    if (expiresAtStr != null) {
+      final expiresAt = DateTime.parse(expiresAtStr);
+      if (DateTime.now().isAfter(expiresAt)) {
+        // Token istekao — obriši lokalno
+        await prefs.clear();
+        print('⚠️ AUTH: Token expired, clearing local data');
+        return false;
+      }
+    }
+
+    return true;
   }
 
   Future<String?> getToken() async {
@@ -78,7 +105,6 @@ class AuthService {
   Future<Map<String, dynamic>?> getUserInfo() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_tokenKey);
-
     if (token == null) return null;
 
     return {
@@ -100,9 +126,9 @@ class AuthService {
     await prefs.setString(_firstNameKey, response.firstName);
     await prefs.setString(_lastNameKey, response.lastName);
     await prefs.setString(_emailKey, response.emailAddress);
-    
     await prefs.setStringList(_rolesKey, response.roles);
-    
+    await prefs.setString(_expiresAtKey, response.expiresAt.toIso8601String()); // ← NOVO
+
     print('✅ AUTH SERVICE: Saved user data with roles: ${response.roles}');
   }
 
@@ -132,19 +158,14 @@ class AuthService {
   Future<Map<String, String>?> getSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
     final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
-
     if (!rememberMe) return null;
 
     final username = prefs.getString(_savedUsernameKey);
     final password = prefs.getString(_savedPasswordKey);
-
     if (username == null || password == null) return null;
 
     print('✅ Remember Me: Credentials loaded (username: $username)');
-    return {
-      'username': username,
-      'password': password,
-    };
+    return {'username': username, 'password': password};
   }
 
   // ========== ROLE METODE ========== //
@@ -159,20 +180,13 @@ class AuthService {
     return roles.contains(roleName);
   }
 
-  Future<bool> isAdmin() async {
-    return await hasRole('Admin');
-  }
+  Future<bool> isAdmin() async => await hasRole('Admin');
+  Future<bool> isUser() async => await hasRole('User');
 
-  Future<bool> isUser() async {
-    return await hasRole('User');
-  }
-
-  // Forgot Password
   Future<void> forgotPassword(String email) async {
     await _apiService.forgotPassword(email);
   }
 
-  // Reset Password
   Future<void> resetPassword(String token, String newPassword, String confirmPassword) async {
     await _apiService.resetPassword(token, newPassword, confirmPassword);
   }

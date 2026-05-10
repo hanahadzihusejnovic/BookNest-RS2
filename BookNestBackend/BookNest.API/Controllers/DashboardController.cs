@@ -1,4 +1,5 @@
-﻿using BookNest.Model.Responses;
+﻿using BookNest.Model.Constants;
+using BookNest.Model.Responses;
 using BookNest.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,7 +8,7 @@ namespace BookNest.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Roles.Admin)]
     public class DashboardController : ControllerBase
     {
         private readonly IDashboardService _dashboardService;

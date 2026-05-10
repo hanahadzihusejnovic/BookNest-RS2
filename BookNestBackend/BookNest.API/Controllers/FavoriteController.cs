@@ -1,8 +1,8 @@
 ﻿using BookNest.API.BaseControllers;
+using BookNest.Model.Constants;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
-using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,13 +22,13 @@ namespace BookNest.API.Controllers
             _favoriteService = favoriteService;
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<PagedResult<FavoriteResponse>> Get([FromQuery] BaseSearchObject search)
         {
             return await base.Get(search);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<FavoriteResponse?> GetById(int id)
         {
             return await base.GetById(id);
@@ -51,22 +51,15 @@ namespace BookNest.API.Controllers
         [HttpPost("add")]
         public async Task<ActionResult<FavoriteResponse>> AddToFavorites([FromBody] FavoriteInsertRequest request)
         {
-            try
-            {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
 
-                if (userId == 0)
-                {
-                    return Unauthorized(new { message = "User not authenticated." });
-                }
-
-                var favorite = await _favoriteService.AddToFavoritesAsync(userId, request);
-                return Ok(favorite);
-            }
-            catch (Exception ex)
+            if (userId == 0)
             {
-                return BadRequest(new { message = ex.Message });
+                return Unauthorized(new { message = "User not authenticated." });
             }
+
+            var favorite = await _favoriteService.AddToFavoritesAsync(userId, request);
+            return Ok(favorite);
         }
 
         [HttpDelete("remove/{bookId}")]
@@ -80,11 +73,6 @@ namespace BookNest.API.Controllers
             }
 
             var result = await _favoriteService.RemoveFromFavoritesAsync(userId, bookId);
-
-            if (!result)
-            {
-                return NotFound(new { message = "Book not found in favorites." });
-            }
 
             return Ok(result);
         }

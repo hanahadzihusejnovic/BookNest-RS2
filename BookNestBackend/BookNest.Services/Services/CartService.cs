@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using BookNest.Model.Exceptions;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
@@ -7,11 +8,6 @@ using BookNest.Services.Database;
 using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BookNest.Services.Services
 {
@@ -67,7 +63,7 @@ namespace BookNest.Services.Services
 
             if (cart == null)
             {
-                return null;
+                throw new NotFoundException("Cart not found.");
             }
 
             return _mapper.Map<CartResponse>(cart);
@@ -121,7 +117,7 @@ namespace BookNest.Services.Services
             var book = await _dbContext.Books.FindAsync(new object[] { request.BookId }, cancellationToken);
             if (book == null)
             {
-                throw new Exception("Book not found.");
+                throw new NotFoundException("Book not found.");
             }
 
             var existingItem = cart.CartItems.FirstOrDefault(ci => ci.BookId == request.BookId);
@@ -156,19 +152,19 @@ namespace BookNest.Services.Services
 
             if (cart == null)
             {
-                throw new Exception("Cart not found.");
+                throw new NotFoundException("Cart not found.");
             }
 
             var cartItem = cart.CartItems.FirstOrDefault(ci => ci.Id == cartItemId);
 
             if (cartItem == null)
             {
-                throw new Exception("Cart item not found.");
+                throw new NotFoundException("Cart item not found.");
             }
 
             if (quantity <= 0)
             {
-                throw new Exception("Quantity must be greater than 0.");
+                throw new BusinessException("Quantity must be greater than 0.");
             }
 
             cartItem.Quantity = quantity;
@@ -185,14 +181,14 @@ namespace BookNest.Services.Services
 
             if (cart == null)
             {
-                throw new Exception("Cart not found.");
+                throw new NotFoundException("Cart not found.");
             }
 
             var cartItem = cart.CartItems.FirstOrDefault(ci => ci.Id == cartItemId);
 
             if (cartItem == null)
             {
-                throw new Exception("Cart item not found.");
+                throw new NotFoundException("Cart item not found.");
             }
 
             _dbContext.CartItems.Remove(cartItem);
@@ -209,7 +205,7 @@ namespace BookNest.Services.Services
 
             if (cart == null)
             {
-                return false;
+                throw new NotFoundException("Cart not found.");
             }
 
             _dbContext.CartItems.RemoveRange(cart.CartItems);

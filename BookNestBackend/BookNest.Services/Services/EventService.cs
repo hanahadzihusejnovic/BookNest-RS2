@@ -1,4 +1,7 @@
 ﻿using AutoMapper;
+using BookNest.Model.Enums;
+using BookNest.Model.Exceptions;
+using BookNest.Model.Messages;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
@@ -6,15 +9,8 @@ using BookNest.Services.BaseServices;
 using BookNest.Services.Database;
 using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BookNest.Services.MessageQueue;
-using BookNest.Model.Messages;
-using BookNest.Model.Enums;
+using Microsoft.EntityFrameworkCore;
 
 namespace BookNest.Services.Services
 {
@@ -40,8 +36,8 @@ namespace BookNest.Services.Services
                     e.Name != null && e.Name.ToLower().Contains(lower) ||
                     e.EventCategory != null && e.EventCategory.Name.ToLower().Contains(lower) ||
                     e.Organizer != null && e.Organizer.FirstName.ToLower().Contains(lower) ||
-                    e.City != null && e.City.ToLower().Contains(lower) ||
-                    e.Country != null && e.Country.ToLower().Contains(lower)
+                    e.City != null && e.City.Name.ToLower().Contains(lower) ||
+                    e.Country != null && e.Country.Name.ToLower().Contains(lower)
                     );
             }
 
@@ -81,13 +77,13 @@ namespace BookNest.Services.Services
             if (!string.IsNullOrWhiteSpace(search.City))
             {
                 query = query.Where(e => e.City != null &&
-                                         e.City.ToLower().Contains(search.City.ToLower()));
+                                         e.City.Name.ToLower().Contains(search.City.ToLower()));
             }
 
             if (!string.IsNullOrWhiteSpace(search.Country))
             {
                 query = query.Where(e => e.Country != null &&
-                                         e.Country.ToLower().Contains(search.Country.ToLower()));
+                                         e.Country.Name.ToLower().Contains(search.Country.ToLower()));
             }
 
             if (search.IsActive.HasValue)
@@ -103,6 +99,8 @@ namespace BookNest.Services.Services
             var query = _dbContext.Events
                          .Include(e => e.EventCategory)
                          .Include(e => e.Organizer)
+                         .Include(e => e.City)
+                         .Include(e => e.Country)
                          .AsQueryable();
 
             query = ApplyFilter(query, search);
@@ -134,17 +132,19 @@ namespace BookNest.Services.Services
 
         public override async Task<EventResponse?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
         {
-            var eventt = await _dbContext.Events
-                               .Include(e => e.EventCategory)
-                               .Include(e => e.Organizer)
-                               .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
+            var eventEntity = await _dbContext.Events
+                                   .Include(e => e.EventCategory)
+                                   .Include(e => e.Organizer)
+                                   .Include(e => e.City)
+                                   .Include(e => e.Country)
+                                   .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
-            if(eventt == null)
+            if (eventEntity == null)
             {
-                return null;
+                throw new NotFoundException("Event not found.");
             }
 
-            return _mapper.Map<EventResponse>(eventt);
+            return _mapper.Map<EventResponse>(eventEntity);
 
         }
 
@@ -156,10 +156,10 @@ namespace BookNest.Services.Services
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return await GetByIdAsync(eventEntity.Id, cancellationToken)
-                   ?? throw new Exception("Failed to retrieve created event.");
+                   ?? throw new BusinessException("Failed to retrieve created event.");
         }
 
-        public async Task<List<EventResponse>> GetRecommendedEventsAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
+        public async Task<List<EventRecommendationResponse>> GetRecommendedEventsAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
         {
             var myEventIds = await _dbContext.EventReservations
                 .Where(r => r.UserId == userId)
@@ -181,20 +181,35 @@ namespace BookNest.Services.Services
 
             var now = DateTime.UtcNow;
 
-            var recommended = await _dbContext.Events
+            var events = await _dbContext.Events
                 .Include(e => e.EventCategory)
                 .Include(e => e.Organizer)
                 .Where(e => collaborativeEventIds.Contains(e.Id) &&
                             e.IsActive &&
                             e.EventDate > now)
-                .OrderBy(e => e.EventDate)
-                .Take(count)
                 .ToListAsync(cancellationToken);
 
-            return _mapper.Map<List<EventResponse>>(recommended);
+            var result = events.Select(e =>
+            {
+                var daysUntilEvent = (e.EventDate - now).TotalDays;
+                var score = Math.Max(0, 1 - (daysUntilEvent / 365.0));
+
+                return (ev: e, score, daysUntilEvent);
+            })
+            .OrderBy(x => x.daysUntilEvent)
+            .Take(count)
+            .Select(x => new EventRecommendationResponse
+            {
+                Event = _mapper.Map<EventResponse>(x.ev),
+                Reason = $"Users with similar interests attended this event" +
+                         $", happening in {(int)x.daysUntilEvent} day(s)."
+            })
+            .ToList();
+
+            return result;
         }
 
-        public async Task<List<EventResponse>> GetContentBasedRecommendationsAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
+        public async Task<List<EventRecommendationResponse>> GetContentBasedRecommendationsAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
         {
             var myEventIds = await _dbContext.EventReservations
                 .Where(r => r.UserId == userId)
@@ -202,12 +217,16 @@ namespace BookNest.Services.Services
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            var preferredCategoryIds = await _dbContext.EventReservations
+            var preferredCategories = await _dbContext.EventReservations
                 .Where(r => r.UserId == userId)
                 .Include(r => r.Event)
-                .Select(r => r.Event.EventCategoryId)
+                    .ThenInclude(e => e.EventCategory)
+                .Select(r => new { r.Event.EventCategoryId, r.Event.EventCategory.Name })
                 .Distinct()
                 .ToListAsync(cancellationToken);
+
+            var preferredCategoryIds = preferredCategories.Select(c => c.EventCategoryId).ToList();
+            var preferredCategoryNames = preferredCategories.Select(c => c.Name).ToList();
 
             var now = DateTime.UtcNow;
 
@@ -223,21 +242,34 @@ namespace BookNest.Services.Services
                 query = query.Where(e => preferredCategoryIds.Contains(e.EventCategoryId));
             }
 
-            var recommended = await query
-                .OrderBy(e => e.EventDate)
-                .Take(count)
-                .ToListAsync(cancellationToken);
+            var events = await query.ToListAsync(cancellationToken);
 
-            return _mapper.Map<List<EventResponse>>(recommended);
+            var result = events.Select(e =>
+            {
+                var daysUntilEvent = (e.EventDate - now).TotalDays;
+
+                return (ev: e, daysUntilEvent);
+            })
+            .OrderBy(x => x.daysUntilEvent)
+            .Take(count)
+            .Select(x => new EventRecommendationResponse
+            {
+                Event = _mapper.Map<EventResponse>(x.ev),
+                Reason = $"Matches your interest in {string.Join(", ", preferredCategoryNames)}" +
+                         $", happening in {(int)x.daysUntilEvent} day(s)."
+            })
+            .ToList();
+
+            return result;
         }
 
-        public override async Task<EventResponse?> UpdateAsync(int id, EventUpdateRequest request,
-    CancellationToken cancellationToken = default)
+        public override async Task<EventResponse?> UpdateAsync(int id, EventUpdateRequest request, CancellationToken cancellationToken = default)
         {
             var eventEntity = await _dbContext.Events
                 .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
-            if (eventEntity == null) return null;
+            if (eventEntity == null)
+                throw new NotFoundException("Event not found.");
 
             bool wasActive = eventEntity.IsActive;
 

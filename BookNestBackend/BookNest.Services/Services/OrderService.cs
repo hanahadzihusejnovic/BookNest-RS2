@@ -1,21 +1,16 @@
 ﻿using AutoMapper;
 using BookNest.Model.Enums;
+using BookNest.Model.Exceptions;
+using BookNest.Model.Messages;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
 using BookNest.Services.BaseServices;
-using BookNest.Services.Database.Entities;
 using BookNest.Services.Database;
+using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Mvc;
 using BookNest.Services.MessageQueue;
-using BookNest.Model.Messages;
+using Microsoft.EntityFrameworkCore;
 
 namespace BookNest.Services.Services
 {
@@ -24,8 +19,7 @@ namespace BookNest.Services.Services
         private readonly BookNestDbContext _dbContext;
         private readonly IRabbitMqPublisher _publisher;
 
-        public OrderService(BookNestDbContext dbContext, IMapper mapper,
-            IRabbitMqPublisher publisher) : base(dbContext, mapper)
+        public OrderService(BookNestDbContext dbContext, IMapper mapper, IRabbitMqPublisher publisher) : base(dbContext, mapper)
         {
             _dbContext = dbContext;
             _publisher = publisher;
@@ -61,6 +55,8 @@ namespace BookNest.Services.Services
             var query = _dbContext.Orders
                 .Include(o => o.User)
                 .Include(o => o.Shipping)
+                    .ThenInclude(s => s.City)
+                    .ThenInclude(s => s.Country)
                 .Include(o => o.Payment)
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Book)
@@ -99,6 +95,8 @@ namespace BookNest.Services.Services
             var order = await _dbContext.Orders
                 .Include(o => o.User)
                 .Include(o => o.Shipping)
+                    .ThenInclude(s => s.City)
+                    .ThenInclude(s => s.Country)
                 .Include(o => o.Payment)
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Book)
@@ -107,7 +105,7 @@ namespace BookNest.Services.Services
 
             if (order == null)
             {
-                return null;
+                throw new NotFoundException("Order not found.");
             }
 
             return _mapper.Map<OrderResponse>(order);
@@ -121,67 +119,108 @@ namespace BookNest.Services.Services
                 .FirstOrDefaultAsync(c => c.UserId == userId, cancellationToken);
 
             if (cart == null || !cart.CartItems.Any())
-            {
-                throw new Exception("Cart is empty or does not exist.");
-            }
+                throw new BusinessException("Cart is empty or does not exist.");
+
+            // Spriječi višestruko plaćanje — provjeri pending narudžbe
+            var existingOrder = await _dbContext.Orders
+                .Include(o => o.Payment)
+                .Where(o => o.UserId == userId && o.Status == OrderStatus.Pending && o.Payment != null && o.Payment.IsSuccessful)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existingOrder != null)
+                throw new BusinessException("You already have a pending paid order.");
 
             decimal totalPrice = cart.CartItems.Sum(ci => ci.Price * ci.Quantity);
 
-            var shipping = new Shipping
+            // Verificiraj plaćanje na serveru
+            bool isSuccessful;
+            string? transactionId = null;
+
+            if (request.PaymentMethod == PaymentMethod.Card)
             {
-                Address = request.Shipping.Address,
-                City = request.Shipping.City,
-                Country = request.Shipping.Country,
-                PostalCode = request.Shipping.PostalCode
-            };
+                if (string.IsNullOrEmpty(request.PaymentIntentId))
+                    throw new BusinessException("PaymentIntentId is required for card payments.");
 
-            _dbContext.Shippings.Add(shipping);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+                Stripe.StripeConfiguration.ApiKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
+                var service = new Stripe.PaymentIntentService();
+                var intent = await service.GetAsync(request.PaymentIntentId, cancellationToken: cancellationToken);
 
-            var order = new Order
+                if (intent.Status != "succeeded")
+                    throw new BusinessException($"Payment not completed. Stripe status: {intent.Status}");
+
+                isSuccessful = true;
+                transactionId = intent.Id;
+            }
+            else
             {
-                UserId = userId,
-                OrderDate = DateTime.UtcNow,
-                Status = OrderStatus.Pending,
-                TotalPrice = totalPrice,
-                ShippingId = shipping.Id
-            };
-
-            _dbContext.Orders.Add(order);
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            foreach (var cartItem in cart.CartItems)
-            {
-                var orderItem = new OrderItem
-                {
-                    OrderId = order.Id,
-                    BookId = cartItem.BookId,
-                    Quantity = cartItem.Quantity,
-                    Price = cartItem.Price
-                };
-
-                _dbContext.OrderItems.Add(orderItem);
+                // Cash on Delivery — server evidentira kao uspješno
+                isSuccessful = true;
+                transactionId = $"COD-{Guid.NewGuid()}";
             }
 
-            var payment = new Payment
+            using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                UserId = userId,
-                PaymentMethod = request.PaymentMethod,
-                Amount = totalPrice,
-                OrderId = order.Id,
-                PaymentDate = DateTime.UtcNow,
-                IsSuccessful = true,
-                TransactionId = request.TransactionId
-            };
+                var shipping = new Shipping
+                {
+                    Address = request.Shipping.Address,
+                    CityId = request.Shipping.CityId,
+                    CountryId = request.Shipping.CountryId,
+                    PostalCode = request.Shipping.PostalCode
+                };
 
-            _dbContext.Payments.Add(payment);
+                _dbContext.Shippings.Add(shipping);
+                await _dbContext.SaveChangesAsync(cancellationToken);
 
-            _dbContext.CartItems.RemoveRange(cart.CartItems);
+                var order = new Order
+                {
+                    UserId = userId,
+                    OrderDate = DateTime.UtcNow,
+                    Status = OrderStatus.Pending,
+                    TotalPrice = totalPrice,
+                    ShippingId = shipping.Id
+                };
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
-            
-            return await GetByIdAsync(order.Id, cancellationToken)
-                   ?? throw new Exception("Failed to retrieve created order.");
+                _dbContext.Orders.Add(order);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                foreach (var cartItem in cart.CartItems)
+                {
+                    var orderItem = new OrderItem
+                    {
+                        OrderId = order.Id,
+                        BookId = cartItem.BookId,
+                        Quantity = cartItem.Quantity,
+                        Price = cartItem.Price
+                    };
+                    _dbContext.OrderItems.Add(orderItem);
+                }
+
+                var payment = new Payment
+                {
+                    UserId = userId,
+                    PaymentMethod = request.PaymentMethod,
+                    Amount = totalPrice,
+                    OrderId = order.Id,
+                    PaymentDate = DateTime.UtcNow,
+                    IsSuccessful = isSuccessful,
+                    TransactionId = transactionId
+                };
+
+                _dbContext.Payments.Add(payment);
+                _dbContext.CartItems.RemoveRange(cart.CartItems);
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+
+                return await GetByIdAsync(order.Id, cancellationToken)
+                       ?? throw new BusinessException("Failed to retrieve created order.");
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
         }
 
         public async Task<List<OrderResponse>> GetUserOrdersAsync(int userId, CancellationToken cancellationToken = default)
@@ -189,6 +228,8 @@ namespace BookNest.Services.Services
             var orders = await _dbContext.Orders
                 .Include(o => o.User)
                 .Include(o => o.Shipping)
+                    .ThenInclude(s => s.City)
+                    .ThenInclude(s => s.Country)
                 .Include(o => o.Payment)
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Book)
@@ -200,14 +241,14 @@ namespace BookNest.Services.Services
             return _mapper.Map<List<OrderResponse>>(orders);
         }
 
-        public override async Task<OrderResponse?> UpdateAsync(int id, OrderUpdateRequest request,
-    CancellationToken cancellationToken = default)
+        public override async Task<OrderResponse?> UpdateAsync(int id, OrderUpdateRequest request, CancellationToken cancellationToken = default)
         {
             var order = await _dbContext.Orders
                 .Include(o => o.User)
                 .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
 
-            if (order == null) return null;
+            if (order == null)
+                throw new NotFoundException("Order not found.");
 
             order.Status = request.Status;
             order.ShippedDate = request.ShippedDate;
@@ -233,6 +274,26 @@ namespace BookNest.Services.Services
             });
 
             return await GetByIdAsync(id, cancellationToken);
+        }
+
+        public async Task<PaymentIntentResponse> CreatePaymentIntentAsync(PaymentIntentRequest request)
+        {
+            Stripe.StripeConfiguration.ApiKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
+            var options = new Stripe.PaymentIntentCreateOptions
+            {
+                Amount = (long)(request.Amount * 100),
+                Currency = "bam",
+                PaymentMethodTypes = new List<string> { "card" },
+            };
+
+            var service = new Stripe.PaymentIntentService();
+            var intent = await service.CreateAsync(options);
+
+            return new PaymentIntentResponse
+            {
+                ClientSecret = intent.ClientSecret,
+                PaymentIntentId = intent.Id
+            };
         }
     }
 }

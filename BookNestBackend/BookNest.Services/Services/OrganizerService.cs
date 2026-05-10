@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using BookNest.Model.Exceptions;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
@@ -7,11 +8,6 @@ using BookNest.Services.Database;
 using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BookNest.Services.Services
 {
@@ -98,7 +94,7 @@ namespace BookNest.Services.Services
 
             if(organizer == null)
             {
-                return null;
+                throw new NotFoundException("Organizer not found.");
             }
 
             return _mapper.Map<OrganizerResponse>(organizer);
@@ -110,7 +106,7 @@ namespace BookNest.Services.Services
 
             if (organizer == null)
             {
-                return null;
+                throw new NotFoundException("Organizer not found.");
             }
 
             _mapper.Map(request, organizer);

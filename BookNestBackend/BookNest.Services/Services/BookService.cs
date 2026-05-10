@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using BookNest.Model.Exceptions;
+using BookNest.Model.Messages;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
@@ -6,14 +8,8 @@ using BookNest.Services.BaseServices;
 using BookNest.Services.Database;
 using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BookNest.Services.MessageQueue;
-using BookNest.Model.Messages;
+using Microsoft.EntityFrameworkCore;
 
 namespace BookNest.Services.Services
 {
@@ -125,7 +121,7 @@ namespace BookNest.Services.Services
 
             if(book == null)
             {
-                return null;
+                throw new NotFoundException("Book not found.");
             }
 
             return _mapper.Map<BookResponse>(book);
@@ -135,35 +131,45 @@ namespace BookNest.Services.Services
         {
             var book = _mapper.Map<Book>(request);
 
-            _dbContext.Books.Add(book);
-            await _dbContext.SaveChangesAsync();
-
-            if(request.CategoryIds != null && request.CategoryIds.Count > 0)
+            using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                foreach(var categoryId in request.CategoryIds)
+                _dbContext.Books.Add(book);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                if (request.CategoryIds != null && request.CategoryIds.Count > 0)
                 {
-                    if(await _dbContext.Categories.AnyAsync(c => c.Id == categoryId))
+                    foreach (var categoryId in request.CategoryIds)
                     {
-                        var bookCategory = new BookCategory
+                        if (await _dbContext.Categories.AnyAsync(c => c.Id == categoryId, cancellationToken))
                         {
-                            BookId = book.Id,
-                            CategoryId = categoryId
-                        };
-                        _dbContext.BookCategories.Add(bookCategory);
+                            var bookCategory = new BookCategory
+                            {
+                                BookId = book.Id,
+                                CategoryId = categoryId
+                            };
+                            _dbContext.BookCategories.Add(bookCategory);
+                        }
                     }
+                    await _dbContext.SaveChangesAsync(cancellationToken);
                 }
 
-                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync(cancellationToken);
+                return await GetBookWithCategoryAsync(book.Id);
             }
-
-            return await GetBookWithCategoryAsync(book.Id);
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
         }
 
         public override async Task<BookResponse?> UpdateAsync(int id, BookUpdateRequest request, CancellationToken cancellationToken = default)
         {
             var book = await _dbContext.Books.FindAsync(id);
 
-            if (book == null) return null;
+            if (book == null)
+                throw new NotFoundException("Book not found.");
 
             bool wasInStock = book.Stock > 0;
 
@@ -193,7 +199,6 @@ namespace BookNest.Services.Services
 
             await _dbContext.SaveChangesAsync();
 
-            // Ako je knjiga upravo postala nedostupna (bio stock > 0, sad je 0)
             if (wasInStock && request.Stock == 0)
             {
                 var affectedCartItems = await _dbContext.CartItems
@@ -205,7 +210,7 @@ namespace BookNest.Services.Services
                 {
                     await _publisher.PublishAsync("notifications-queue", new NotificationMessage
                     {
-                        UserId = cartItem.Cart.UserId,  // ← ovdje izmjena
+                        UserId = cartItem.Cart.UserId,
                         BookId = id,
                         Title = "Book no longer available",
                         Message = $"'{book.Title}' that you have in your cart is no longer available.",
@@ -228,7 +233,7 @@ namespace BookNest.Services.Services
 
             if(book == null)
             {
-                throw new InvalidOperationException("Book not found.");
+                throw new NotFoundException("Book not found.");
             }
 
             var response = _mapper.Map<BookResponse>(book);
@@ -243,7 +248,7 @@ namespace BookNest.Services.Services
             return response;
         }
 
-        public async Task<List<BookResponse>> GetRecommendedBooksAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
+        public async Task<List<BookRecommendationResponse>> GetRecommendedBooksAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
         {
             var myBookIds = await GetUserInteractedBookIds(userId, cancellationToken);
 
@@ -281,18 +286,34 @@ namespace BookNest.Services.Services
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            var recommended = await _dbContext.Books
-                                    .Include(b => b.Author)
-                                    .Include(b => b.BookCategories)
-                                        .ThenInclude(bc => bc.Category)  
-                                    .Include(b => b.Reviews)
-                                    .Where(b => collaborativeBookIds.Contains(b.Id))
-                                    .OrderByDescending(b =>
-                                        b.Reviews.Any() ? b.Reviews.Average(r => r.Rating) : 0)
-                                    .Take(count)
-                                    .ToListAsync(cancellationToken);
+            var books = await _dbContext.Books
+                .Include(b => b.Author)
+                .Include(b => b.BookCategories)
+                    .ThenInclude(bc => bc.Category)
+                .Include(b => b.Reviews)
+                .Where(b => collaborativeBookIds.Contains(b.Id))
+                .ToListAsync(cancellationToken);
 
-            return _mapper.Map<List<BookResponse>>(recommended);
+            var result = books.Select(b =>
+            {
+                var avgRating = b.Reviews.Any() ? b.Reviews.Average(r => r.Rating) : 0;
+                var reviewCount = b.Reviews.Count;
+                var score = (avgRating * 0.6) + (Math.Min(reviewCount, 50) / 50.0 * 0.4);
+
+                return (book: b, score, avgRating, reviewCount);
+            })
+            .OrderByDescending(x => x.score)
+            .Take(count)
+            .Select(x => new BookRecommendationResponse
+            {
+                Book = _mapper.Map<BookResponse>(x.book),
+                Reason = $"Users with similar taste also liked this book" +
+                         (x.avgRating > 0 ? $", average rating {x.avgRating:F1}/5" : "") +
+                         (x.reviewCount > 0 ? $" ({x.reviewCount} review(s))." : ".")
+            })
+            .ToList();
+
+            return result;
         }
 
         private async Task<List<int>> GetUserInteractedBookIds(int userId, CancellationToken cancellationToken)
@@ -315,15 +336,18 @@ namespace BookNest.Services.Services
             return purchased.Union(favorites).Union(tbr).Distinct().ToList();
         }
 
-        public async Task<List<BookResponse>> GetContentBasedRecommendationsAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
+        public async Task<List<BookRecommendationResponse>> GetContentBasedRecommendationsAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
         {
             var myBookIds = await GetUserInteractedBookIds(userId, cancellationToken);
 
-            var preferredCategoryIds = await _dbContext.BookCategories
+            var preferredCategories = await _dbContext.BookCategories
                 .Where(bc => myBookIds.Contains(bc.BookId))
-                .Select(bc => bc.CategoryId)
+                .Include(bc => bc.Category)
+                .Select(bc => new { bc.CategoryId, bc.Category.Name })
                 .Distinct()
                 .ToListAsync(cancellationToken);
+
+            var preferredCategoryIds = preferredCategories.Select(c => c.CategoryId).ToList();
 
             IQueryable<Book> query = _dbContext.Books
                 .Include(b => b.Author)
@@ -338,13 +362,34 @@ namespace BookNest.Services.Services
                     b.BookCategories.Any(bc => preferredCategoryIds.Contains(bc.CategoryId)));
             }
 
-            var books = await query
-                .OrderByDescending(b =>
-                    b.Reviews.Any() ? b.Reviews.Average(r => r.Rating) : 0)
-                .Take(count)
-                .ToListAsync(cancellationToken);
+            var books = await query.ToListAsync(cancellationToken);
 
-            return _mapper.Map<List<BookResponse>>(books);
+            var result = books.Select(b =>
+            {
+                var avgRating = b.Reviews.Any() ? b.Reviews.Average(r => r.Rating) : 0;
+                var reviewCount = b.Reviews.Count;
+                var categoryOverlap = b.BookCategories.Count(bc => preferredCategoryIds.Contains(bc.CategoryId));
+                var score = (avgRating * 0.5) + (Math.Min(reviewCount, 50) / 50.0 * 0.3) + (categoryOverlap * 0.2);
+
+                var matchedCategories = b.BookCategories
+                    .Where(bc => preferredCategoryIds.Contains(bc.CategoryId))
+                    .Select(bc => bc.Category.Name)
+                    .ToList();
+
+                return (book: b, score, avgRating, reviewCount, matchedCategories);
+            })
+            .OrderByDescending(x => x.score)
+            .Take(count)
+            .Select(x => new BookRecommendationResponse
+            {
+                Book = _mapper.Map<BookResponse>(x.book),
+                Reason = $"Matches your interest in {string.Join(", ", x.matchedCategories)}" +
+                         (x.avgRating > 0 ? $", rated {x.avgRating:F1}/5" : "") +
+                         (x.reviewCount > 0 ? $" by {x.reviewCount} reader(s)." : ".")
+            })
+            .ToList();
+
+            return result;
         }
     }
 }

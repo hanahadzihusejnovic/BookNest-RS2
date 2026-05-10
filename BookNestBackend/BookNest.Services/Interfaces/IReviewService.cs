@@ -2,11 +2,6 @@
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
 using BookNest.Services.BaseInterfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BookNest.Services.Interfaces
 {
@@ -17,5 +12,8 @@ namespace BookNest.Services.Interfaces
         Task<List<ReviewResponse>> GetUserReviewsAsync(int userId, CancellationToken cancellationToken = default);
         Task<double> GetBookAverageRatingAsync(int bookId, CancellationToken cancellationToken = default);
         Task<double> GetEventAverageRatingAsync(int eventId, CancellationToken cancellationToken = default);
+        Task<ReviewResponse> CreateReviewAsync(int userId, ReviewInsertRequest request, CancellationToken cancellationToken = default);
+        Task<ReviewResponse?> UpdateReviewAsync(int id, int userId, ReviewUpdateRequest request, CancellationToken cancellationToken = default);
+        Task<bool> DeleteReviewAsync(int id, int userId, bool isAdmin, CancellationToken cancellationToken = default);
     }
 }

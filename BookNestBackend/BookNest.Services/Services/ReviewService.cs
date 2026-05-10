@@ -1,16 +1,12 @@
 ﻿using AutoMapper;
+using BookNest.Model.Exceptions;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
 using BookNest.Services.BaseServices;
-using BookNest.Services.Database.Entities;
 using BookNest.Services.Database;
+using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace BookNest.Services.Services
@@ -101,7 +97,7 @@ namespace BookNest.Services.Services
 
             if (review == null)
             {
-                return null;
+                throw new NotFoundException("Review not found.");
             }
 
             return _mapper.Map<ReviewResponse>(review);
@@ -111,12 +107,12 @@ namespace BookNest.Services.Services
         {
             if (!request.BookId.HasValue && !request.EventId.HasValue)
             {
-                throw new Exception("Either BookId or EventId must be provided.");
+                throw new BusinessException("Either BookId or EventId must be provided.");
             }
 
             if (request.BookId.HasValue && request.EventId.HasValue)
             {
-                throw new Exception("Cannot review both Book and Event at the same time.");
+                throw new BusinessException("Cannot review both Book and Event at the same time.");
             }
 
             if (request.BookId.HasValue)
@@ -124,7 +120,7 @@ namespace BookNest.Services.Services
                 var book = await _dbContext.Books.FindAsync(new object[] { request.BookId.Value }, cancellationToken);
                 if (book == null)
                 {
-                    throw new Exception("Book not found.");
+                    throw new NotFoundException("Book not found.");
                 }
             }
 
@@ -133,7 +129,7 @@ namespace BookNest.Services.Services
                 var eventEntity = await _dbContext.Events.FindAsync(new object[] { request.EventId.Value }, cancellationToken);
                 if (eventEntity == null)
                 {
-                    throw new Exception("Event not found.");
+                    throw new NotFoundException("Event not found.");
                 }
             }
 
@@ -205,6 +201,60 @@ namespace BookNest.Services.Services
             }
 
             return reviews.Average(r => r.Rating);
+        }
+
+        public async Task<ReviewResponse> CreateReviewAsync(int userId, ReviewInsertRequest request, CancellationToken cancellationToken = default)
+        {
+            if (!request.BookId.HasValue && !request.EventId.HasValue)
+                throw new BusinessException("Either BookId or EventId must be provided.");
+
+            if (request.BookId.HasValue && request.EventId.HasValue)
+                throw new BusinessException("Cannot review both Book and Event at the same time.");
+
+            var review = new Review
+            {
+                UserId = userId,
+                BookId = request.BookId,
+                EventId = request.EventId,
+                Rating = request.Rating,
+                Comment = request.Comment,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _dbContext.Reviews.Add(review);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return await GetByIdAsync(review.Id, cancellationToken)
+                   ?? throw new BusinessException("Failed to retrieve created review.");
+        }
+
+        public async Task<ReviewResponse?> UpdateReviewAsync(int id, int userId, ReviewUpdateRequest request, CancellationToken cancellationToken = default)
+        {
+            var review = await _dbContext.Reviews.FindAsync(new object[] { id }, cancellationToken);
+
+            if (review == null || review.UserId != userId)
+                throw new NotFoundException("Review not found.");
+
+            _mapper.Map(request, review);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return await GetByIdAsync(id, cancellationToken);
+        }
+
+        public async Task<bool> DeleteReviewAsync(int id, int userId, bool isAdmin, CancellationToken cancellationToken = default)
+        {
+            var review = await _dbContext.Reviews.FindAsync(new object[] { id }, cancellationToken);
+
+            if (review == null)
+                throw new NotFoundException("Review not found.");
+
+            if (!isAdmin && review.UserId != userId) 
+                throw new NotFoundException("Review not found.");
+
+            _dbContext.Reviews.Remove(review);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return true;
         }
     }
 }

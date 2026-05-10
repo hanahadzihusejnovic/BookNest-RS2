@@ -1,20 +1,16 @@
 ﻿using AutoMapper;
 using BookNest.Model.Enums;
+using BookNest.Model.Exceptions;
+using BookNest.Model.Messages;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
 using BookNest.Services.BaseServices;
-using BookNest.Services.Database.Entities;
 using BookNest.Services.Database;
+using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using BookNest.Services.MessageQueue;
-using BookNest.Model.Messages;
+using Microsoft.EntityFrameworkCore;
 
 namespace BookNest.Services.Services
 {
@@ -107,7 +103,7 @@ namespace BookNest.Services.Services
 
             if (reservation == null)
             {
-                return null;
+                throw new NotFoundException("Reservation not found.");
             }
 
             return _mapper.Map<EventReservationResponse>(reservation);
@@ -122,7 +118,7 @@ namespace BookNest.Services.Services
 
             if (reservation == null)
             {
-                return false;
+                throw new NotFoundException("Reservation not found.");
             }
 
             if (reservation.Payment != null)
@@ -147,76 +143,77 @@ namespace BookNest.Services.Services
         {
             var user = await _dbContext.Users.FindAsync(new object[] { userId }, cancellationToken);
             if (user == null)
-            {
-                throw new Exception($"User with ID {userId} does not exist in database.");
-            }
+                throw new NotFoundException("User not found.");
 
             var eventEntity = await _dbContext.Events.FindAsync(new object[] { request.EventId }, cancellationToken);
             if (eventEntity == null)
-            {
-                throw new Exception("Event not found.");
-            }
+                throw new NotFoundException("Event not found.");
 
             if (!eventEntity.IsActive)
-            {
-                throw new Exception("Event is not active.");
-            }
+                throw new BusinessException("Event is not active.");
 
             var availableSeats = eventEntity.Capacity - eventEntity.ReservedSeats;
             if (availableSeats < request.Quantity)
-            {
-                throw new Exception($"Not enough available seats. Only {availableSeats} seats available.");
-            }
+                throw new BusinessException($"Not enough available seats. Only {availableSeats} seats available.");
 
-            var existingReservation = await _dbContext.EventReservations.FirstOrDefaultAsync(r => r.UserId == userId
-                                                                                                  && r.EventId == request.EventId
-                                                                                                  && r.ReservationStatus != ReservationStatus.Cancelled, cancellationToken);
+            var existingReservation = await _dbContext.EventReservations
+                .FirstOrDefaultAsync(r => r.UserId == userId
+                                          && r.EventId == request.EventId
+                                          && r.ReservationStatus != ReservationStatus.Cancelled, cancellationToken);
 
             if (existingReservation != null)
-                throw new Exception("You already have a reservation for this event.");
+                throw new BusinessException("You already have a reservation for this event.");
 
             var eventDateTime = eventEntity.EventDate.Date + eventEntity.EventTime;
             if (eventDateTime < DateTime.UtcNow)
-            {
-                throw new Exception("Cannot reserve seats for past events.");
-            }
+                throw new BusinessException("Cannot reserve seats for past events.");
 
             decimal totalPrice = eventEntity.TicketPrice * request.Quantity;
 
-            var reservation = new EventReservation
+            using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+            try
             {
-                UserId = userId,
-                EventId = request.EventId,
-                Quantity = request.Quantity,
-                TotalPrice = totalPrice,
-                EventDateTime = eventDateTime,
-                ReservationDate = DateTime.UtcNow,
-                ReservationStatus = ReservationStatus.Pending,
-                TicketQRCodeLink = GenerateQRCodeLink() 
-            };
+                var reservation = new EventReservation
+                {
+                    UserId = userId,
+                    EventId = request.EventId,
+                    Quantity = request.Quantity,
+                    TotalPrice = totalPrice,
+                    EventDateTime = eventDateTime,
+                    ReservationDate = DateTime.UtcNow,
+                    ReservationStatus = ReservationStatus.Pending,
+                    TicketQRCodeLink = GenerateQRCodeLink()
+                };
 
-            _dbContext.EventReservations.Add(reservation);
-            await _dbContext.SaveChangesAsync(cancellationToken);
+                _dbContext.EventReservations.Add(reservation);
+                await _dbContext.SaveChangesAsync(cancellationToken);
 
-            var payment = new Payment
+                var payment = new Payment
+                {
+                    UserId = userId,
+                    PaymentMethod = request.PaymentMethod,
+                    Amount = totalPrice,
+                    EventReservationId = reservation.Id,
+                    PaymentDate = DateTime.UtcNow,
+                    IsSuccessful = true,
+                    TransactionId = request.TransactionId
+                };
+
+                _dbContext.Payments.Add(payment);
+                eventEntity.ReservedSeats += request.Quantity;
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                await transaction.CommitAsync(cancellationToken);
+
+                return await GetByIdAsync(reservation.Id, cancellationToken)
+                       ?? throw new BusinessException("Failed to retrieve created reservation.");
+            }
+            catch
             {
-                UserId = userId,
-                PaymentMethod = request.PaymentMethod,
-                Amount = totalPrice,
-                EventReservationId = reservation.Id,
-                PaymentDate = DateTime.UtcNow,
-                IsSuccessful = true,
-                TransactionId = request.TransactionId
-            };
-
-            _dbContext.Payments.Add(payment);
-
-            eventEntity.ReservedSeats += request.Quantity;
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return await GetByIdAsync(reservation.Id, cancellationToken)
-                   ?? throw new Exception("Failed to retrieve created reservation.");
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
         }
 
         public async Task<List<EventReservationResponse>> GetUserReservationsAsync(int userId, CancellationToken cancellationToken = default)
@@ -250,7 +247,7 @@ namespace BookNest.Services.Services
             var eventEntity = await _dbContext.Events.FindAsync(new object[] { eventId }, cancellationToken);
             if (eventEntity == null)
             {
-                throw new Exception("Event not found.");
+                throw new NotFoundException("Event not found.");
             }
 
             return eventEntity.Capacity - eventEntity.ReservedSeats;
@@ -262,7 +259,8 @@ namespace BookNest.Services.Services
                 .Include(r => r.Event)
                 .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
-            if (reservation == null) return null;
+            if (reservation == null)
+                throw new NotFoundException("Reservation not found.");
 
             reservation.ReservationStatus = request.ReservationStatus;
 
@@ -301,7 +299,7 @@ namespace BookNest.Services.Services
                 .FirstOrDefaultAsync(r => r.Id == reservationId, cancellationToken);
 
             if (reservation == null)
-                throw new Exception("Reservation not found.");
+                throw new NotFoundException("Reservation not found.");
 
             await _publisher.PublishAsync("notifications-queue", new NotificationMessage
             {

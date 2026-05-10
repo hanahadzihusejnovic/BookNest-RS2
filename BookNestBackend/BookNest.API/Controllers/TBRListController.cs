@@ -1,9 +1,9 @@
 ﻿using BookNest.API.BaseControllers;
+using BookNest.Model.Constants;
 using BookNest.Model.Enums;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
-using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,13 +23,13 @@ namespace BookNest.API.Controllers
             _tbrListService = tbrListService;
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<PagedResult<TBRListResponse>> Get([FromQuery] BaseSearchObject search)
         {
             return await base.Get(search);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<TBRListResponse?> GetById(int id)
         {
             return await base.GetById(id);
@@ -52,43 +52,29 @@ namespace BookNest.API.Controllers
         [HttpPost("add")]
         public async Task<ActionResult<TBRListResponse>> AddToTBRList([FromBody] TBRListInsertRequest request)
         {
-            try
-            {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
 
-                if (userId == 0)
-                {
-                    return Unauthorized(new { message = "User not authenticated." });
-                }
-
-                var tbrItem = await _tbrListService.AddToTBRListAsync(userId, request);
-                return Ok(tbrItem);
-            }
-            catch (Exception ex)
+            if (userId == 0)
             {
-                return BadRequest(new { message = ex.Message });
+                return Unauthorized(new { message = "User not authenticated." });
             }
+
+            var tbrItem = await _tbrListService.AddToTBRListAsync(userId, request);
+            return Ok(tbrItem);
         }
 
         [HttpPut("update-status/{bookId}")]
         public async Task<ActionResult<TBRListResponse>> UpdateStatus(int bookId, [FromBody] ReadingStatus status)
         {
-            try
-            {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
 
-                if (userId == 0)
-                {
-                    return Unauthorized(new { message = "User not authenticated." });
-                }
-
-                var tbrItem = await _tbrListService.UpdateTBRListStatusAsync(userId, bookId, status);
-                return Ok(tbrItem);
-            }
-            catch (Exception ex)
+            if (userId == 0)
             {
-                return BadRequest(new { message = ex.Message });
+                return Unauthorized(new { message = "User not authenticated." });
             }
+
+            var tbrItem = await _tbrListService.UpdateTBRListStatusAsync(userId, bookId, status);
+            return Ok(tbrItem);
         }
 
         [HttpDelete("remove/{bookId}")]
@@ -102,11 +88,6 @@ namespace BookNest.API.Controllers
             }
 
             var result = await _tbrListService.RemoveFromTBRListAsync(userId, bookId);
-
-            if (!result)
-            {
-                return NotFound(new { message = "Book not found in TBR list." });
-            }
 
             return Ok(result);
         }

@@ -35,9 +35,9 @@ class _LoginScreenState extends State<LoginScreen> {
     
     final credentials = await _authService.getSavedCredentials();
     
-    if (credentials != null) {
+    if (credentials != null && mounted) {
       print('✅ LOGIN: Found saved credentials for: ${credentials['username']}');
-      
+
       setState(() {
         _usernameController.text = credentials['username']!;
         _passwordController.text = credentials['password']!;

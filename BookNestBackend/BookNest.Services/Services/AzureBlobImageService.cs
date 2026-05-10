@@ -1,7 +1,7 @@
 ﻿using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using BookNest.Model.Exceptions;
 using BookNest.Services.Interfaces;
-using Microsoft.Extensions.Configuration;
 
 namespace BookNest.Infrastructure.Services
 {
@@ -9,17 +9,20 @@ namespace BookNest.Infrastructure.Services
     {
         private readonly BlobServiceClient _blobServiceClient;
 
-        public AzureBlobImageService(IConfiguration configuration)
+        public AzureBlobImageService()
         {
-            var connectionString = configuration.GetConnectionString("AzureStorageConnectionString");
+            var connectionString = Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION");
             _blobServiceClient = new BlobServiceClient(connectionString);
         }
 
         public async Task<string> UploadImageAsync(Stream imageStream, string fileName, string containerName)
         {
             var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+            
             await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
-            var blobClient = containerClient.GetBlobClient(fileName); // koristi fileName direktno
+            
+            var blobClient = containerClient.GetBlobClient(fileName);
+            
             await blobClient.UploadAsync(imageStream, new BlobHttpHeaders { ContentType = GetContentType(fileName) });
             return blobClient.Uri.ToString();
         }
@@ -37,9 +40,9 @@ namespace BookNest.Infrastructure.Services
                 await blobClient.DeleteIfExistsAsync();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
-                return false;
+                throw new BusinessException($"Failed to delete image: {ex.Message}");
             }
         }
 

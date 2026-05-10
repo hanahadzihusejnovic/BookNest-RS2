@@ -17,14 +17,14 @@ namespace BookNest.API.Hubs
             if (!string.IsNullOrEmpty(userId))
             {
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"user-{userId}");
-                _logger.LogInformation("✅ User {UserId} connected to NotificationHub", userId);
+                _logger.LogInformation("User {UserId} connected to NotificationHub", userId);
             }
             await base.OnConnectedAsync();
         }
 
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
-            _logger.LogInformation("🔌 Client disconnected: {ConnectionId}", Context.ConnectionId);
+            _logger.LogInformation("Client disconnected: {ConnectionId}", Context.ConnectionId);
             await base.OnDisconnectedAsync(exception);
         }
     }

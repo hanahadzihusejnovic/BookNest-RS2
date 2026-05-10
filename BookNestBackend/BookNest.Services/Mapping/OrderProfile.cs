@@ -2,11 +2,6 @@
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Services.Database.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BookNest.Services.Mapping
 {
@@ -26,7 +21,11 @@ namespace BookNest.Services.Mapping
                 .ForMember(dest => dest.BookImageUrl, opt => opt.MapFrom(src => src.Book.CoverImageUrl))
                 .ForMember(dest => dest.Subtotal, opt => opt.MapFrom(src => src.Quantity * src.Price));
 
-            CreateMap<Shipping, ShippingResponse>();
+            CreateMap<Shipping, ShippingResponse>()
+                .ForMember(dest => dest.CityId, opt => opt.MapFrom(src => src.CityId))
+                .ForMember(dest => dest.CityName, opt => opt.MapFrom(src => src.City != null ? src.City.Name : null))
+                .ForMember(dest => dest.CountryId, opt => opt.MapFrom(src => src.CountryId))
+                .ForMember(dest => dest.CountryName, opt => opt.MapFrom(src => src.Country != null ? src.Country.Name : null));
 
             CreateMap<Payment, PaymentResponse>();
 

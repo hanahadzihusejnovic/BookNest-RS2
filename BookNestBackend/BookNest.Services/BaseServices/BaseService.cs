@@ -1,11 +1,6 @@
 ﻿using BookNest.Services.BaseInterfaces;
 using BookNest.Services.Database;
 using AutoMapper;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using BookNest.Model.SearchObjects;
 using BookNest.Model.Responses;
 using Microsoft.EntityFrameworkCore;
@@ -38,7 +33,7 @@ namespace BookNest.Services.BaseServices
                 totalCount = await query.CountAsync(cancellationToken);
             }
 
-            if(!search.RetrieveAll)
+            if (!search.RetrieveAll)
             {
                 if (search.Page.HasValue)
                 {
@@ -48,6 +43,10 @@ namespace BookNest.Services.BaseServices
                 {
                     query = query.Take(search.PageSize.Value);
                 }
+            }
+            else
+            {
+                query = query.Take(1000);
             }
 
             var list = await query.ToListAsync(cancellationToken);

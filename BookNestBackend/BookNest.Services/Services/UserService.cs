@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using BookNest.Model.Exceptions;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
@@ -8,11 +9,6 @@ using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
 using BookNest.Services.Security;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BookNest.Services.Services
 {
@@ -77,7 +73,9 @@ namespace BookNest.Services.Services
         {
             var query = _dbContext.Users
                          .Include(u => u.UserRoles)
-                         .ThenInclude(ur => ur.Role)
+                             .ThenInclude(ur => ur.Role)
+                         .Include(u => u.City)
+                         .Include(u => u.Country)
                          .AsQueryable();
 
             query = ApplyFilter(query, search);
@@ -111,12 +109,14 @@ namespace BookNest.Services.Services
         {
             var user = await _dbContext.Users
                              .Include(u => u.UserRoles)
-                             .ThenInclude(u => u.Role)
+                                 .ThenInclude(u => u.Role)
+                             .Include(u => u.City)
+                             .Include(u => u.Country)
                              .FirstOrDefaultAsync(u => u.Id == id, cancellationToken);
-
+            
             if (user == null)
             {
-                return null;
+                throw new NotFoundException("User not found.");
             }
 
             return _mapper.Map<UserResponse>(user);
@@ -128,14 +128,14 @@ namespace BookNest.Services.Services
 
             if(existingMail != null)
             {
-                throw new Exception("Email address already exists.");
+                throw new BusinessException("Email address already exists.");
             }
 
             var existingUsername = await _dbContext.Users.FirstOrDefaultAsync(eu => eu.Username == request.Username);
             
             if(existingUsername != null)
             {
-                throw new Exception("Username already exists.");
+                throw new BusinessException("Username already exists.");
             }
 
             await base.BeforeInsert(user, request, cancellationToken);
@@ -143,36 +143,7 @@ namespace BookNest.Services.Services
 
         public override async Task<UserResponse> CreateAsync(UserInsertRequest request, CancellationToken cancellationToken = default)
         {
-            var user = _mapper.Map<User>(request);
-
-            await BeforeInsert(user, request, cancellationToken);
-
-            user.PasswordHash = _hasher.Hash(request.Password);
-
-            _dbContext.Users.Add(user);
-            await _dbContext.SaveChangesAsync();
-
-
-            if (request.RoleIds != null && request.RoleIds.Count > 0)
-            {
-                foreach (var roleId in request.RoleIds)
-                {
-                    if (await _dbContext.Roles.AnyAsync(r => r.Id == roleId))
-                    {
-                        var userRole = new UserRole
-                        {
-                            UserId = user.Id,
-                            RoleId = roleId,
-                            DateAssigned = DateTime.UtcNow
-                        };
-                        _dbContext.UserRoles.Add(userRole);
-                    }
-                }
-
-                await _dbContext.SaveChangesAsync();
-            }
-
-            return await GetUserResponseWithRolesAsync(user.Id);
+            throw new NotSupportedException("User registration is done through AuthService.RegisterAsync.");
         }
 
         protected override async Task BeforeUpdate(User entity, UserUpdateRequest request, CancellationToken cancellationToken = default)
@@ -182,7 +153,7 @@ namespace BookNest.Services.Services
 
             if (existingMail != null)
             {
-                throw new Exception("Email address already exists.");
+                throw new BusinessException("Email address already exists.");
             }
 
             var existingUsername = await _dbContext.Users
@@ -190,7 +161,7 @@ namespace BookNest.Services.Services
 
             if (existingUsername != null)
             {
-                throw new Exception("Username already exists.");
+                throw new BusinessException("Username already exists.");
             }
 
             await base.BeforeUpdate(entity, request, cancellationToken);
@@ -200,37 +171,12 @@ namespace BookNest.Services.Services
         {
             var user = await _dbContext.Users.FindAsync(id);
 
-            if(user == null)
-            {
-                return null;
-            }
+            if (user == null)
+                throw new NotFoundException("User not found.");
 
             _mapper.Map(request, user);
 
             await BeforeUpdate(user, request, cancellationToken);
-
-            var existingUserRoles = await _dbContext.UserRoles
-                .Where(ur => ur.UserId == id)
-                .ToListAsync();
-
-            _dbContext.UserRoles.RemoveRange(existingUserRoles);
-
-            if(request.RoleIds != null && request.RoleIds.Count > 0)
-            {
-                foreach(var roleId in request.RoleIds)
-                {
-                    if(await _dbContext.Roles.AnyAsync(r => r.Id == roleId))
-                    {
-                        var userRole = new UserRole
-                        {
-                            UserId = user.Id,
-                            RoleId = roleId,
-                            DateAssigned = DateTime.UtcNow
-                        };
-                        _dbContext.UserRoles.Add(userRole);
-                    }
-                }
-            }
 
             if (!string.IsNullOrEmpty(request.Password))
             {
@@ -244,13 +190,15 @@ namespace BookNest.Services.Services
         private async Task<UserResponse> GetUserResponseWithRolesAsync(int userId)
         {
             var user = await _dbContext.Users
-                .Include(u => u.UserRoles)
-                .ThenInclude(ur => ur.Role)
-                .FirstOrDefaultAsync(u => u.Id == userId);
+                                .Include(u => u.UserRoles)
+                                    .ThenInclude(ur => ur.Role)
+                                .Include(u => u.City)
+                                .Include(u => u.Country)
+                                .FirstOrDefaultAsync(u => u.Id == userId);
 
-            if(user == null)
+            if (user == null)
             {
-                throw new InvalidOperationException("User not found."); 
+                throw new NotFoundException("User not found."); 
             }
 
             var response = _mapper.Map<UserResponse>(user);
@@ -272,7 +220,8 @@ namespace BookNest.Services.Services
                     .ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
-            if (user == null) return null;
+            if (user == null) 
+                throw new NotFoundException("User not found.");
 
             if (!string.IsNullOrEmpty(request.Username) && request.Username != user.Username)
             {
@@ -280,20 +229,28 @@ namespace BookNest.Services.Services
                     .FirstOrDefaultAsync(u => u.Username == request.Username && u.Id != userId, cancellationToken);
 
                 if (existingUsername != null)
-                    throw new Exception("Username already exists.");
+                    throw new BusinessException("Username already exists.");
             }
 
             _mapper.Map(request, user);
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
-            return _mapper.Map<UserResponse>(user);
+            var updatedUser = await _dbContext.Users
+                .Include(u => u.UserRoles)
+                    .ThenInclude(ur => ur.Role)
+                .Include(u => u.City)
+                .Include(u => u.Country)
+                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+            return _mapper.Map<UserResponse>(updatedUser);
         }
 
         public async Task DeactivateSelfAsync(int userId, CancellationToken cancellationToken = default)
         {
             var user = await _dbContext.Users.FindAsync(new object[] { userId }, cancellationToken);
-            if (user == null) throw new Exception("User not found.");
+            if (user == null) 
+                throw new NotFoundException("User not found.");
 
             user.IsActive = false;
             user.DeactivatedAt = DateTime.UtcNow;
