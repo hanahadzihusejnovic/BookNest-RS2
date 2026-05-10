@@ -1,4 +1,5 @@
 ﻿using BookNest.API.BaseControllers;
+using BookNest.Model.Constants;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
@@ -21,7 +22,7 @@ namespace BookNest.API.Controllers
             _cartService = cartService;
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<PagedResult<CartResponse>> Get([FromQuery] BaseSearchObject search)
         {
             return await base.Get(search);
@@ -44,64 +45,44 @@ namespace BookNest.API.Controllers
         [HttpPost("add-item")]
         public async Task<ActionResult<CartResponse>> AddItem([FromBody] CartItemInsertRequest request)
         {
-            try
-            {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
 
-                if (userId == 0)
-                {
-                    return Unauthorized(new { message = "User not authenticated." });
-                }
+             if (userId == 0)
+             {
+                return Unauthorized(new { message = "User not authenticated." });
+             }
 
-                var cart = await _cartService.AddItemToCartAsync(userId, request);
-                return Ok(cart);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+             var cart = await _cartService.AddItemToCartAsync(userId, request);
+             return Ok(cart);
         }
 
         [HttpPut("update-item/{cartItemId}")]
         public async Task<ActionResult<CartResponse>> UpdateItem(int cartItemId, [FromBody] int quantity)
         {
-            try
-            {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
 
-                if (userId == 0)
-                {
-                    return Unauthorized(new { message = "User not authenticated." });
-                }
-
-                var cart = await _cartService.UpdateCartItemAsync(userId, cartItemId, quantity);
-                return Ok(cart);
-            }
-            catch (Exception ex)
+            if (userId == 0)
             {
-                return BadRequest(new { message = ex.Message });
+                return Unauthorized(new { message = "User not authenticated." });
             }
+
+            var cart = await _cartService.UpdateCartItemAsync(userId, cartItemId, quantity);
+            return Ok(cart);
         }
 
         [HttpDelete("remove-item/{cartItemId}")]
         public async Task<ActionResult<CartResponse>> RemoveItem(int cartItemId)
         {
-            try
-            {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
 
-                if (userId == 0)
-                {
-                    return Unauthorized(new { message = "User not authenticated." });
-                }
-
-                var cart = await _cartService.RemoveItemFromCartAsync(userId, cartItemId);
-                return Ok(cart);
-            }
-            catch (Exception ex)
+            if (userId == 0)
             {
-                return BadRequest(new { message = ex.Message });
+                return Unauthorized(new { message = "User not authenticated." });
             }
+
+            var cart = await _cartService.RemoveItemFromCartAsync(userId, cartItemId);
+            return Ok(cart);
         }
 
         [HttpDelete("clear")]

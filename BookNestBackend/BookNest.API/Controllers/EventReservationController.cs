@@ -1,8 +1,8 @@
 ﻿using BookNest.API.BaseControllers;
+using BookNest.Model.Constants;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
-using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -22,13 +22,13 @@ namespace BookNest.API.Controllers
             _eventReservationService = eventReservationService;
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<PagedResult<EventReservationResponse>> Get([FromQuery] EventReservationSearchObject search)
         {
             return await base.Get(search);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<EventReservationResponse?> GetById(int id)
         {
             return await base.GetById(id);
@@ -43,22 +43,15 @@ namespace BookNest.API.Controllers
         [HttpPost("reserve")]
         public async Task<ActionResult<EventReservationResponse>> ReserveEvent([FromBody] EventReservationInsertRequest request)
         {
-            try
-            {
-                var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
 
-                if (userId == 0)
-                {
-                    return Unauthorized(new { message = "User not authenticated." });
-                }
-
-                var reservation = await _eventReservationService.CreateReservationAsync(userId, request);
-                return Ok(reservation);
-            }
-            catch (Exception ex)
+            if (userId == 0)
             {
-                return BadRequest(new { message = ex.Message });
+                return Unauthorized(new { message = "User not authenticated." });
             }
+
+            var reservation = await _eventReservationService.CreateReservationAsync(userId, request);
+            return Ok(reservation);
         }
 
         [HttpGet("my-reservations")]
@@ -75,54 +68,39 @@ namespace BookNest.API.Controllers
             return Ok(reservations);
         }
 
-        [Authorize(Roles = "Admin")]
         [HttpGet("event/{eventId}")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<List<EventReservationResponse>>> GetEventReservations(int eventId)
         {
             var reservations = await _eventReservationService.GetEventReservationsAsync(eventId);
             return Ok(reservations);
         }
 
-        [AllowAnonymous]
         [HttpGet("available-seats/{eventId}")]
         public async Task<ActionResult<int>> GetAvailableSeats(int eventId)
         {
-            try
-            {
-                var availableSeats = await _eventReservationService.GetAvailableSeatsAsync(eventId);
-                return Ok(availableSeats);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            var availableSeats = await _eventReservationService.GetAvailableSeatsAsync(eventId);
+            return Ok(availableSeats);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<EventReservationResponse?> Update(int id, [FromBody] EventReservationUpdateRequest request)
         {
             return await base.Update(id, request);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<bool> Delete(int id)
         {
             return await base.Delete(id);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         [HttpPost("{id}/send-reminder")]
         public async Task<ActionResult> SendReminder(int id)
         {
-            try
-            {
-                await _eventReservationService.SendReminderAsync(id);
-                return Ok(new { message = "Reminder sent successfully." });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = ex.Message });
-            }
+            await _eventReservationService.SendReminderAsync(id);
+            return Ok(new { message = "Reminder sent successfully." });
         }
     }
 }

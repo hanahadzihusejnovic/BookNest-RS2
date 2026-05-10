@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace BookNest.Model.Requests
 {
@@ -14,12 +9,10 @@ namespace BookNest.Model.Requests
         public string Address { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(20)]
-        public string City { get; set; } = string.Empty;
+        public int CityId { get; set; }
 
         [Required]
-        [MaxLength(50)]
-        public string Country { get; set; } = string.Empty;
+        public int CountryId { get; set; }
 
         [Required]
         [MaxLength(20)]

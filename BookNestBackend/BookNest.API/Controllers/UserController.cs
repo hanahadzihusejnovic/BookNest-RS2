@@ -1,8 +1,9 @@
 ﻿using BookNest.API.BaseControllers;
+using BookNest.API.Helpers;
+using BookNest.Model.Constants;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
-using BookNest.Services.BaseInterfaces;
 using BookNest.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -24,31 +25,31 @@ namespace BookNest.API.Controllers
             _imageService = imageService;
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<PagedResult<UserResponse>> Get([FromQuery] UserSearchObject search)
         {
             return await base.Get(search);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<UserResponse?> GetById(int id)
         {
             return await base.GetById(id);
         }
 
-        [Authorize(Roles = "Admin")]
+        [ApiExplorerSettings(IgnoreApi = true)]
         public override async Task<UserResponse> Create([FromBody] UserInsertRequest request)
         {
-            return await base.Create(request);
+            throw new NotSupportedException("User registration is done through /api/Auth/register.");
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<UserResponse?> Update(int id, [FromBody] UserUpdateRequest request)
         {
             return await base.Update(id, request);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<bool> Delete(int id)
         {
             return await base.Delete(id);
@@ -62,8 +63,6 @@ namespace BookNest.API.Controllers
                 return Unauthorized();
 
             var user = await _userService.GetByIdAsync(userId);
-            if (user == null)
-                return NotFound();
 
             return Ok(user);
         }
@@ -76,8 +75,6 @@ namespace BookNest.API.Controllers
                 return Unauthorized();
 
             var result = await _userService.UpdateSelfAsync(userId, request);
-            if (result == null)
-                return NotFound();
 
             return Ok(result);
         }
@@ -95,15 +92,12 @@ namespace BookNest.API.Controllers
         [HttpPost("upload-image")]
         public async Task<IActionResult> UploadImage(IFormFile image)
         {
-            if (image == null || image.Length == 0)
-                return BadRequest("No image provided.");
+            await ImageValidationHelper.ValidateImageAsync(image);
 
             var uniqueName = $"{Guid.NewGuid()}-{image.FileName}";
             using var stream = image.OpenReadStream();
             var imageUrl = await _imageService.UploadImageAsync(stream, uniqueName, "user-images");
             return Ok(new { imageUrl });
         }
-
-
     }
 }

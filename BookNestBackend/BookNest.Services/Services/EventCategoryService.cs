@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using BookNest.Model.Exceptions;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
@@ -7,12 +8,6 @@ using BookNest.Services.Database;
 using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BookNest.Services.Services
 {
@@ -22,7 +17,6 @@ namespace BookNest.Services.Services
         public EventCategoryService(BookNestDbContext dbContext, IMapper mapper) : base(dbContext, mapper)
         {
             _dbContext = dbContext;
-            
         }
 
         protected override IQueryable<EventCategory> ApplyFilter(IQueryable<EventCategory> query, EventCategorySearchObject search)
@@ -85,7 +79,7 @@ namespace BookNest.Services.Services
 
             if(eventCategory == null)
             {
-                return null;
+                throw new NotFoundException("Event category not found.");
             }
 
             return _mapper.Map<EventCategoryResponse>(eventCategory);
@@ -97,7 +91,7 @@ namespace BookNest.Services.Services
 
             if (eventCategory == null)
             {
-                return null;
+                throw new NotFoundException("Event category not found.");
             }
 
             _mapper.Map(request, eventCategory);

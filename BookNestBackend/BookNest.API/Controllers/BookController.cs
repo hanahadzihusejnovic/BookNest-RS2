@@ -1,11 +1,10 @@
 ﻿using BookNest.API.BaseControllers;
+using BookNest.API.Helpers;
+using BookNest.Model.Constants;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
-using BookNest.Services.BaseInterfaces;
-using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
-using BookNest.Services.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -26,36 +25,29 @@ namespace BookNest.API.Controllers
             _imageService = imageService;
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<BookResponse> Create([FromBody] BookInsertRequest request)
         {
             return await base.Create(request);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<BookResponse?> Update(int id, [FromBody] BookUpdateRequest request)
         {
             return await base.Update(id, request);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<bool> Delete(int id)
         {
             return await base.Delete(id);
         }
 
         [HttpPost("upload-cover")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<object>> UploadCoverImage(IFormFile file, [FromQuery] string? category = null)
         {
-            if (file == null || file.Length == 0)
-                return BadRequest("No file uploaded");
-
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-            if (!allowedExtensions.Contains(extension))
-                return BadRequest("Only image files are allowed");
+            await ImageValidationHelper.ValidateImageAsync(file);
 
             var folder = category?.ToLower() ?? "misc";
             var uniqueName = $"{folder}/{Guid.NewGuid()}-{file.FileName}";
@@ -66,7 +58,7 @@ namespace BookNest.API.Controllers
 
 
         [HttpGet("recommended")]
-        public async Task<ActionResult<List<BookResponse>>> GetRecommended([FromQuery] int count = 6)
+        public async Task<ActionResult<List<BookRecommendationResponse>>> GetRecommended([FromQuery] int count = 6)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             if (userId == 0)
@@ -77,7 +69,7 @@ namespace BookNest.API.Controllers
         }
 
         [HttpGet("recommended-content")]
-        public async Task<ActionResult<List<BookResponse>>> GetContentRecommended([FromQuery] int count = 6)
+        public async Task<ActionResult<List<BookRecommendationResponse>>> GetContentRecommended([FromQuery] int count = 6)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             if (userId == 0)

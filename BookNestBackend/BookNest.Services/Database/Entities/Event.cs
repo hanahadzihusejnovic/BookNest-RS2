@@ -1,11 +1,6 @@
 ﻿using BookNest.Model.Enums;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BookNest.Services.Database.Entities
 {
@@ -42,12 +37,18 @@ namespace BookNest.Services.Database.Entities
         [Required]
         [Column(TypeName = "nvarchar(50)")]
         public EventType EventType { get; set; }
-        
-        public string? Address { get; set; }
-        
-        public string? City { get; set; }
 
-        public string? Country { get; set; }
+        public string? Address { get; set; }
+
+        public int? CityId { get; set; }
+
+        [ForeignKey(nameof(CityId))]
+        public City? City { get; set; }
+
+        public int? CountryId { get; set; }
+
+        [ForeignKey(nameof(CountryId))]
+        public Country? Country { get; set; }
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
@@ -67,6 +68,5 @@ namespace BookNest.Services.Database.Entities
         public ICollection<EventReservation> EventReservations { get; set; } = new List<EventReservation>();
         public ICollection<Review> Reviews { get; set; } = new List<Review>();
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
-        
     }
 }

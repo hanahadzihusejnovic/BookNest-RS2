@@ -5,14 +5,17 @@ out/
 Debug/
 Release/
 
-# Ignore app development JSON files
+# Environment files
+.env
+**/.env
+*.env
+
+# Ignore development/local config files
 *.dev.json
 *.development.json
 app_config.json
 .env.json
-*.env
 appsettings.Development.json
-
 
 # Visual Studio
 .vs/
@@ -60,6 +63,3 @@ wwwroot/dist/
 
 # Local secrets
 secrets.json
-
-BookNest.Subscriber/appsettings.json
-BookNest.API/appsettings.json

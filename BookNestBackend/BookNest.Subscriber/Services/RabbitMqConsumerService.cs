@@ -3,12 +3,12 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
 using System.Text.Json;
+using BookNest.Subscriber.Services.Interfaces;
 
 namespace BookNest.Subscriber.Services
 {
     public class RabbitMqConsumerService : IRabbitMqConsumerService, IAsyncDisposable
     {
-        private readonly IConfiguration _configuration;
         private readonly ILogger<RabbitMqConsumerService> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
 
@@ -16,13 +16,12 @@ namespace BookNest.Subscriber.Services
         private IChannel? _channel;
 
         private const string QueueName = "password-reset-queue";
+        private const int MaxRetries = 5;
 
         public RabbitMqConsumerService(
-            IConfiguration configuration,
             ILogger<RabbitMqConsumerService> logger,
             IServiceScopeFactory serviceScopeFactory)
         {
-            _configuration = configuration;
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
         }
@@ -31,14 +30,14 @@ namespace BookNest.Subscriber.Services
         {
             try
             {
-                _logger.LogInformation("🐰 Starting RabbitMQ Consumer...");
+                _logger.LogInformation("Starting RabbitMQ Consumer...");
 
                 var factory = new ConnectionFactory
                 {
-                    HostName = _configuration["RabbitMQ:Host"],
-                    Port = int.Parse(_configuration["RabbitMQ:Port"] ?? "5672"),
-                    UserName = _configuration["RabbitMQ:Username"],
-                    Password = _configuration["RabbitMQ:Password"]
+                    HostName = Environment.GetEnvironmentVariable("RABBITMQ_HOST"),
+                    Port = int.Parse(Environment.GetEnvironmentVariable("RABBITMQ_PORT") ?? "5672"),
+                    UserName = Environment.GetEnvironmentVariable("RABBITMQ_USERNAME"),
+                    Password = Environment.GetEnvironmentVariable("RABBITMQ_PASSWORD")
                 };
 
                 _connection = await factory.CreateConnectionAsync();
@@ -52,57 +51,54 @@ namespace BookNest.Subscriber.Services
                     arguments: null
                 );
 
-                _logger.LogInformation("✅ Connected to RabbitMQ. Listening on queue: {QueueName}", QueueName);
+                _logger.LogInformation("Connected to RabbitMQ. Listening on queue: {QueueName}", QueueName);
 
                 var consumer = new AsyncEventingBasicConsumer(_channel);
 
                 consumer.ReceivedAsync += async (sender, ea) =>
                 {
-                    try
+                    var retryCount = 0;
+                    var body = ea.Body.ToArray();
+                    var messageJson = Encoding.UTF8.GetString(body);
+
+                    while (retryCount < MaxRetries)
                     {
-                        var body = ea.Body.ToArray();
-                        var messageJson = Encoding.UTF8.GetString(body);
-
-                        _logger.LogInformation("📩 Received message: {MessageJson}", messageJson);
-
-                        var message = JsonSerializer.Deserialize<PasswordResetEmailMessage>(messageJson);
-
-                        if (message != null)
+                        try
                         {
-                            using var scope = _serviceScopeFactory.CreateScope();
-                            var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+                            var message = JsonSerializer.Deserialize<PasswordResetEmailMessage>(messageJson);
 
-                            await emailService.SendPasswordResetEmailAsync(message);
+                            if (message != null)
+                            {
+                                using var scope = _serviceScopeFactory.CreateScope();
+                                var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+                                await emailService.SendPasswordResetEmailAsync(message);
 
-                            await _channel.BasicAckAsync(
-                                deliveryTag: ea.DeliveryTag,
-                                multiple: false
-                            );
-
-                            _logger.LogInformation("✅ Message processed and acknowledged");
+                                await _channel.BasicAckAsync(ea.DeliveryTag, false);
+                                _logger.LogInformation("Message processed and acknowledged.");
+                                return;
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Message deserialization returned null. Discarding.");
+                                await _channel.BasicNackAsync(ea.DeliveryTag, false, requeue: false);
+                                return;
+                            }
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            _logger.LogWarning("⚠ Message deserialization returned null");
+                            retryCount++;
+                            var delay = TimeSpan.FromSeconds(Math.Pow(2, retryCount));
+                            _logger.LogWarning(ex, "Error processing message. Attempt {Retry}/{Max}. Retrying in {Delay}s.",
+                                retryCount, MaxRetries, delay.TotalSeconds);
 
-                            await _channel.BasicNackAsync(
-                                deliveryTag: ea.DeliveryTag,
-                                multiple: false,
-                                requeue: false
-                            );
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "❌ Error processing message");
+                            if (retryCount >= MaxRetries)
+                            {
+                                _logger.LogError(ex, "Max retries reached. Discarding message: {Message}", messageJson);
+                                await _channel!.BasicNackAsync(ea.DeliveryTag, false, requeue: false);
+                                return;
+                            }
 
-                        if (_channel != null)
-                        {
-                            await _channel.BasicNackAsync(
-                                deliveryTag: ea.DeliveryTag,
-                                multiple: false,
-                                requeue: true
-                            );
+                            await Task.Delay(delay);
                         }
                     }
                 };
@@ -113,18 +109,18 @@ namespace BookNest.Subscriber.Services
                     consumer: consumer
                 );
 
-                _logger.LogInformation("🎧 RabbitMQ Consumer is now listening...");
+                _logger.LogInformation("RabbitMQ Consumer is now listening...");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Failed to start RabbitMQ Consumer");
+                _logger.LogError(ex, "Failed to start RabbitMQ Consumer. Worker will continue but this queue is not being consumed.");
                 throw;
             }
         }
 
         public async Task StopConsumingAsync()
         {
-            _logger.LogInformation("🛑 Stopping RabbitMQ Consumer...");
+            _logger.LogInformation("Stopping RabbitMQ Consumer...");
 
             if (_channel != null)
             {

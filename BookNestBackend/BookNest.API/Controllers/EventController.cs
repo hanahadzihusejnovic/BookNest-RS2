@@ -1,9 +1,9 @@
 ﻿using BookNest.API.BaseControllers;
-using BookNest.Infrastructure.Services;
+using BookNest.API.Helpers;
+using BookNest.Model.Constants;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
-using BookNest.Services.BaseInterfaces;
 using BookNest.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,26 +25,26 @@ namespace BookNest.API.Controllers
             _imageService = imageService;
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<EventResponse> Create([FromBody] EventInsertRequest request)
         {
             return await base.Create(request);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<EventResponse?> Update(int id, [FromBody] EventUpdateRequest request)
         {
             return await base.Update(id, request);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public override async Task<bool> Delete(int id)
         {
             return await base.Delete(id);
         }
 
         [HttpGet("recommended")]
-        public async Task<ActionResult<List<EventResponse>>> GetRecommended([FromQuery] int count = 6)
+        public async Task<ActionResult<List<EventRecommendationResponse>>> GetRecommended([FromQuery] int count = 6)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             if (userId == 0)
@@ -55,7 +55,7 @@ namespace BookNest.API.Controllers
         }
 
         [HttpGet("recommended-content")]
-        public async Task<ActionResult<List<EventResponse>>> GetContentRecommended([FromQuery] int count = 6)
+        public async Task<ActionResult<List<EventRecommendationResponse>>> GetContentRecommended([FromQuery] int count = 6)
         {
             var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
             if (userId == 0)
@@ -66,17 +66,10 @@ namespace BookNest.API.Controllers
         }
 
         [HttpPost("upload-image")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = Roles.Admin)]
         public async Task<ActionResult<object>> UploadImage(IFormFile file, [FromQuery] string? category = null)
         {
-            if (file == null || file.Length == 0)
-                return BadRequest("No file uploaded");
-
-            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
-            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-            if (!allowedExtensions.Contains(extension))
-                return BadRequest("Only image files are allowed");
+            await ImageValidationHelper.ValidateImageAsync(file);
 
             var folder = category?.ToLower() ?? "misc";
             var uniqueName = $"{folder}/{Guid.NewGuid()}-{file.FileName}";

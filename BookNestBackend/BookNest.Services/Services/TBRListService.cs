@@ -1,17 +1,13 @@
 ﻿using AutoMapper;
 using BookNest.Model.Enums;
+using BookNest.Model.Exceptions;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
 using BookNest.Services.BaseServices;
-using BookNest.Services.Database.Entities;
 using BookNest.Services.Database;
+using BookNest.Services.Database.Entities;
 using BookNest.Services.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 
 namespace BookNest.Services.Services
@@ -68,7 +64,7 @@ namespace BookNest.Services.Services
 
             if (tbrItem == null)
             {
-                return null;
+                throw new NotFoundException("Book not found in TBR list.");
             }
 
             return _mapper.Map<TBRListResponse>(tbrItem);
@@ -100,13 +96,13 @@ namespace BookNest.Services.Services
 
             if (existing != null)
             {
-                throw new Exception("Book is already in TBR list.");
+                throw new BusinessException("Book is already in TBR list.");
             }
 
             var book = await _dbContext.Books.FindAsync(new object[] { request.BookId }, cancellationToken);
             if (book == null)
             {
-                throw new Exception("Book not found.");
+                throw new NotFoundException("Book not found.");
             }
 
             var tbrItem = new TBRList
@@ -137,7 +133,7 @@ namespace BookNest.Services.Services
 
             if (tbrItem == null)
             {
-                throw new Exception("Book not found in TBR list.");
+                throw new NotFoundException("Book not found in TBR list.");
             }
 
             tbrItem.ReadingStatus = status;
@@ -153,7 +149,7 @@ namespace BookNest.Services.Services
 
             if (tbrItem == null)
             {
-                return false;
+                throw new NotFoundException("Book not found in TBR list.");
             }
 
             _dbContext.TBRLists.Remove(tbrItem);

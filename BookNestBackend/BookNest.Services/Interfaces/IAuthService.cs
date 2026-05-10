@@ -1,11 +1,6 @@
 ﻿using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Services.Database.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BookNest.Services.Interfaces
 {
@@ -16,5 +11,7 @@ namespace BookNest.Services.Interfaces
         Task<User?> GetByEmailAsync(string email);
         Task CreatePasswordResetTokenAsync(int userId, string token, DateTime expiresAt);
         Task<bool> ResetPasswordAsync(ResetPasswordRequest request);
+        Task ForgotPasswordAsync(string email);
+        Task LogoutAsync(string token);
     }
 }

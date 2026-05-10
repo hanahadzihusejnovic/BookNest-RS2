@@ -1,21 +1,18 @@
-
+using BookNest.API.Hubs;
+using BookNest.API.Middleware;
+using BookNest.Infrastructure.Services;
 using BookNest.Services.Database;
 using BookNest.Services.Interfaces;
-using BookNest.Services.Services;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using AutoMapper;
 using BookNest.Services.Mapping;
-using System.Text.Json.Serialization;
-using System.ComponentModel;
-using BookNest.Services.Security;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-using System.Text;
-using Microsoft.OpenApi.Models;
-using BookNest.Infrastructure.Services;
 using BookNest.Services.MessageQueue;
-using BookNest.API.Hubs;
+using BookNest.Services.Security;
+using BookNest.Services.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Text;
+using DotNetEnv;
 
 namespace BookNest.API
 {
@@ -23,6 +20,8 @@ namespace BookNest.API
     {
         public static void Main(string[] args)
         {
+            Env.Load();
+
             var builder = WebApplication.CreateBuilder(args);
 
             //Omoguci HTTP za development (Flutter)
@@ -36,17 +35,31 @@ namespace BookNest.API
             {
                 options.AddPolicy("AllowFlutter", policy =>
                 {
-                    policy.AllowAnyOrigin()
+                    policy.WithOrigins(
+                            "http://10.0.2.2:7110",
+                            "http://localhost:7110")
                           .AllowAnyMethod()
-                          .AllowAnyHeader();
+                          .AllowAnyHeader()
+                          .AllowCredentials();
                 });
             });
 
             // ===== JWT SETTINGS CONFIGURATION =====
-            builder.Services.Configure<JwtSettings>(
-                builder.Configuration.GetSection("JwtSettings"));
+            builder.Services.Configure<JwtSettings>(options =>
+            {
+                options.SecretKey = Environment.GetEnvironmentVariable("JWT_SECRET")!;
+                options.Issuer = Environment.GetEnvironmentVariable("JWT_ISSUER")!;
+                options.Audience = Environment.GetEnvironmentVariable("JWT_AUDIENCE")!;
+                options.ExpirationMinutes = int.Parse(Environment.GetEnvironmentVariable("JWT_EXPIRATION_MINUTES")!);
+            });
 
-            var jwtSettings = builder.Configuration.GetSection("JwtSettings").Get<JwtSettings>();
+            var jwtSettings = new JwtSettings
+            {
+                SecretKey = Environment.GetEnvironmentVariable("JWT_SECRET")!,
+                Issuer = Environment.GetEnvironmentVariable("JWT_ISSUER")!,
+                Audience = Environment.GetEnvironmentVariable("JWT_AUDIENCE")!,
+                ExpirationMinutes = int.Parse(Environment.GetEnvironmentVariable("JWT_EXPIRATION_MINUTES")!)
+            };
 
             // ===== JWT AUTHENTICATION =====
             builder.Services.AddAuthentication(options =>
@@ -89,6 +102,9 @@ namespace BookNest.API
             builder.Services.AddScoped<IEventReservationService, EventReservationService>();
             builder.Services.AddScoped<IImageService, AzureBlobImageService>();
             builder.Services.AddScoped<IDashboardService, DashboardService>();
+            builder.Services.AddScoped<ICityService, CityService>();
+            builder.Services.AddScoped<ICountryService, CountryService>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
 
             builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
             builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
@@ -111,7 +127,7 @@ namespace BookNest.API
 
 
             builder.Services.AddDbContext<BookNestDbContext>(options => 
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                options.UseSqlServer(Environment.GetEnvironmentVariable("DB_CONNECTION")));
 
             builder.Services.AddControllers();
 
@@ -169,8 +185,13 @@ namespace BookNest.API
                 app.UseHttpsRedirection();
             }
 
-            app.UseAuthorization();
+            app.UseMiddleware<ExceptionMiddleware>();
 
+            app.UseMiddleware<TokenBlacklistMiddleware>();
+
+            app.UseAuthentication();
+
+            app.UseAuthorization();
 
             app.MapControllers();
 

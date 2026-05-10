@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'screens/login_screen.dart';
+import 'screens/auth_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,12 +17,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'BookNest',
-      debugShowCheckedModeBanner: false, // Ukloni DEBUG banner
+      debugShowCheckedModeBanner: false, 
       theme: ThemeData(
         textTheme: GoogleFonts.gantariTextTheme(),
         useMaterial3: true,
       ),
-      home: const LoginScreen(), // ← Početni ekran je Login
+      home: const AuthWrapper(), 
     );
   }
 }

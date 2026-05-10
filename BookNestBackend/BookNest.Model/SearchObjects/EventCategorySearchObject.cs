@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace BookNest.Model.SearchObjects
+﻿namespace BookNest.Model.SearchObjects
 {
     public class EventCategorySearchObject : BaseSearchObject
     {

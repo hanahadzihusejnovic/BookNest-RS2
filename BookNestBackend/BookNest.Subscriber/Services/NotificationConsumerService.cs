@@ -8,31 +8,30 @@ namespace BookNest.Subscriber.Services
 {
     public class NotificationConsumerService : IAsyncDisposable
     {
-        private readonly IConfiguration _configuration;
         private readonly ILogger<NotificationConsumerService> _logger;
-        private readonly HttpClient _httpClient;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         private IConnection? _connection;
         private IChannel? _channel;
         private const string QueueName = "notifications-queue";
+        private const int MaxRetries = 5;
 
         public NotificationConsumerService(
-            IConfiguration configuration,
-            ILogger<NotificationConsumerService> logger)
+            ILogger<NotificationConsumerService> logger,
+            IHttpClientFactory httpClientFactory)
         {
-            _configuration = configuration;
             _logger = logger;
-            _httpClient = new HttpClient();
+            _httpClientFactory = httpClientFactory;
         }
 
         public async Task StartConsumingAsync()
         {
             var factory = new ConnectionFactory
             {
-                HostName = _configuration["RabbitMQ:Host"],
-                Port = int.Parse(_configuration["RabbitMQ:Port"] ?? "5672"),
-                UserName = _configuration["RabbitMQ:Username"],
-                Password = _configuration["RabbitMQ:Password"]
+                HostName = Environment.GetEnvironmentVariable("RABBITMQ_HOST"),
+                Port = int.Parse(Environment.GetEnvironmentVariable("RABBITMQ_PORT") ?? "5672"),
+                UserName = Environment.GetEnvironmentVariable("RABBITMQ_USERNAME"),
+                Password = Environment.GetEnvironmentVariable("RABBITMQ_PASSWORD")
             };
 
             _connection = await factory.CreateConnectionAsync();
@@ -50,40 +49,63 @@ namespace BookNest.Subscriber.Services
 
             consumer.ReceivedAsync += async (sender, ea) =>
             {
-                try
+                var retryCount = 0;
+                var body = ea.Body.ToArray();
+                var json = Encoding.UTF8.GetString(body);
+
+                while (retryCount < MaxRetries)
                 {
-                    var body = ea.Body.ToArray();
-                    var json = Encoding.UTF8.GetString(body);
-                    var message = JsonSerializer.Deserialize<NotificationMessage>(json);
-
-                    if (message != null)
+                    try
                     {
-                        // Pošalji na API koji će proslijediti kroz SignalR
-                        var content = new StringContent(json, Encoding.UTF8, "application/json");
-                        var apiUrl = _configuration["ApiUrl"] ?? "http://localhost:7110";
-                        var response = await _httpClient.PostAsync($"{apiUrl}/api/Notification/send", content);
+                        var message = JsonSerializer.Deserialize<NotificationMessage>(json);
 
-                        if (response.IsSuccessStatusCode)
+                        if (message != null)
                         {
-                            _logger.LogInformation("✅ Notification forwarded to API for user {UserId}", message.UserId);
+                            var httpClient = _httpClientFactory.CreateClient();
+                            var content = new StringContent(json, Encoding.UTF8, "application/json");
+                            var apiUrl = Environment.GetEnvironmentVariable("API_URL") ?? "http://localhost:7110";
+                            var response = await httpClient.PostAsync($"{apiUrl}/api/Notification/send", content);
+
+                            if (response.IsSuccessStatusCode)
+                            {
+                                _logger.LogInformation("Notification forwarded for user {UserId}", message.UserId);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("API returned {StatusCode} for notification", response.StatusCode);
+                            }
+
+                            await _channel.BasicAckAsync(ea.DeliveryTag, false);
+                            return;
                         }
                         else
                         {
-                            _logger.LogWarning("⚠️ API returned {StatusCode}", response.StatusCode);
+                            _logger.LogWarning("Notification deserialization returned null. Discarding.");
+                            await _channel.BasicNackAsync(ea.DeliveryTag, false, requeue: false);
+                            return;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        retryCount++;
+                        var delay = TimeSpan.FromSeconds(Math.Pow(2, retryCount));
+                        _logger.LogWarning(ex, "Error processing notification. Attempt {Retry}/{Max}. Retrying in {Delay}s.",
+                            retryCount, MaxRetries, delay.TotalSeconds);
+
+                        if (retryCount >= MaxRetries)
+                        {
+                            _logger.LogError(ex, "Max retries reached. Discarding notification: {Message}", json);
+                            await _channel!.BasicNackAsync(ea.DeliveryTag, false, requeue: false);
+                            return;
                         }
 
-                        await _channel.BasicAckAsync(ea.DeliveryTag, false);
+                        await Task.Delay(delay);
                     }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "❌ Error processing notification");
-                    await _channel!.BasicNackAsync(ea.DeliveryTag, false, true);
                 }
             };
 
             await _channel.BasicConsumeAsync(QueueName, autoAck: false, consumer: consumer);
-            _logger.LogInformation("🎧 Notification Consumer listening on {Queue}", QueueName);
+            _logger.LogInformation("Notification Consumer listening on {Queue}", QueueName);
         }
 
         public async ValueTask DisposeAsync()
