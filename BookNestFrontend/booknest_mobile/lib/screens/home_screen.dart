@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/book.dart';
-import '../models/event.dart';
 import '../services/book_service.dart';
 import '../services/event_service.dart';
 import '../services/reservation_service.dart';
@@ -10,6 +8,8 @@ import '../widgets/book_card.dart';
 import '../screens/book_details_screen.dart';
 import '../screens/event_details_screen.dart';
 import '../screens/profile_screen.dart';
+import '../models/book_recommendation.dart';
+import '../models/event_recommendation.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -23,8 +23,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final _eventService = EventService();
   final _reservationService = ReservationService();
 
-  List<Book> _topBooks = [];
-  List<EventModel> _interestedEvents = [];
+  List<BookRecommendation> _topBooks = [];
+  List<EventRecommendation> _interestedEvents = [];
   List<ReservationModel> _upcomingReservations = [];
   bool _isLoading = true;
 
@@ -135,12 +135,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         childAspectRatio: 0.48,
                       ),
                       itemBuilder: (context, index) {
-                        final book = _topBooks[index];
+                        final recommendation = _topBooks[index];
+                        final book = recommendation.book;
                         return BookCard(
                           title: book.title,
                           author: book.author,
                           imageUrl: book.imageUrl,
                           style: BookCardStyle.details,
+                          reason: recommendation.reason,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -156,48 +158,73 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 18),
 
-            // Maybe interested — collaborative filtering
+            // Maybe interested
             _SectionCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Maybe you are interested in...",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Maybe you are interested in...",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(height: 12),
-                    if (_interestedEvents.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Center(
-                          child: Text(
-                            'No event recommendations yet.\nReserve events to get personalized suggestions!',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.75),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              height: 1.5,
-                            ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_interestedEvents.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: Text(
+                          'No event recommendations yet.\nReserve events to get personalized suggestions!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.75),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            height: 1.5,
                           ),
                         ),
-                      )
-                    else if (_interestedEvents.length <= 3)
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
+                      ),
+                    )
+                  else if (_interestedEvents.length <= 3)
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _interestedEvents.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, i) {
+                        final recommendation = _interestedEvents[i];
+                        final e = recommendation.event;
+                        return _InterestRow(
+                          title: e.name,
+                          subtitle: e.description ?? '',
+                          timeText: e.formattedDate,
+                          reason: recommendation.reason,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EventDetailsScreen(event: e),
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                  else
+                    SizedBox(
+                      height: 280,
+                      child: ListView.separated(
                         itemCount: _interestedEvents.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (context, i) {
-                          final e = _interestedEvents[i];
+                          final recommendation = _interestedEvents[i];
+                          final e = recommendation.event;
                           return _InterestRow(
                             title: e.name,
                             subtitle: e.description ?? '',
                             timeText: e.formattedDate,
+                            reason: recommendation.reason,
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
@@ -206,69 +233,63 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           );
                         },
-                      )
-                    else
-                      SizedBox(
-                        height: 280,
-                        child: ListView.separated(
-                          itemCount: _interestedEvents.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 10),
-                          itemBuilder: (context, i) {
-                            final e = _interestedEvents[i];
-                            return _InterestRow(
-                              title: e.name,
-                              subtitle: e.description ?? '',
-                              timeText: e.formattedDate,
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => EventDetailsScreen(event: e),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
+            ),
 
             const SizedBox(height: 18),
 
-            // Upcoming events — korisnikove rezervacije
+            // Upcoming events
             _SectionCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "Your upcoming events!",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Your upcoming events!",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(height: 12),
-                    if (_upcomingReservations.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        child: Center(
-                          child: Text(
-                            'No upcoming events.\nReserve an event to see it here!',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.75),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              height: 1.5,
-                            ),
+                  ),
+                  const SizedBox(height: 12),
+                  if (_upcomingReservations.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Center(
+                        child: Text(
+                          'No upcoming events.\nReserve an event to see it here!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.75),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            height: 1.5,
                           ),
                         ),
-                      )
-                    else if (_upcomingReservations.length <= 3)
-                      ListView.separated(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
+                      ),
+                    )
+                  else if (_upcomingReservations.length <= 3)
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _upcomingReservations.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) {
+                        final r = _upcomingReservations[index];
+                        return _UpcomingReservationRow(
+                          eventName: r.eventName,
+                          dateText: _formatDate(r.eventDateTime),
+                          location: r.eventLocation,
+                        );
+                      },
+                    )
+                  else
+                    SizedBox(
+                      height: 280,
+                      child: ListView.separated(
                         itemCount: _upcomingReservations.length,
                         separatorBuilder: (_, __) => const SizedBox(height: 10),
                         itemBuilder: (context, index) {
@@ -279,57 +300,42 @@ class _HomeScreenState extends State<HomeScreen> {
                             location: r.eventLocation,
                           );
                         },
-                      )
-                    else
-                      SizedBox(
-                        height: 280,
-                        child: ListView.separated(
-                          itemCount: _upcomingReservations.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 10),
-                          itemBuilder: (context, index) {
-                            final r = _upcomingReservations[index];
-                            return _UpcomingReservationRow(
-                              eventName: r.eventName,
-                              dateText: _formatDate(r.eventDateTime),
-                              location: r.eventLocation,
-                            );
-                          },
-                        ),
                       ),
-                    const SizedBox(height: 10),
-                    Center(
-                      child: SizedBox(
-                        width: 160,
-                        height: 32,
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const ProfileScreen(),
-                            ),
+                    ),
+                  const SizedBox(height: 10),
+                  Center(
+                    child: SizedBox(
+                      width: 160,
+                      height: 32,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ProfileScreen(),
                           ),
-                          style: ElevatedButton.styleFrom(
-                            elevation: 0,
-                            backgroundColor: AppColors.darkBrown,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: EdgeInsets.zero,
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          elevation: 0,
+                          backgroundColor: AppColors.darkBrown,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text(
-                            'See more events',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w700,
-                            ),
+                          padding: EdgeInsets.zero,
+                        ),
+                        child: const Text(
+                          'See more events',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
 
             const SizedBox(height: 22),
           ],
@@ -370,6 +376,7 @@ class _InterestRow extends StatelessWidget {
   final String title;
   final String subtitle;
   final String timeText;
+  final String? reason;
   final VoidCallback onTap;
 
   const _InterestRow({
@@ -377,7 +384,12 @@ class _InterestRow extends StatelessWidget {
     required this.subtitle,
     required this.timeText,
     required this.onTap,
+    this.reason,
   });
+
+  void _showReason(BuildContext context) {
+    AppSnackBar.show(context, reason!);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -419,30 +431,56 @@ class _InterestRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          SizedBox(
-            width: 92,
-            child: ElevatedButton(
-              onPressed: onTap,
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                backgroundColor: AppColors.darkBrown,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (reason != null && reason!.isNotEmpty)
+                GestureDetector(
+                  onTap: () => _showReason(context),
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    margin: const EdgeInsets.only(bottom: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.darkBrown,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.info_outline,
+                      color: Colors.white,
+                      size: 11,
+                    ),
+                  ),
+                )
+              else
+                const SizedBox(height: 22),
+              SizedBox(
+                width: 92,
+                child: ElevatedButton(
+                  onPressed: onTap,
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: AppColors.darkBrown,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 10, horizontal: 6),
+                  ),
+                  child: const Text(
+                    'Click for more\ndetails',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      height: 1.2,
+                    ),
+                  ),
                 ),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
               ),
-              child: const Text(
-                'Click for more\ndetails',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.w700,
-                  height: 1.2,
-                ),
-              ),
-            ),
+            ],
           ),
         ],
       ),

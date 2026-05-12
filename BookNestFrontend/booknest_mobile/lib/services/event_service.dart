@@ -3,6 +3,7 @@ import '../layouts/constants.dart';
 import 'package:http/http.dart' as http;
 import '../models/event.dart';
 import 'auth_service.dart';
+import '../models/event_recommendation.dart';
 
 class EventService {
   final AuthService _authService = AuthService();
@@ -50,22 +51,22 @@ class EventService {
         .toList();
   }
 
-  Future<List<EventModel>> getRecommendedEvents({int count = 6}) async {
+  Future<List<EventRecommendation>> getRecommendedEvents({int count = 6}) async {
     final uri = Uri.parse('${AppConstants.baseUrl}/Event/recommended?count=$count');
     final response = await http.get(uri, headers: await _headers());
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
-      return data.map((e) => EventModel.fromJson(e)).toList();
+      return data.map((e) => EventRecommendation.fromJson(e)).toList();
     }
     throw Exception('Failed to load recommended events');
   }
 
-  Future<List<EventModel>> getContentBasedRecommendations({int count = 6}) async {
+  Future<List<EventRecommendation>> getContentBasedRecommendations({int count = 6}) async {
     final uri = Uri.parse('${AppConstants.baseUrl}/Event/recommended-content?count=$count');
     final response = await http.get(uri, headers: await _headers());
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
-      return data.map((e) => EventModel.fromJson(e)).toList();
+      return data.map((e) => EventRecommendation.fromJson(e)).toList();
     }
     throw Exception('Failed to load content based event recommendations');
   }

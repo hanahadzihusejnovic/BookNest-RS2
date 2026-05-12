@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/event.dart';
 import '../models/event_category.dart';
+import '../models/event_recommendation.dart';
 import '../services/event_service.dart';
 import '../services/event_category_service.dart';
 import '../layouts/constants.dart';
@@ -21,7 +22,7 @@ class _EventsScreenState extends State<EventsScreen> {
 
   List<EventModel> _allEvents = [];
   List<EventModel> _filteredEvents = [];
-  List<EventModel> _basedOnReservations = [];
+  List<EventRecommendation> _basedOnReservations = [];
   List<EventCategory> _categories = [];
 
   bool _isLoading = true;
@@ -41,18 +42,13 @@ class _EventsScreenState extends State<EventsScreen> {
   Future<void> _loadData() async {
     try {
       final categories = await _categoryService.getCategories();
-      final events = await _eventService.getEvents(
-        isActive: true,
-        pageSize: 50,
-      );
-      final basedOnReservations =
-          await _eventService.getContentBasedRecommendations();
+      final events = await _eventService.getEvents(isActive: true, pageSize: 50);
+      final basedOnReservations = await _eventService.getContentBasedRecommendations();
 
       final now = DateTime.now();
       final nextMonth = now.add(const Duration(days: 30));
       final upcoming = events
-          .where((e) =>
-              e.eventDate.isAfter(now) && e.eventDate.isBefore(nextMonth))
+          .where((e) => e.eventDate.isAfter(now) && e.eventDate.isBefore(nextMonth))
           .toList();
 
       if (!mounted) return;
@@ -74,7 +70,6 @@ class _EventsScreenState extends State<EventsScreen> {
 
   void _applySearch() {
     final q = _query.trim().toLowerCase();
-
     setState(() {
       _filteredEvents = _allEvents.where((e) {
         return q.isEmpty ||
@@ -95,9 +90,7 @@ class _EventsScreenState extends State<EventsScreen> {
   void _closeCategoriesDropdown() {
     _catOverlay?.remove();
     _catOverlay = null;
-    if (mounted) {
-      setState(() => _catOpen = false);
-    }
+    if (mounted) setState(() => _catOpen = false);
   }
 
   void _showCategoriesDropdown() {
@@ -145,16 +138,12 @@ class _EventsScreenState extends State<EventsScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  EventCategoryScreen(category: c),
+                              builder: (context) => EventCategoryScreen(category: c),
                             ),
                           );
                         },
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           child: Text(
                             c.name.toUpperCase(),
                             textAlign: TextAlign.center,
@@ -193,26 +182,16 @@ class _EventsScreenState extends State<EventsScreen> {
       pageTitle: 'EVENTS',
       showBackButton: false,
       body: _isLoading
-          ? Center(
-              child: CircularProgressIndicator(color: AppColors.darkBrown),
-            )
+          ? Center(child: CircularProgressIndicator(color: AppColors.darkBrown))
           : _error != null
-              ? Center(
-                  child: Text(
-                    _error!,
-                    style: TextStyle(color: AppColors.darkBrown),
-                  ),
-                )
+              ? Center(child: Text(_error!, style: TextStyle(color: AppColors.darkBrown)))
               : NotificationListener<ScrollNotification>(
                   onNotification: (_) {
                     if (_catOpen) _closeCategoriesDropdown();
                     return false;
                   },
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 14,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -241,9 +220,7 @@ class _EventsScreenState extends State<EventsScreen> {
                                 ),
                                 const SizedBox(width: 2),
                                 Icon(
-                                  _catOpen
-                                      ? Icons.arrow_drop_up
-                                      : Icons.arrow_drop_down,
+                                  _catOpen ? Icons.arrow_drop_up : Icons.arrow_drop_down,
                                   color: AppColors.darkBrown,
                                   size: 20,
                                 ),
@@ -253,7 +230,7 @@ class _EventsScreenState extends State<EventsScreen> {
                         ),
                         const SizedBox(height: 14),
 
-                        // Available this week
+                        // Available this month
                         _SectionCard(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -274,8 +251,7 @@ class _EventsScreenState extends State<EventsScreen> {
                                         child: Text(
                                           'No events found.',
                                           style: TextStyle(
-                                            color:
-                                                Colors.white.withValues(alpha: 0.8),
+                                            color: Colors.white.withValues(alpha: 0.8),
                                             fontSize: 13,
                                           ),
                                         ),
@@ -285,18 +261,14 @@ class _EventsScreenState extends State<EventsScreen> {
                                       height: 280,
                                       child: ListView.separated(
                                         itemCount: _filteredEvents.length,
-                                        separatorBuilder: (_, __) =>
-                                            const SizedBox(height: 10),
+                                        separatorBuilder: (_, __) => const SizedBox(height: 10),
                                         itemBuilder: (context, i) {
                                           return _EventTile(
                                             event: _filteredEvents[i],
                                             onTap: () => Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (context) =>
-                                                    EventDetailsScreen(
-                                                        event:
-                                                            _filteredEvents[i]),
+                                                builder: (context) => EventDetailsScreen(event: _filteredEvents[i]),
                                               ),
                                             ),
                                           );
@@ -329,8 +301,7 @@ class _EventsScreenState extends State<EventsScreen> {
                                       child: Text(
                                         'No recommended events right now.',
                                         style: TextStyle(
-                                          color:
-                                              Colors.white.withValues(alpha: 0.8),
+                                          color: Colors.white.withValues(alpha: 0.8),
                                           fontSize: 12.5,
                                         ),
                                       ),
@@ -338,21 +309,17 @@ class _EventsScreenState extends State<EventsScreen> {
                                   : SizedBox(
                                       height: 280,
                                       child: ListView.separated(
-                                        itemCount:
-                                            _basedOnReservations.length,
-                                        separatorBuilder: (_, __) =>
-                                            const SizedBox(height: 10),
+                                        itemCount: _basedOnReservations.length,
+                                        separatorBuilder: (_, __) => const SizedBox(height: 10),
                                         itemBuilder: (context, i) {
+                                          final recommendation = _basedOnReservations[i];
                                           return _EventTile(
-                                            event: _basedOnReservations[i],
+                                            event: recommendation.event,
+                                            reason: recommendation.reason,
                                             onTap: () => Navigator.push(
                                               context,
                                               MaterialPageRoute(
-                                                builder: (context) =>
-                                                    EventDetailsScreen(
-                                                        event:
-                                                            _basedOnReservations[
-                                                                i]),
+                                                builder: (context) => EventDetailsScreen(event: recommendation.event),
                                               ),
                                             ),
                                           );
@@ -392,11 +359,7 @@ class _SearchBar extends StatelessWidget {
       child: Center(
         child: TextField(
           onChanged: onChanged,
-          style: TextStyle(
-            color: AppColors.darkBrown,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600),
           decoration: InputDecoration(
             border: InputBorder.none,
             hintText: hint,
@@ -416,7 +379,6 @@ class _SearchBar extends StatelessWidget {
 
 class _SectionCard extends StatelessWidget {
   final Widget child;
-
   const _SectionCard({required this.child});
 
   @override
@@ -435,9 +397,18 @@ class _SectionCard extends StatelessWidget {
 
 class _EventTile extends StatelessWidget {
   final EventModel event;
+  final String? reason;
   final VoidCallback onTap;
 
-  const _EventTile({required this.event, required this.onTap});
+  const _EventTile({
+    required this.event,
+    required this.onTap,
+    this.reason,
+  });
+
+  void _showReason(BuildContext context) {
+    AppSnackBar.show(context, reason!);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -449,7 +420,7 @@ class _EventTile extends StatelessWidget {
         border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Column(
@@ -474,9 +445,7 @@ class _EventTile extends StatelessWidget {
                 Text(
                   'Date&Time: ${event.formattedDate}',
                   style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600),
+                      color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -493,28 +462,52 @@ class _EventTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          SizedBox(
-            width: 98,
-            child: ElevatedButton(
-              onPressed: onTap,
-              style: ElevatedButton.styleFrom(
-                elevation: 0,
-                backgroundColor: AppColors.darkBrown,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (reason != null && reason!.isNotEmpty)
+                GestureDetector(
+                  onTap: () => _showReason(context),
+                  child: Container(
+                    width: 16,
+                    height: 16,
+                    margin: const EdgeInsets.only(bottom: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.darkBrown,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.info_outline,
+                      color: Colors.white,
+                      size: 11,
+                    ),
+                  ),
+                )
+              else
+                const SizedBox(height: 22),
+              SizedBox(
+                width: 98,
+                child: ElevatedButton(
+                  onPressed: onTap,
+                  style: ElevatedButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: AppColors.darkBrown,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
+                  ),
+                  child: const Text(
+                    'Click for more\ndetails',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2),
+                  ),
+                ),
               ),
-              child: const Text(
-                'Click for more\ndetails',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w700,
-                    height: 1.2),
-              ),
-            ),
+            ],
           ),
         ],
       ),

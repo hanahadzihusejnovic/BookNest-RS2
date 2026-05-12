@@ -11,6 +11,7 @@ import '../widgets/book_card.dart';
 import '../screens/cart_screen.dart';
 import '../screens/favorites_screen.dart';
 import '../screens/tbr_screen.dart';
+import '../models/book_recommendation.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -23,8 +24,8 @@ class _ShopScreenState extends State<ShopScreen> {
   final _bookService = BookService();
   final _categoryService = CategoryService();
 
-  List<Book> _recommendedBooks = [];
-  List<Book> _filteredRecommended = [];
+  List<BookRecommendation> _recommendedBooks = [];
+  List<BookRecommendation> _filteredRecommended = [];
   List<Category> _categories = [];
   final Map<int, List<Book>> _booksByCategory = {};
   final Map<int, List<Book>> _filteredByCategory = {};
@@ -117,11 +118,11 @@ class _ShopScreenState extends State<ShopScreen> {
     final q = _query.trim().toLowerCase();
     setState(() {
       _filteredRecommended = q.isEmpty
-          ? _recommendedBooks
-          : _recommendedBooks.where((b) {
-              return b.title.toLowerCase().contains(q) ||
-                  b.author.toLowerCase().contains(q);
-            }).toList();
+        ? _recommendedBooks
+        : _recommendedBooks.where((r) {
+            return r.book.title.toLowerCase().contains(q) ||
+                r.book.author.toLowerCase().contains(q);
+          }).toList();
 
       if (_selectedCategoryId != null &&
           _booksByCategory.containsKey(_selectedCategoryId)) {
@@ -371,12 +372,14 @@ class _ShopScreenState extends State<ShopScreen> {
                               childAspectRatio: 0.48,
                             ),
                             itemBuilder: (context, index) {
-                              final book = recommended[index];
+                              final recommendation = recommended[index];
+                              final book = recommendation.book;
                               return BookCard(
                                 title: book.title,
                                 author: book.author,
                                 imageUrl: book.imageUrl,
                                 style: BookCardStyle.details,
+                                reason: recommendation.reason,
                                 onTap: () => Navigator.push(
                                   context,
                                   MaterialPageRoute(
