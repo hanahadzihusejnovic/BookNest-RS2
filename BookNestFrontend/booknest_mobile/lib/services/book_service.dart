@@ -3,6 +3,7 @@ import '../layouts/constants.dart';
 import 'package:http/http.dart' as http;
 import '../models/book.dart';
 import 'auth_service.dart';
+import '../models/book_recommendation.dart';
 
 class BookService {
   final AuthService _authService = AuthService();
@@ -126,7 +127,7 @@ class BookService {
     }
   }
 
-  Future<List<Book>> getRecommendedBooks() async {
+  Future<List<BookRecommendation>> getRecommendedBooks() async {
     try {
       final token = await _authService.getToken();
       if (token == null) throw Exception('No authentication token found');
@@ -141,7 +142,7 @@ class BookService {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        return data.map((json) => Book.fromJson(json)).toList();
+        return data.map((json) => BookRecommendation.fromJson(json)).toList();
       } else {
         throw Exception('Failed to load recommended books');
       }
@@ -151,7 +152,7 @@ class BookService {
     }
   }
 
-  Future<List<Book>> getContentBasedRecommendations() async {
+  Future<List<BookRecommendation>> getContentBasedRecommendations() async {
     try {
       final token = await _authService.getToken();
       if (token == null) throw Exception('No authentication token found');
@@ -166,7 +167,7 @@ class BookService {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
-        return data.map((json) => Book.fromJson(json)).toList();
+        return data.map((json) => BookRecommendation.fromJson(json)).toList();
       } else {
         throw Exception('Failed to load recommendations');
       }
