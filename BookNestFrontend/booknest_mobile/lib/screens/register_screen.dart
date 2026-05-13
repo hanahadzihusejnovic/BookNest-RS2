@@ -1,7 +1,14 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../models/city.dart';
+import '../models/country.dart';
 import '../models/register_request.dart';
 import '../services/auth_service.dart';
-import 'login_screen.dart';
+import '../services/city_service.dart';
+import '../services/country_service.dart';
+import '../services/user_service.dart';
+import 'home_screen.dart';
 import '../layouts/constants.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -13,7 +20,10 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _authService = AuthService();
-  
+  final _cityService = CityService();
+  final _countryService = CountryService();
+  final _userService = UserService();
+
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -21,12 +31,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _addressController = TextEditingController();
-  final _cityController = TextEditingController();
-  final _countryController = TextEditingController();
   final _phoneController = TextEditingController();
-  
+
   DateTime _selectedDate = DateTime.now().subtract(const Duration(days: 365 * 18));
   bool _isLoading = false;
+
+  List<Country> _countries = [];
+  List<City> _cities = [];
+  List<City> _filteredCities = [];
+  Country? _selectedCountry;
+  City? _selectedCity;
+  File? _selectedImage;
 
   String? _firstNameError;
   String? _lastNameError;
@@ -35,6 +50,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
   String? _passwordError;
   String? _confirmPasswordError;
   String? _phoneError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCountriesAndCities();
+  }
+
+  Future<void> _loadCountriesAndCities() async {
+    try {
+      final countries = await _countryService.getCountries();
+      final cities = await _cityService.getCities();
+      if (mounted) {
+        setState(() {
+          _countries = countries;
+          _cities = cities;
+        });
+      }
+    } catch (e) {
+      print('❌ Failed to load countries/cities: $e');
+    }
+  }
+
+  void _onCountryChanged(Country? country) {
+    setState(() {
+      _selectedCountry = country;
+      _selectedCity = null;
+      _filteredCities = country == null
+          ? []
+          : _cities.where((c) => c.countryId == country.id).toList();
+    });
+  }
+
+  Future<void> _pickImage() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.image,
+      allowMultiple: false,
+    );
+    if (result != null && result.files.single.path != null) {
+      setState(() => _selectedImage = File(result.files.single.path!));
+    }
+  }
 
   Future<void> _register() async {
     setState(() {
@@ -130,8 +186,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
-      print('🟢 REGISTER SCREEN: Starting registration...');
-      
+      // Korak 1: Registracija
       final request = RegisterRequest(
         firstName: _firstNameController.text,
         lastName: _lastNameController.text,
@@ -140,41 +195,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text,
         dateOfBirth: _selectedDate,
         address: _addressController.text.isEmpty ? null : _addressController.text,
-        city: _cityController.text.isEmpty ? null : _cityController.text,
-        country: _countryController.text.isEmpty ? null : _countryController.text,
+        cityId: _selectedCity?.id,
+        countryId: _selectedCountry?.id,
         phoneNumber: _phoneController.text.isEmpty ? null : _phoneController.text,
-        roleIds: [3],
       );
 
       await _authService.register(request);
-      
-      print('🟢 REGISTER SCREEN: Registration successful!');
+
+      // Korak 2: Automatski login
+      await _authService.login(_usernameController.text, _passwordController.text);
+
+      // Korak 3: Upload slike ako je odabrana
+      if (_selectedImage != null) {
+        try {
+          final imageUrl = await _userService.uploadImage(_selectedImage!);
+          await _userService.updateSelf(
+            firstName: _firstNameController.text,
+            lastName: _lastNameController.text,
+            username: _usernameController.text,
+            emailAddress: _emailController.text,
+            imageUrl: imageUrl,
+          );
+        } catch (e) {
+          print('⚠️ Image upload failed: $e');
+        }
+      }
 
       if (mounted) {
-        _showSuccess('Registration successful! Please login.');
-        Future.delayed(const Duration(seconds: 2), () {
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const LoginScreen()),
-            );
-          }
-        });
+        AppSnackBar.show(context, 'Welcome to BookNest!');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
       }
     } catch (e) {
-      print('🔴 REGISTER SCREEN ERROR: $e');
-      _showError('Registration failed');
+      print('🔴 REGISTER ERROR: $e');
+      if (mounted) {
+        AppSnackBar.show(context, 'Registration failed. Please try again.', isError: true);
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
-  }
-
-  void _showError(String message) {
-    AppSnackBar.show(context, message, isError: true);
-  }
-
-  void _showSuccess(String message) {
-    AppSnackBar.show(context, message);
   }
 
   Future<void> _selectDate() async {
@@ -247,7 +308,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 32),
+
+            // Profile image picker
+            Center(
+              child: GestureDetector(
+                onTap: _pickImage,
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 48,
+                      backgroundColor: AppColors.mediumBrown.withValues(alpha: 0.3),
+                      backgroundImage: _selectedImage != null
+                          ? FileImage(_selectedImage!)
+                          : null,
+                      child: _selectedImage == null
+                          ? const Icon(Icons.person, size: 48, color: AppColors.darkBrown)
+                          : null,
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: AppColors.darkBrown,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.lightBrown, width: 2),
+                        ),
+                        child: const Icon(Icons.camera_alt, size: 14, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Center(
+              child: Text(
+                'Add profile photo (optional)',
+                style: TextStyle(
+                  color: AppColors.darkBrown,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
 
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 30),
@@ -258,119 +366,108 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     controller: _firstNameController,
                     hint: 'First Name',
                     errorText: _firstNameError,
-                    onChanged: () {
-                      if (_firstNameError != null) setState(() => _firstNameError = null);
-                    },
+                    onChanged: () { if (_firstNameError != null) setState(() => _firstNameError = null); },
                   ),
                   const SizedBox(height: 32),
-
                   _buildTextField(
                     controller: _lastNameController,
                     hint: 'Last Name',
                     errorText: _lastNameError,
-                    onChanged: () {
-                      if (_lastNameError != null) setState(() => _lastNameError = null);
-                    },
+                    onChanged: () { if (_lastNameError != null) setState(() => _lastNameError = null); },
                   ),
                   const SizedBox(height: 32),
-
                   _buildTextField(
                     controller: _emailController,
                     hint: 'Email',
                     keyboardType: TextInputType.emailAddress,
                     errorText: _emailError,
-                    onChanged: () {
-                      if (_emailError != null) setState(() => _emailError = null);
-                    },
+                    onChanged: () { if (_emailError != null) setState(() => _emailError = null); },
                   ),
                   const SizedBox(height: 32),
-
                   _buildTextField(
                     controller: _usernameController,
                     hint: 'Username',
                     errorText: _usernameError,
-                    onChanged: () {
-                      if (_usernameError != null) setState(() => _usernameError = null);
-                    },
+                    onChanged: () { if (_usernameError != null) setState(() => _usernameError = null); },
                   ),
                   const SizedBox(height: 32),
-
                   _buildTextField(
                     controller: _passwordController,
                     hint: 'Password',
                     obscureText: true,
                     errorText: _passwordError,
-                    onChanged: () {
-                      if (_passwordError != null) setState(() => _passwordError = null);
-                    },
+                    onChanged: () { if (_passwordError != null) setState(() => _passwordError = null); },
                   ),
                   const SizedBox(height: 32),
-
                   _buildTextField(
                     controller: _confirmPasswordController,
                     hint: 'Confirm Password',
                     obscureText: true,
                     errorText: _confirmPasswordError,
-                    onChanged: () {
-                      if (_confirmPasswordError != null) setState(() => _confirmPasswordError = null);
-                    },
+                    onChanged: () { if (_confirmPasswordError != null) setState(() => _confirmPasswordError = null); },
                   ),
                   const SizedBox(height: 32),
 
                   // Date of Birth
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      GestureDetector(
-                        onTap: _selectDate,
-                        child: Row(
+                  GestureDetector(
+                    onTap: _selectDate,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
                               'Date of Birth: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
-                              style: const TextStyle(
-                                color: AppColors.darkBrown,
-                                fontSize: 16,
-                              ),
+                              style: const TextStyle(color: AppColors.darkBrown, fontSize: 16),
                             ),
                             const Icon(Icons.calendar_today, color: AppColors.darkBrown, size: 20),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 4),
-                      Container(
-                        width: double.infinity,
-                        height: 1,
-                        color: AppColors.darkBrown,
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Container(width: double.infinity, height: 1, color: AppColors.darkBrown),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 40),
 
+                  const SizedBox(height: 40),
                   const Text(
                     'Optional Information',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.darkBrown,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.darkBrown),
                   ),
                   const SizedBox(height: 24),
 
                   _buildTextField(controller: _addressController, hint: 'Address (optional)'),
                   const SizedBox(height: 32),
-                  _buildTextField(controller: _cityController, hint: 'City (optional)'),
+
+                  // Country dropdown
+                  _buildDropdown<Country>(
+                    hint: 'Country (optional)',
+                    value: _selectedCountry,
+                    items: _countries,
+                    labelFn: (c) => c.name,
+                    onChanged: _onCountryChanged,
+                  ),
                   const SizedBox(height: 32),
-                  _buildTextField(controller: _countryController, hint: 'Country (optional)'),
+
+                  // City dropdown
+                  _buildDropdown<City>(
+                    hint: _selectedCountry == null ? 'Select country first' : 'City (optional)',
+                    value: _selectedCity,
+                    items: _filteredCities,
+                    labelFn: (c) => c.name,
+                    onChanged: _selectedCountry == null
+                        ? null
+                        : (city) => setState(() => _selectedCity = city),
+                  ),
                   const SizedBox(height: 32),
+
                   _buildTextField(
                     controller: _phoneController,
                     hint: 'Phone Number (optional)',
                     keyboardType: TextInputType.phone,
                     errorText: _phoneError,
-                    onChanged: () {
-                      if (_phoneError != null) setState(() => _phoneError = null);
-                    },
+                    onChanged: () { if (_phoneError != null) setState(() => _phoneError = null); },
                   ),
                   const SizedBox(height: 40),
 
@@ -381,28 +478,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onPressed: _isLoading ? null : _register,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.darkBrown,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                       child: _isLoading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : const Text(
-                              'REGISTER',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: 2,
-                              ),
-                            ),
+                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                          : const Text('REGISTER', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2)),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -411,24 +491,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          "Already have an account? ",
-                          style: TextStyle(
-                            color: AppColors.darkBrown,
-                            fontSize: 14,
-                          ),
-                        ),
+                        const Text("Already have an account? ", style: TextStyle(color: AppColors.darkBrown, fontSize: 14)),
                         GestureDetector(
                           onTap: () => Navigator.pop(context),
-                          child: const Text(
-                            'Login',
-                            style: TextStyle(
-                              color: AppColors.darkBrown,
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
+                          child: const Text('Login', style: TextStyle(color: AppColors.darkBrown, fontSize: 14, fontWeight: FontWeight.bold, decoration: TextDecoration.underline)),
                         ),
                       ],
                     ),
@@ -440,6 +506,48 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDropdown<T>({
+    required String hint,
+    required T? value,
+    required List<T> items,
+    required String Function(T) labelFn,
+    required ValueChanged<T?>? onChanged,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 24,
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<T>(
+              value: value,
+              isExpanded: true,
+              hint: Text(
+                hint,
+                style: const TextStyle(
+                  color: AppColors.darkBrown,
+                  fontSize: 16,
+                ),
+              ),
+              icon: const Icon(Icons.arrow_drop_down, color: AppColors.darkBrown),
+              style: const TextStyle(color: AppColors.darkBrown, fontSize: 16),
+              dropdownColor: AppColors.lightBrown,
+              onChanged: onChanged,
+              items: items.map((item) {
+                return DropdownMenuItem<T>(
+                  value: item,
+                  child: Text(labelFn(item)),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(width: double.infinity, height: 1, color: AppColors.darkBrown),
+      ],
     );
   }
 
@@ -460,19 +568,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: controller,
             obscureText: obscureText,
             keyboardType: keyboardType,
-            onChanged: (value) {
-              if (onChanged != null) onChanged();
-            },
-            style: const TextStyle(
-              color: AppColors.darkBrown,
-              fontSize: 16,
-            ),
+            onChanged: (value) { if (onChanged != null) onChanged(); },
+            style: const TextStyle(color: AppColors.darkBrown, fontSize: 16),
             decoration: InputDecoration(
               hintText: hint,
-              hintStyle: TextStyle(
-                color: errorText != null ? Colors.red : AppColors.darkBrown,
-                fontSize: 16,
-              ),
+              hintStyle: TextStyle(color: errorText != null ? Colors.red : AppColors.darkBrown, fontSize: 16),
               border: InputBorder.none,
               isDense: true,
               contentPadding: EdgeInsets.zero,
@@ -480,20 +580,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        Container(
-          width: double.infinity,
-          height: 1,
-          color: errorText != null ? Colors.red : AppColors.darkBrown,
-        ),
+        Container(width: double.infinity, height: 1, color: errorText != null ? Colors.red : AppColors.darkBrown),
         if (errorText != null) ...[
           const SizedBox(height: 4),
-          Text(
-            errorText,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.red,
-            ),
-          ),
+          Text(errorText, style: const TextStyle(fontSize: 12, color: Colors.red)),
         ],
       ],
     );
@@ -508,8 +598,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _addressController.dispose();
-    _cityController.dispose();
-    _countryController.dispose();
     _phoneController.dispose();
     super.dispose();
   }
