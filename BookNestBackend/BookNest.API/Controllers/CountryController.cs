@@ -24,6 +24,18 @@ namespace BookNest.API.Controllers
             return await base.Create(request);
         }
 
+        [AllowAnonymous]
+        public override async Task<PagedResult<CountryResponse>> Get([FromQuery] CountrySearchObject search)
+        {
+            return await base.Get(search);
+        }
+
+        [AllowAnonymous]
+        public override async Task<CountryResponse?> GetById(int id)
+        {
+            return await base.GetById(id);
+        }
+
         [Authorize(Roles = Roles.Admin)]
         public override async Task<CountryResponse?> Update(int id, [FromBody] CountryUpdateRequest request)
         {

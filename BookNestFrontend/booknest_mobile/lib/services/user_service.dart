@@ -3,6 +3,7 @@ import '../layouts/constants.dart';
 import 'package:http/http.dart' as http;
 import '../models/user.dart';
 import 'auth_service.dart';
+import 'dart:io';
 
 class UserService {
   final AuthService _authService = AuthService();
@@ -67,5 +68,24 @@ class UserService {
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception('Failed to delete account');
     }
+  }
+
+  Future<String> uploadImage(File imageFile) async {
+    final token = await _authService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+
+    final uri = Uri.parse('${AppConstants.baseUrl}/User/upload-image');
+    final request = http.MultipartRequest('POST', uri);
+    request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['imageUrl'] as String;
+    }
+    throw Exception('Failed to upload image');
   }
 }

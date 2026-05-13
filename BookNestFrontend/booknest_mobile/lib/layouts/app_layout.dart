@@ -339,13 +339,6 @@ class _NotificationBellState extends State<NotificationBell> {
   void _onNotification(Map<String, dynamic> notification) {
     if (!mounted) return;
     setState(() => _unread = _service.unreadCount);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${notification['title']}\n${notification['message']}'),
-        backgroundColor: AppColors.darkBrown,
-        duration: const Duration(seconds: 3),
-      ),
-    );
   }
 
   @override
@@ -358,6 +351,8 @@ class _NotificationBellState extends State<NotificationBell> {
   void _closePanel() {
     _overlayEntry?.remove();
     _overlayEntry = null;
+    _service.markAllRead();
+    setState(() => _unread = 0);
   }
 
   void _togglePanel() {
@@ -365,9 +360,6 @@ class _NotificationBellState extends State<NotificationBell> {
       _closePanel();
       return;
     }
-
-    _service.markAllRead();
-    setState(() => _unread = 0);
 
     _overlayEntry = OverlayEntry(
       builder: (context) => Stack(
@@ -417,19 +409,37 @@ class _NotificationBellState extends State<NotificationBell> {
                         ),
                         itemBuilder: (_, i) {
                           final n = _service.notifications[i];
+                          final isUnread = !(n['isRead'] ?? false);
                           return Padding(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 12),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  n['title'] ?? '',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                  ),
+                                Row(
+                                  children: [
+                                    if (isUnread) ...[
+                                      Container(
+                                        width: 7,
+                                        height: 7,
+                                        margin: const EdgeInsets.only(right: 6, top: 1),
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFF7EB8F7),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ],
+                                    Expanded(
+                                      child: Text(
+                                        n['title'] ?? '',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const SizedBox(height: 4),
                                 Text(

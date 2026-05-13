@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/user_service.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import '../screens/login_screen.dart';
@@ -59,6 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Future<void> _logout() async {
     await AuthService().logout();
+    await NotificationService().disconnect();
     if (mounted) {
       Navigator.pushAndRemoveUntil(
         context,

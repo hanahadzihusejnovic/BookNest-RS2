@@ -6,11 +6,10 @@ class RegisterRequest {
   final String password;
   final DateTime dateOfBirth;
   final String? address;
-  final String? city;
-  final String? country;
+  final int? cityId;
+  final int? countryId;
   final String? phoneNumber;
   final String? imageUrl;
-  final List<int> roleIds;
 
   RegisterRequest({
     required this.firstName,
@@ -20,11 +19,10 @@ class RegisterRequest {
     required this.password,
     required this.dateOfBirth,
     this.address,
-    this.city,
-    this.country,
+    this.cityId,
+    this.countryId,
     this.phoneNumber,
     this.imageUrl,
-    this.roleIds = const [3],
   });
 
   Map<String, dynamic> toJson() {
@@ -36,11 +34,10 @@ class RegisterRequest {
       'password': password,
       'dateOfBirth': dateOfBirth.toIso8601String(),
       'address': address,
-      'city': city,
-      'country': country,
+      'cityId': cityId,
+      'countryId': countryId,
       'phoneNumber': phoneNumber,
       'imageUrl': imageUrl,
-      'roleIds': roleIds,
     };
   }
 }

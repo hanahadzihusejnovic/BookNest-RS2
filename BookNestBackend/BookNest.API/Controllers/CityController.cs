@@ -18,6 +18,18 @@ namespace BookNest.API.Controllers
         {
         }
 
+        [AllowAnonymous]
+        public override async Task<PagedResult<CityResponse>> Get([FromQuery] CitySearchObject search)
+        {
+            return await base.Get(search);
+        }
+
+        [AllowAnonymous]
+        public override async Task<CityResponse?> GetById(int id)
+        {
+            return await base.GetById(id);
+        }
+
         [Authorize(Roles = Roles.Admin)]
         public override async Task<CityResponse> Create([FromBody] CityInsertRequest request)
         {
@@ -30,7 +42,6 @@ namespace BookNest.API.Controllers
             return await base.Update(id, request);
         }
 
-        [Authorize(Roles = Roles.Admin)]
         [Authorize(Roles = Roles.Admin)]
         public override async Task<bool> Delete(int id)
         {
