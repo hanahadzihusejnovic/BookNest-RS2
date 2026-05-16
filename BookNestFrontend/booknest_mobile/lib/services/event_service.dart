@@ -21,6 +21,8 @@ class EventService {
     String? text,
     int? eventCategoryId,
     bool? isActive,
+    DateTime? dateFrom,
+    DateTime? dateTo,
     int pageSize = 20,
   }) async {
     final params = <String, String>{
@@ -29,6 +31,8 @@ class EventService {
     if (text != null && text.isNotEmpty) params['Text'] = text;
     if (eventCategoryId != null) params['EventCategoryId'] = eventCategoryId.toString();
     if (isActive != null) params['IsActive'] = isActive.toString();
+    if (dateFrom != null) params['DateFrom'] = dateFrom.toUtc().toIso8601String();
+    if (dateTo != null) params['DateTo'] = dateTo.toUtc().toIso8601String();
 
     final uri = Uri.parse('${AppConstants.baseUrl}/Event').replace(queryParameters: params);
 

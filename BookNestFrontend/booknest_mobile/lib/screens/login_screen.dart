@@ -20,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   
   bool _isLoading = false;
   bool _rememberMe = false;
+  bool _passwordVisible = false;
   String? _usernameError;
   String? _passwordError;
 
@@ -267,32 +268,46 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   SizedBox(
                     height: 24,
-                    child: TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      onChanged: (value) {
-                        if (_passwordError != null) {
-                          setState(() {
-                            _passwordError = null;
-                          });
-                        }
-                      },
-                      style: const TextStyle(
-                        color: AppColors.darkBrown,
-                        fontSize: 16,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: 'Password',
-                        hintStyle: TextStyle(
-                          color: _passwordError != null 
-                              ? Colors.red
-                              : AppColors.darkBrown,
-                          fontSize: 16,
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _passwordController,
+                            obscureText: !_passwordVisible,
+                            onChanged: (value) {
+                              if (_passwordError != null) {
+                                setState(() {
+                                  _passwordError = null;
+                                });
+                              }
+                            },
+                            style: const TextStyle(
+                              color: AppColors.darkBrown,
+                              fontSize: 16,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Password',
+                              hintStyle: TextStyle(
+                                color: _passwordError != null
+                                    ? Colors.red
+                                    : AppColors.darkBrown,
+                                fontSize: 16,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
                         ),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: EdgeInsets.zero,
-                      ),
+                        GestureDetector(
+                          onTap: () => setState(() => _passwordVisible = !_passwordVisible),
+                          child: Icon(
+                            _passwordVisible ? Icons.visibility_off : Icons.visibility,
+                            size: 18,
+                            color: AppColors.darkBrown,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 4),

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../models/tbr.dart';
 import '../services/tbr_service.dart';
+import '../services/book_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import '../widgets/book_card.dart';
 import '../widgets/pagination_bar.dart';
+import 'book_details_screen.dart';
 
 class TBRScreen extends StatefulWidget {
   const TBRScreen({super.key});
@@ -15,6 +17,7 @@ class TBRScreen extends StatefulWidget {
 
 class _TBRScreenState extends State<TBRScreen> {
   final _tbrService = TBRService();
+  final _bookService = BookService();
   List<TBRItemModel> _allItems = [];
   List<TBRItemModel> _filteredItems = [];
   bool _isLoading = true;
@@ -72,6 +75,20 @@ class _TBRScreenState extends State<TBRScreen> {
             _allItems.where((i) => i.readingStatus == status).toList();
       }
     });
+  }
+
+  Future<void> _openBookDetails(TBRItemModel item) async {
+    try {
+      final book = await _bookService.getBookById(item.bookId);
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => BookDetailsScreen(book: book)),
+      );
+      _loadTBR();
+    } catch (e) {
+      if (mounted) AppSnackBar.showError(context, e);
+    }
   }
 
   Future<void> _removeItem(TBRItemModel item) async {
@@ -264,6 +281,7 @@ class _TBRScreenState extends State<TBRScreen> {
                                           imageUrl: item.bookImageUrl,
                                           style: BookCardStyle.remove,
                                           statusLabel: _statusLabel(item.readingStatus),
+                                          onCardTap: () => _openBookDetails(item),
                                           onTap: () => _removeItem(item),
                                         );
                                       },

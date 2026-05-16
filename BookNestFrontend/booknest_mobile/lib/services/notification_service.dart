@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import '../layouts/constants.dart';
 import 'auth_service.dart';
@@ -13,12 +14,18 @@ class NotificationService {
   HubConnection? _hubConnection;
   final List<Map<String, dynamic>> _notifications = [];
   final List<Function(Map<String, dynamic>)> _listeners = [];
+  bool _notificationsEnabled = true;
 
   List<Map<String, dynamic>> get notifications => List.unmodifiable(_notifications);
-  int get unreadCount => _notifications.where((n) => !(n['isRead'] ?? false)).length;
+  int get unreadCount => _notificationsEnabled
+      ? _notifications.where((n) => !(n['isRead'] ?? false)).length
+      : 0;
 
   Future<void> connect(int userId) async {
     if (_hubConnection != null) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
 
     await _loadFromServer();
 
@@ -42,8 +49,10 @@ class NotificationService {
 
       _notifications.insert(0, notification);
 
-      for (final listener in _listeners) {
-        listener(notification);
+      if (_notificationsEnabled) {
+        for (final listener in _listeners) {
+          listener(notification);
+        }
       }
     });
 
@@ -52,6 +61,16 @@ class NotificationService {
       print('✅ Connected to NotificationHub as user $userId');
     } catch (e) {
       print('❌ Failed to connect to NotificationHub: $e');
+    }
+  }
+
+  Future<void> setEnabled(bool enabled) async {
+    _notificationsEnabled = enabled;
+    if (enabled) {
+      await _loadFromServer();
+    }
+    for (final listener in _listeners) {
+      listener({});
     }
   }
 

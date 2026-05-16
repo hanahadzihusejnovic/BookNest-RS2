@@ -74,6 +74,12 @@ namespace BookNest.API.Controllers
             if (userId == 0)
                 return Unauthorized();
 
+            var currentUser = await _userService.GetByIdAsync(userId);
+            if (currentUser?.ImageUrl != null && currentUser.ImageUrl != request.ImageUrl)
+            {
+                await _imageService.DeleteImageAsync(currentUser.ImageUrl, "user-images");
+            }
+
             var result = await _userService.UpdateSelfAsync(userId, request);
 
             return Ok(result);

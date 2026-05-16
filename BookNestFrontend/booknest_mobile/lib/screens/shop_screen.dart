@@ -351,7 +351,7 @@ class _ShopScreenState extends State<ShopScreen> {
                             child: Padding(
                               padding: const EdgeInsets.all(20),
                               child: Text(
-                                "No books to show.",
+                                "No recommended books to show.",
                                 style: TextStyle(
                                   color: AppColors.pageBg.withValues(alpha: 0.9),
                                   fontSize: 12,

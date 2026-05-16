@@ -106,7 +106,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     bool hasError = false;
 
     if (_firstNameController.text.isEmpty) {
-      setState(() => _firstNameError = 'Required');
+      setState(() => _firstNameError = 'First name is required');
       hasError = true;
     } else if (_firstNameController.text.length < 2) {
       setState(() => _firstNameError = 'Min 2 characters');
@@ -114,7 +114,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (_lastNameController.text.isEmpty) {
-      setState(() => _lastNameError = 'Required');
+      setState(() => _lastNameError = 'Last name is required');
       hasError = true;
     } else if (_lastNameController.text.length < 2) {
       setState(() => _lastNameError = 'Min 2 characters');
@@ -122,7 +122,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (_emailController.text.isEmpty) {
-      setState(() => _emailError = 'Required');
+      setState(() => _emailError = 'Email is required');
       hasError = true;
     } else {
       final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
@@ -133,7 +133,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (_usernameController.text.isEmpty) {
-      setState(() => _usernameError = 'Required');
+      setState(() => _usernameError = 'Username is required');
       hasError = true;
     } else if (_usernameController.text.length < 4) {
       setState(() => _usernameError = 'Min 4 characters');
@@ -147,7 +147,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (_passwordController.text.isEmpty) {
-      setState(() => _passwordError = 'Required');
+      setState(() => _passwordError = 'Password is required');
       hasError = true;
     } else if (_passwordController.text.length < 8) {
       setState(() => _passwordError = 'Min 8 characters');
@@ -164,7 +164,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (_confirmPasswordController.text.isEmpty) {
-      setState(() => _confirmPasswordError = 'Required');
+      setState(() => _confirmPasswordError = 'Confirm password is required');
       hasError = true;
     } else if (_confirmPasswordController.text != _passwordController.text) {
       setState(() => _confirmPasswordError = 'Passwords do not match');
@@ -231,7 +231,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } catch (e) {
       print('🔴 REGISTER ERROR: $e');
       if (mounted) {
-        AppSnackBar.show(context, 'Registration failed. Please try again.', isError: true);
+        final message = e.toString().replaceFirst('Exception: ', '');
+        AppSnackBar.show(context, message, isError: true);
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

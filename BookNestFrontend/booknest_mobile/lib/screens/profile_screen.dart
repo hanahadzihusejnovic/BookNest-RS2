@@ -1,8 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import '../models/user.dart';
+import '../models/city.dart';
+import '../models/country.dart';
 import '../services/user_service.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
+import '../services/city_service.dart';
+import '../services/country_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import '../screens/login_screen.dart';
@@ -16,7 +22,9 @@ import '../services/book_service.dart';
 import 'book_details_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final int initialTab;
+
+  const ProfileScreen({super.key, this.initialTab = 0});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -25,16 +33,34 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   final _userService = UserService();
+  final _cityService = CityService();
+  final _countryService = CountryService();
   User? _user;
   bool _isLoading = true;
   String? _error;
   late TabController _tabController;
+  List<Country> _countries = [];
+  List<City> _cities = [];
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 2, vsync: this, initialIndex: widget.initialTab);
     _loadUser();
+    _loadLocationData();
+  }
+
+  Future<void> _loadLocationData() async {
+    try {
+      final countries = await _countryService.getCountries();
+      final cities = await _cityService.getCities();
+      if (mounted) {
+        setState(() {
+          _countries = countries;
+          _cities = cities;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -243,160 +269,408 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   void _showEditProfileDialog() {
-  final firstNameController =
-      TextEditingController(text: _user!.firstName);
-  final lastNameController =
-      TextEditingController(text: _user!.lastName);
-  final usernameController =
-    TextEditingController(text: _user!.username);
-  final emailController =
-      TextEditingController(text: _user!.emailAddress);
-  final phoneController =
-      TextEditingController(text: _user!.phoneNumber ?? '');
-  final addressController =
-      TextEditingController(text: _user!.address ?? '');
-  final cityController =
-      TextEditingController(text: _user!.city ?? '');
-  final countryController =
-      TextEditingController(text: _user!.country ?? '');
-  bool isSubmitting = false;
+    final firstNameController = TextEditingController(text: _user!.firstName);
+    final lastNameController = TextEditingController(text: _user!.lastName);
+    final usernameController = TextEditingController(text: _user!.username);
+    final emailController = TextEditingController(text: _user!.emailAddress);
+    final phoneController = TextEditingController(text: _user!.phoneNumber ?? '');
+    final addressController = TextEditingController(text: _user!.address ?? '');
 
-  showDialog(
-    context: context,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            backgroundColor: AppColors.pageBg,
-            title: Text(
-              'Edit profile',
-              style: TextStyle(
-                color: AppColors.darkBrown,
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-              ),
-            ),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+    // Pre-select country/city by ID
+    final matchingCountries = _countries.where((c) => c.id == _user!.countryId);
+    Country? selectedCountry = matchingCountries.isNotEmpty ? matchingCountries.first : null;
+    List<City> filteredCities = selectedCountry != null
+        ? _cities.where((c) => c.countryId == selectedCountry!.id).toList()
+        : [];
+    final matchingCities = filteredCities.where((c) => c.id == _user!.cityId);
+    City? selectedCity = matchingCities.isNotEmpty ? matchingCities.first : null;
+
+    File? selectedImage;
+    bool imageDeleted = false;
+
+    String? firstNameError;
+    String? lastNameError;
+    String? usernameError;
+    String? emailError;
+    String? phoneError;
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            ImageProvider? currentImageProvider;
+            if (selectedImage != null) {
+              currentImageProvider = FileImage(selectedImage!);
+            } else if (!imageDeleted && _user!.imageUrl != null) {
+              currentImageProvider = NetworkImage(_user!.imageUrl!);
+            }
+            final hasImage = currentImageProvider != null;
+
+            Widget dropdownField<T>({
+              required String hint,
+              required T? value,
+              required List<T> items,
+              required String Function(T) labelFn,
+              required ValueChanged<T?>? onChanged,
+            }) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _EditField(
-                    controller: firstNameController,
-                    hint: 'First name',
-                  ),
-                  const SizedBox(height: 20),
-                  _EditField(
-                    controller: lastNameController,
-                    hint: 'Last name',
-                  ),
-                  const SizedBox(height: 20),
-                  _EditField(
-                    controller: usernameController,
-                    hint: 'Username',
-                  ),
-                  const SizedBox(height: 20),
-                  _EditField(
-                    controller: emailController,
-                    hint: 'Email',
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 20),
-                  _EditField(
-                    controller: phoneController,
-                    hint: 'Phone',
-                    keyboardType: TextInputType.phone,
-                  ),
-                  const SizedBox(height: 20),
-                  _EditField(
-                    controller: addressController,
-                    hint: 'Address',
-                  ),
-                  const SizedBox(height: 20),
-                  _EditField(
-                    controller: cityController,
-                    hint: 'City',
-                  ),
-                  const SizedBox(height: 20),
-                  _EditField(
-                    controller: countryController,
-                    hint: 'Country',
-                  ),
-                ],
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(color: AppColors.darkBrown),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: isSubmitting
-                    ? null
-                    : () async {
-                        final nav = Navigator.of(context);
-                        final overlay = Overlay.of(context);
-                        setDialogState(() => isSubmitting = true);
-                        try {
-                          final updated =
-                              await _userService.updateSelf(
-                            firstName: firstNameController.text,
-                            lastName: lastNameController.text,
-                            username: usernameController.text,
-                            emailAddress: emailController.text,
-                            phoneNumber: phoneController.text.isEmpty
-                                ? null
-                                : phoneController.text,
-                            address: addressController.text.isEmpty
-                                ? null
-                                : addressController.text,
-                            city: cityController.text.isEmpty
-                                ? null
-                                : cityController.text,
-                            country: countryController.text.isEmpty
-                                ? null
-                                : countryController.text,
-                            imageUrl: _user!.imageUrl,
-                          );
-                          if (mounted) {
-                            setState(() => _user = updated);
-                            nav.pop();
-                            AppSnackBar.show(overlay, 'Profile updated!');
-                          }
-                        } catch (e) {
-                          setDialogState(
-                              () => isSubmitting = false);
-                          if (mounted) {
-                            AppSnackBar.showError(overlay, e);
-                          }
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.darkBrown,
-                ),
-                child: isSubmitting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text(
-                        'Save',
-                        style: TextStyle(color: Colors.white),
+                  SizedBox(
+                    height: 24,
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<T>(
+                        value: value,
+                        isExpanded: true,
+                        hint: Text(hint,
+                            style: TextStyle(
+                                color: AppColors.darkBrown.withValues(alpha: 0.5),
+                                fontSize: 15)),
+                        icon: Icon(Icons.arrow_drop_down, color: AppColors.darkBrown),
+                        style: TextStyle(color: AppColors.darkBrown, fontSize: 15),
+                        dropdownColor: AppColors.lightBrown,
+                        onChanged: onChanged,
+                        items: items
+                            .map((item) => DropdownMenuItem<T>(
+                                  value: item,
+                                  child: Text(labelFn(item)),
+                                ))
+                            .toList(),
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(width: double.infinity, height: 1, color: AppColors.darkBrown),
+                ],
+              );
+            }
+
+            return AlertDialog(
+              backgroundColor: AppColors.pageBg,
+              title: Text('Edit profile',
+                  style: TextStyle(
+                      color: AppColors.darkBrown,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Avatar picker
+                    Center(
+                      child: Column(
+                        children: [
+                          GestureDetector(
+                            onTap: () async {
+                              final result = await FilePicker.platform.pickFiles(
+                                  type: FileType.image, allowMultiple: false);
+                              if (result != null && result.files.single.path != null) {
+                                setDialogState(() {
+                                  selectedImage = File(result.files.single.path!);
+                                  imageDeleted = false;
+                                });
+                              }
+                            },
+                            child: CircleAvatar(
+                              radius: 40,
+                              backgroundColor:
+                                  AppColors.mediumBrown.withValues(alpha: 0.3),
+                              backgroundImage: currentImageProvider,
+                              child: !hasImage
+                                  ? const Icon(Icons.person,
+                                      size: 40, color: AppColors.darkBrown)
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              GestureDetector(
+                                onTap: () async {
+                                  final result = await FilePicker.platform.pickFiles(
+                                      type: FileType.image, allowMultiple: false);
+                                  if (result != null &&
+                                      result.files.single.path != null) {
+                                    setDialogState(() {
+                                      selectedImage =
+                                          File(result.files.single.path!);
+                                      imageDeleted = false;
+                                    });
+                                  }
+                                },
+                                child: Text('Change photo',
+                                    style: TextStyle(
+                                        color: AppColors.darkBrown,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600)),
+                              ),
+                              if (hasImage) ...[
+                                Text('  |  ',
+                                    style: TextStyle(
+                                        color: AppColors.darkBrown
+                                            .withValues(alpha: 0.4))),
+                                GestureDetector(
+                                  onTap: () async {
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        backgroundColor: AppColors.pageBg,
+                                        title: Text(
+                                          'Remove photo',
+                                          style: TextStyle(
+                                            color: AppColors.darkBrown,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        content: Text(
+                                          'Are you sure you want to remove your profile photo?',
+                                          style: TextStyle(
+                                            color: AppColors.darkBrown.withValues(alpha: 0.8),
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(ctx, false),
+                                            child: Text('No',
+                                                style: TextStyle(color: AppColors.darkBrown)),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () => Navigator.pop(ctx, true),
+                                            style: ElevatedButton.styleFrom(
+                                                backgroundColor: Colors.red),
+                                            child: const Text('Yes',
+                                                style: TextStyle(color: Colors.white)),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (confirm == true) {
+                                      setDialogState(() {
+                                        selectedImage = null;
+                                        imageDeleted = true;
+                                      });
+                                    }
+                                  },
+                                  child: Text('Remove',
+                                      style: TextStyle(
+                                          color: Colors.red.withValues(alpha: 0.8),
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600)),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    _EditField(
+                      controller: firstNameController,
+                      hint: 'First name',
+                      errorText: firstNameError,
+                      onChanged: () => setDialogState(() => firstNameError = null),
+                    ),
+                    const SizedBox(height: 20),
+                    _EditField(
+                      controller: lastNameController,
+                      hint: 'Last name',
+                      errorText: lastNameError,
+                      onChanged: () => setDialogState(() => lastNameError = null),
+                    ),
+                    const SizedBox(height: 20),
+                    _EditField(
+                      controller: usernameController,
+                      hint: 'Username',
+                      errorText: usernameError,
+                      onChanged: () => setDialogState(() => usernameError = null),
+                    ),
+                    const SizedBox(height: 20),
+                    _EditField(
+                      controller: emailController,
+                      hint: 'Email',
+                      keyboardType: TextInputType.emailAddress,
+                      errorText: emailError,
+                      onChanged: () => setDialogState(() => emailError = null),
+                    ),
+                    const SizedBox(height: 20),
+                    _EditField(
+                      controller: phoneController,
+                      hint: 'Phone (optional)',
+                      keyboardType: TextInputType.phone,
+                      errorText: phoneError,
+                      onChanged: () => setDialogState(() => phoneError = null),
+                    ),
+                    const SizedBox(height: 20),
+                    _EditField(
+                      controller: addressController,
+                      hint: 'Address (optional)',
+                    ),
+                    const SizedBox(height: 20),
+                    dropdownField<Country>(
+                      hint: 'Country (optional)',
+                      value: selectedCountry,
+                      items: _countries,
+                      labelFn: (c) => c.name,
+                      onChanged: (country) {
+                        setDialogState(() {
+                          selectedCountry = country;
+                          selectedCity = null;
+                          filteredCities = country == null
+                              ? []
+                              : _cities
+                                  .where((c) => c.countryId == country.id)
+                                  .toList();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    dropdownField<City>(
+                      hint: selectedCountry == null
+                          ? 'Select country first'
+                          : 'City (optional)',
+                      value: selectedCity,
+                      items: filteredCities,
+                      labelFn: (c) => c.name,
+                      onChanged: selectedCountry == null
+                          ? null
+                          : (city) => setDialogState(() => selectedCity = city),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Cancel', style: TextStyle(color: AppColors.darkBrown)),
+                ),
+                ElevatedButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () async {
+                          setDialogState(() {
+                            final fn = firstNameController.text.trim();
+                            if (fn.isEmpty) {
+                              firstNameError = 'First name is required';
+                            } else if (fn.length < 2) {
+                              firstNameError = 'Min 2 characters';
+                            } else {
+                              firstNameError = null;
+                            }
+
+                            final ln = lastNameController.text.trim();
+                            if (ln.isEmpty) {
+                              lastNameError = 'Last name is required';
+                            } else if (ln.length < 2) {
+                              lastNameError = 'Min 2 characters';
+                            } else {
+                              lastNameError = null;
+                            }
+
+                            final un = usernameController.text.trim();
+                            if (un.isEmpty) {
+                              usernameError = 'Username is required';
+                            } else if (un.length < 4) {
+                              usernameError = 'Min 4 characters';
+                            } else if (un.length > 20) {
+                              usernameError = 'Max 20 characters';
+                            } else if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(un)) {
+                              usernameError = 'Only letters, numbers and _';
+                            } else {
+                              usernameError = null;
+                            }
+
+                            final em = emailController.text.trim();
+                            final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                            if (em.isEmpty) {
+                              emailError = 'Email is required';
+                            } else if (!emailRegex.hasMatch(em)) {
+                              emailError = 'Invalid email format';
+                            } else {
+                              emailError = null;
+                            }
+
+                            final ph = phoneController.text;
+                            if (ph.isNotEmpty) {
+                              if (!RegExp(r'^[0-9+\-\s()]+$').hasMatch(ph)) {
+                                phoneError = 'Invalid phone format';
+                              } else if (ph.replaceAll(RegExp(r'[^0-9]'), '').length < 9) {
+                                phoneError = 'Min 9 digits';
+                              } else {
+                                phoneError = null;
+                              }
+                            } else {
+                              phoneError = null;
+                            }
+                          });
+                          if (firstNameError != null ||
+                              lastNameError != null ||
+                              usernameError != null ||
+                              emailError != null ||
+                              phoneError != null) {
+                            return;
+                          }
+
+                          final nav = Navigator.of(context);
+                          final overlay = Overlay.of(context);
+                          setDialogState(() => isSubmitting = true);
+                          try {
+                            String? newImageUrl;
+                            if (selectedImage != null) {
+                              newImageUrl =
+                                  await _userService.uploadImage(selectedImage!);
+                            } else if (imageDeleted) {
+                              newImageUrl = null;
+                            } else {
+                              newImageUrl = _user!.imageUrl;
+                            }
+
+                            final updated = await _userService.updateSelf(
+                              firstName: firstNameController.text.trim(),
+                              lastName: lastNameController.text.trim(),
+                              username: usernameController.text.trim(),
+                              emailAddress: emailController.text.trim(),
+                              phoneNumber: phoneController.text.isEmpty
+                                  ? null
+                                  : phoneController.text,
+                              address: addressController.text.isEmpty
+                                  ? null
+                                  : addressController.text,
+                              cityId: selectedCity?.id,
+                              countryId: selectedCountry?.id,
+                              imageUrl: newImageUrl,
+                            );
+                            if (mounted) {
+                              setState(() => _user = updated);
+                              nav.pop();
+                              AppSnackBar.show(overlay, 'Profile updated!');
+                            }
+                          } catch (e) {
+                            setDialogState(() => isSubmitting = false);
+                            if (mounted) AppSnackBar.showError(overlay, e);
+                          }
+                        },
+                  style:
+                      ElevatedButton.styleFrom(backgroundColor: AppColors.darkBrown),
+                  child: isSubmitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2))
+                      : const Text('Save', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 }
 
 /* ----------------------- INFO ROW ----------------------- */
@@ -895,11 +1169,15 @@ class _EditField extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
   final TextInputType? keyboardType;
+  final String? errorText;
+  final VoidCallback? onChanged;
 
   const _EditField({
     required this.controller,
     required this.hint,
     this.keyboardType,
+    this.errorText,
+    this.onChanged,
   });
 
   @override
@@ -912,14 +1190,14 @@ class _EditField extends StatelessWidget {
           child: TextField(
             controller: controller,
             keyboardType: keyboardType,
-            style: TextStyle(
-              color: AppColors.darkBrown,
-              fontSize: 15,
-            ),
+            onChanged: onChanged != null ? (_) => onChanged!() : null,
+            style: const TextStyle(color: AppColors.darkBrown, fontSize: 15),
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
-                color: AppColors.darkBrown.withValues(alpha: 0.5),
+                color: errorText != null
+                    ? Colors.red
+                    : AppColors.darkBrown.withValues(alpha: 0.5),
                 fontSize: 15,
               ),
               border: InputBorder.none,
@@ -932,8 +1210,13 @@ class _EditField extends StatelessWidget {
         Container(
           width: double.infinity,
           height: 1,
-          color: AppColors.darkBrown,
+          color: errorText != null ? Colors.red : AppColors.darkBrown,
         ),
+        if (errorText != null) ...[
+          const SizedBox(height: 2),
+          Text(errorText!,
+              style: const TextStyle(color: Colors.red, fontSize: 11)),
+        ],
       ],
     );
   }

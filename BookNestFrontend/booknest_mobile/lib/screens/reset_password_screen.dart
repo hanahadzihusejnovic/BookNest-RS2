@@ -36,14 +36,24 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     if (_newPasswordController.text.isEmpty) {
       setState(() => _newPasswordError = 'Password is required');
       hasError = true;
-    }
-
-    if (_confirmPasswordController.text.isEmpty) {
-      setState(() => _confirmPasswordError = 'Please confirm your password');
+    } else if (_newPasswordController.text.length < 8) {
+      setState(() => _newPasswordError = 'Min 8 characters');
+      hasError = true;
+    } else if (!_newPasswordController.text.contains(RegExp(r'[A-Z]'))) {
+      setState(() => _newPasswordError = 'Need uppercase letter');
+      hasError = true;
+    } else if (!_newPasswordController.text.contains(RegExp(r'[a-z]'))) {
+      setState(() => _newPasswordError = 'Need lowercase letter');
+      hasError = true;
+    } else if (!_newPasswordController.text.contains(RegExp(r'[0-9]'))) {
+      setState(() => _newPasswordError = 'Need number');
       hasError = true;
     }
 
-    if (_newPasswordController.text != _confirmPasswordController.text) {
+    if (_confirmPasswordController.text.isEmpty) {
+      setState(() => _confirmPasswordError = 'Confirm password is required');
+      hasError = true;
+    } else if (_confirmPasswordController.text != _newPasswordController.text) {
       setState(() => _confirmPasswordError = 'Passwords do not match');
       hasError = true;
     }

@@ -14,5 +14,7 @@ namespace BookNest.Model.SearchObjects
         public string? City { get; set; }
         public string? Country { get; set; }
         public bool? IsActive { get; set; }
+        public DateTime? DateFrom { get; set; }
+        public DateTime? DateTo { get; set; }
     }
 }

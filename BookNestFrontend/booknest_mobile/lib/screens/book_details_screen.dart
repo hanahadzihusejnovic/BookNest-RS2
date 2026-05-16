@@ -651,7 +651,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              book.description ?? 'No description available.',
+              book.description ?? 'Description not available.',
               maxLines: _descExpanded ? null : 3,
               overflow: _descExpanded
                   ? TextOverflow.visible
@@ -691,7 +691,11 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               quantity: _quantity,
               onIncrease: () => setState(() => _quantity++),
               onDecrease: () {
-                if (_quantity > 1) setState(() => _quantity--);
+                if (_quantity > 1) {
+                  setState(() => _quantity--);
+                } else {
+                  AppSnackBar.show(context, 'Minimum quantity is 1.', isError: true);
+                }
               },
             ),
 
@@ -788,7 +792,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              book.authorBiography ?? 'No biography.',
+              book.authorBiography ?? 'Biography not available.',
               maxLines: _authorExpanded ? null : 3,
               overflow: _authorExpanded
                   ? TextOverflow.visible

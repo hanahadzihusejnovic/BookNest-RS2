@@ -311,7 +311,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         onPressed: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const ProfileScreen(),
+                            builder: (context) => const ProfileScreen(initialTab: 1),
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
