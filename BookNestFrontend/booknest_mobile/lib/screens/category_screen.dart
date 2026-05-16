@@ -69,9 +69,9 @@ class _CategoryScreenState extends State<CategoryScreen> {
       if (!mounted) return;
       setState(() {
         _books = books;
-        _filteredBooks = books;
         _isLoading = false;
       });
+      _applySearch();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -570,7 +570,7 @@ Future<void> _addToFavorites(Book book) async {
                                               builder: (context) =>
                                                   BookDetailsScreen(book: book),
                                             ),
-                                          ),
+                                          ).then((_) => _loadBooks()),
                                           onCartTap: () => _addToCart(book),
                                           onFavTap: () => _addToFavorites(book),
                                           onBookmarkTap: () => _showTBRDialog(book),

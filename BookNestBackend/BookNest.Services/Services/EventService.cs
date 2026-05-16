@@ -91,6 +91,16 @@ namespace BookNest.Services.Services
                 query = query.Where(e => e.IsActive == search.IsActive.Value);
             }
 
+            if (search.DateFrom.HasValue)
+            {
+                query = query.Where(e => e.EventDate >= search.DateFrom.Value);
+            }
+
+            if (search.DateTo.HasValue)
+            {
+                query = query.Where(e => e.EventDate <= search.DateTo.Value);
+            }
+
             return query;
         }
 
@@ -216,6 +226,9 @@ namespace BookNest.Services.Services
                 .Select(r => r.EventId)
                 .Distinct()
                 .ToListAsync(cancellationToken);
+
+            if (!myEventIds.Any())
+                return new List<EventRecommendationResponse>();
 
             var preferredCategories = await _dbContext.EventReservations
                 .Where(r => r.UserId == userId)

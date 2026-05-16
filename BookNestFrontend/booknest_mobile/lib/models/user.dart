@@ -7,7 +7,9 @@ class User {
   final String username;
   final DateTime dateOfBirth;
   final String? address;
+  final int? cityId;
   final String? city;
+  final int? countryId;
   final String? country;
   final String? phoneNumber;
   final String? imageUrl;
@@ -22,7 +24,9 @@ class User {
     required this.username,
     required this.dateOfBirth,
     this.address,
+    this.cityId,
     this.city,
+    this.countryId,
     this.country,
     this.phoneNumber,
     this.imageUrl,
@@ -39,8 +43,10 @@ class User {
       username: json['username'],
       dateOfBirth: DateTime.parse(json['dateOfBirth']),
       address: json['address'],
-      city: json['city'],
-      country: json['country'],
+      cityId: json['cityId'],
+      city: json['cityName'],
+      countryId: json['countryId'],
+      country: json['countryName'],
       phoneNumber: json['phoneNumber'],
       imageUrl: json['imageUrl'],
       roles: (json['roles'] as List)

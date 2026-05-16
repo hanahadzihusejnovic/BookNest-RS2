@@ -82,8 +82,9 @@ namespace BookNest.Services.Services
 
             if (search.CategoryId.HasValue)
             {
-                query = query.OrderByDescending(b =>
-                    b.Reviews.Any() ? b.Reviews.Average(r => r.Rating) : 0);
+                query = query
+                    .OrderByDescending(b => b.Reviews.Any() ? b.Reviews.Average(r => r.Rating) : 0)
+                    .ThenByDescending(b => b.Id);
             }
 
             int? totalCount = null;
@@ -339,6 +340,9 @@ namespace BookNest.Services.Services
         public async Task<List<BookRecommendationResponse>> GetContentBasedRecommendationsAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
         {
             var myBookIds = await GetUserInteractedBookIds(userId, cancellationToken);
+
+            if (!myBookIds.Any())
+                return new List<BookRecommendationResponse>();
 
             var preferredCategories = await _dbContext.BookCategories
                 .Where(bc => myBookIds.Contains(bc.BookId))

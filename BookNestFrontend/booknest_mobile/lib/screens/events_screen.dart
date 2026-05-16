@@ -42,20 +42,21 @@ class _EventsScreenState extends State<EventsScreen> {
   Future<void> _loadData() async {
     try {
       final categories = await _categoryService.getCategories();
-      final events = await _eventService.getEvents(isActive: true, pageSize: 50);
-      final basedOnReservations = await _eventService.getContentBasedRecommendations();
-
       final now = DateTime.now();
       final nextMonth = now.add(const Duration(days: 30));
-      final upcoming = events
-          .where((e) => e.eventDate.isAfter(now) && e.eventDate.isBefore(nextMonth))
-          .toList();
+      final events = await _eventService.getEvents(
+        isActive: true,
+        dateFrom: now,
+        dateTo: nextMonth,
+        pageSize: 50,
+      );
+      final basedOnReservations = await _eventService.getContentBasedRecommendations();
 
       if (!mounted) return;
       setState(() {
         _categories = categories;
-        _allEvents = upcoming;
-        _filteredEvents = upcoming;
+        _allEvents = events;
+        _filteredEvents = events;
         _basedOnReservations = basedOnReservations;
         _isLoading = false;
       });
@@ -236,7 +237,7 @@ class _EventsScreenState extends State<EventsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               const Text(
-                                'Available this week!',
+                                'Available this month!',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 13,
@@ -296,15 +297,17 @@ class _EventsScreenState extends State<EventsScreen> {
                               ),
                               const SizedBox(height: 12),
                               _basedOnReservations.isEmpty
-                                  ? Padding(
-                                      padding: const EdgeInsets.all(8),
-                                      child: Text(
-                                        'No recommended events right now.',
-                                        style: TextStyle(
-                                          color: Colors.white.withValues(alpha: 0.8),
-                                          fontSize: 12.5,
+                                  ? Center(
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(16),
+                                        child: Text(
+                                          'No recommended events to show.',
+                                            style: TextStyle(
+                                            color: Colors.white.withValues(alpha: 0.8),
+                                            fontSize: 12.5,
+                                            ),
                                         ),
-                                      ),
+                                      )
                                     )
                                   : SizedBox(
                                       height: 280,

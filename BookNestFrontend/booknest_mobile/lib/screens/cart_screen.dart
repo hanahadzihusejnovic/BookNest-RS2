@@ -333,9 +333,9 @@ class _CartItemCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       GestureDetector(
-                        onTap: onIncrease,
+                        onTap: onDecrease,
                         child: Icon(
-                          Icons.add,
+                          Icons.remove,
                           color: AppColors.darkBrown,
                           size: 12,
                         ),
@@ -352,9 +352,9 @@ class _CartItemCard extends StatelessWidget {
                         ),
                       ),
                       GestureDetector(
-                        onTap: onDecrease,
+                        onTap: onIncrease,
                         child: Icon(
-                          Icons.remove,
+                          Icons.add,
                           color: AppColors.darkBrown,
                           size: 12,
                         ),

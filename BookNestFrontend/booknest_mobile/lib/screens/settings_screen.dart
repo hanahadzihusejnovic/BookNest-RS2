@@ -37,6 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('notifications_enabled', value);
     setState(() => _notificationsEnabled = value);
+    await NotificationService().setEnabled(value);
   }
 
   void _showDeleteAccountDialog() {

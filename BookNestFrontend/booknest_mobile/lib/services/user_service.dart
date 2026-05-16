@@ -35,8 +35,8 @@ class UserService {
     required String emailAddress,
     String? phoneNumber,
     String? address,
-    String? city,
-    String? country,
+    int? cityId,
+    int? countryId,
     String? imageUrl,
   }) async {
     final response = await http.put(
@@ -49,15 +49,21 @@ class UserService {
         'emailAddress': emailAddress,
         'phoneNumber': phoneNumber,
         'address': address,
-        'city': city,
-        'country': country,
+        'cityId': cityId,
+        'countryId': countryId,
         'imageUrl': imageUrl,
       }),
     );
     if (response.statusCode == 200) {
       return User.fromJson(jsonDecode(response.body));
     }
-    throw Exception('Failed to update profile');
+    try {
+      final body = jsonDecode(response.body);
+      throw Exception(body['message'] ?? 'Failed to update profile.');
+    } catch (jsonError) {
+      if (jsonError is Exception) rethrow;
+      throw Exception('Failed to update profile.');
+    }
   }
 
   Future<void> deleteSelf() async {

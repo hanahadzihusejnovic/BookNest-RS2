@@ -4,10 +4,14 @@ import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/cart.dart';
+import '../models/city.dart';
+import '../models/country.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import '../services/auth_service.dart';
 import '../services/cart_service.dart';
+import '../services/city_service.dart';
+import '../services/country_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final CartModel cart;
@@ -23,6 +27,8 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final _authService = AuthService();
+  final _cityService = CityService();
+  final _countryService = CountryService();
 
   String _firstName = '';
   String _lastName = '';
@@ -30,9 +36,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _phone = '';
 
   String _address = '';
-  String _city = '';
-  String _country = '';
   String _postalCode = '';
+
+  List<Country> _countries = [];
+  List<City> _cities = [];
+  List<City> _filteredCities = [];
+  Country? _selectedCountry;
+  City? _selectedCity;
 
   String? _addressError;
   String? _cityError;
@@ -45,11 +55,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isLoading = true;
   bool _isSubmitting = false;
 
-
   @override
   void initState() {
     super.initState();
     _loadUserInfo();
+    _loadLocationData();
+  }
+
+  Future<void> _loadLocationData() async {
+    try {
+      final countries = await _countryService.getCountries();
+      final cities = await _cityService.getCities();
+      if (mounted) {
+        setState(() {
+          _countries = countries;
+          _cities = cities;
+        });
+      }
+    } catch (_) {}
+  }
+
+  void _onCountryChanged(Country? country) {
+    setState(() {
+      _selectedCountry = country;
+      _selectedCity = null;
+      _countryError = null;
+      _filteredCities = country == null
+          ? []
+          : _cities.where((c) => c.countryId == country.id).toList();
+    });
   }
 
   Future<void> _loadUserInfo() async {
@@ -101,7 +135,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       setState(() => _addressError = 'Address is required');
       hasError = true;
     }
-    if (_city.isEmpty) {
+    if (_selectedCity == null) {
       setState(() => _cityError = 'City is required');
       hasError = true;
     }
@@ -109,7 +143,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       setState(() => _postalCodeError = 'Postal code is required');
       hasError = true;
     }
-    if (_country.isEmpty) {
+    if (_selectedCountry == null) {
       setState(() => _countryError = 'Country is required');
       hasError = true;
     }
@@ -166,12 +200,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'userId': userId ?? 0,
         'shipping': {
           'address': _address,
-          'city': _city,
-          'country': _country,
+          'cityId': _selectedCity!.id,
+          'countryId': _selectedCountry!.id,
           'postalCode': _postalCode,
         },
         'paymentMethod': _paymentMethod == 'CashOnDelivery' ? 0 : 1,
-        if (paymentIntentId != null) 'transactionId': paymentIntentId,
+        if (paymentIntentId != null) 'paymentIntentId': paymentIntentId,
       };
 
       final response = await http.post(
@@ -274,8 +308,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         _InfoRow('Quantity',
                                             item.quantity.toString()),
                                         _InfoRow(
-                                          'Price',
-                                          '${item.subtotal.toStringAsFixed(2)} BAM',
+                                          'Price per book',
+                                          '${item.price.toStringAsFixed(2)} BAM',
                                         ),
                                       ],
                                     ),
@@ -340,17 +374,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           }),
                         ),
                         const SizedBox(height: 12),
+                        _ShippingDropdown<Country>(
+                          hint: 'Country',
+                          value: _selectedCountry,
+                          items: _countries,
+                          labelFn: (c) => c.name,
+                          error: _countryError,
+                          onChanged: _onCountryChanged,
+                        ),
+                        const SizedBox(height: 12),
                         Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: _ShippingField(
-                                label: 'City',
-                                initialValue: _city,
+                              child: _ShippingDropdown<City>(
+                                hint: _selectedCountry == null
+                                    ? 'Select country first'
+                                    : 'City',
+                                value: _selectedCity,
+                                items: _filteredCities,
+                                labelFn: (c) => c.name,
                                 error: _cityError,
-                                onChanged: (v) => setState(() {
-                                  _city = v;
-                                  _cityError = null;
-                                }),
+                                onChanged: _selectedCountry == null
+                                    ? null
+                                    : (city) => setState(() {
+                                          _selectedCity = city;
+                                          _cityError = null;
+                                        }),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -366,16 +416,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 12),
-                        _ShippingField(
-                          label: 'Country',
-                          initialValue: _country,
-                          error: _countryError,
-                          onChanged: (v) => setState(() {
-                            _country = v;
-                            _countryError = null;
-                          }),
                         ),
                       ],
                     ),
@@ -640,6 +680,75 @@ class _ShippingField extends StatelessWidget {
               fontSize: 11,
               color: Colors.red,
             ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _ShippingDropdown<T> extends StatelessWidget {
+  final String hint;
+  final T? value;
+  final List<T> items;
+  final String Function(T) labelFn;
+  final ValueChanged<T?>? onChanged;
+  final String? error;
+
+  const _ShippingDropdown({
+    required this.hint,
+    required this.value,
+    required this.items,
+    required this.labelFn,
+    required this.onChanged,
+    this.error,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 24,
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<T>(
+              value: value,
+              isExpanded: true,
+              hint: Text(
+                hint,
+                style: TextStyle(
+                  color: error != null
+                      ? Colors.red
+                      : AppColors.darkBrown.withValues(alpha: 0.6),
+                  fontSize: 14,
+                ),
+              ),
+              icon: Icon(Icons.arrow_drop_down,
+                  color: error != null ? Colors.red : AppColors.darkBrown),
+              style: const TextStyle(color: AppColors.darkBrown, fontSize: 14),
+              dropdownColor: AppColors.lightBrown,
+              onChanged: onChanged,
+              items: items.map((item) {
+                return DropdownMenuItem<T>(
+                  value: item,
+                  child: Text(labelFn(item)),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          width: double.infinity,
+          height: 1,
+          color: error != null ? Colors.red : AppColors.darkBrown,
+        ),
+        if (error != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            error!,
+            style: const TextStyle(fontSize: 11, color: Colors.red),
           ),
         ],
       ],

@@ -16,6 +16,7 @@ class BookCard extends StatelessWidget {
   final String? reason;
 
   final VoidCallback? onTap;
+  final VoidCallback? onCardTap;
 
   final double? price;
   final VoidCallback? onCartTap;
@@ -32,6 +33,7 @@ class BookCard extends StatelessWidget {
     this.style = BookCardStyle.details,
     this.reason,
     this.onTap,
+    this.onCardTap,
     this.price,
     this.onCartTap,
     this.onFavTap,
@@ -51,7 +53,11 @@ class BookCard extends StatelessWidget {
                        style == BookCardStyle.plain;
 
     return GestureDetector(
-      onTap: style == BookCardStyle.icons ? onTap : null,
+      onTap: style == BookCardStyle.icons
+          ? onTap
+          : style == BookCardStyle.remove
+              ? onCardTap
+              : null,
       child: Stack(
         children: [
           Container(

@@ -59,11 +59,17 @@ class ApiService {
         print('✅ API: Registration successful!');
       } else {
         print('❌ API: Registration failed with status ${response.statusCode}');
-        throw Exception('Registration failed: ${response.body}');
+        try {
+          final body = jsonDecode(response.body);
+          throw Exception(body['message'] ?? 'Registration failed. Please try again.');
+        } catch (jsonError) {
+          if (jsonError is Exception) rethrow;
+          throw Exception('Registration failed. Please try again.');
+        }
       }
     } catch (e) {
       print('❌ API: Exception: $e');
-      throw Exception('Error during registration: $e');
+      rethrow;
     }
   }
 
