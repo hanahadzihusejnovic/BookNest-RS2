@@ -432,7 +432,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   child: event.imageUrl != null && event.imageUrl!.isNotEmpty
                       ? Image.network(
                           event.imageUrl!,
-                          fit: BoxFit.cover,
+                          fit: BoxFit.contain,
                           errorBuilder: (_, __, ___) => _imageFallback(),
                         )
                       : _imageFallback(),

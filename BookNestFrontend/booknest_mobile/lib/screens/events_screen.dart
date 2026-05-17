@@ -416,7 +416,7 @@ class _EventTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
       decoration: BoxDecoration(
         color: AppColors.pageBg.withValues(alpha: 0.25),
         borderRadius: BorderRadius.circular(12),
@@ -436,30 +436,37 @@ class _EventTile extends StatelessWidget {
                       fontSize: 13,
                       fontWeight: FontWeight.w800),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  '${event.organizerName} - organizer',
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.75),
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w500),
+                const SizedBox(height: 6),
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 10.5, height: 1.3),
+                    children: [
+                      const TextSpan(
+                        text: 'Organizer: ',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
+                      TextSpan(
+                        text: event.organizerName,
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w400),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Date&Time: ${event.formattedDate}',
-                  style: const TextStyle(
-                      color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  event.description ?? '',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.85),
-                      fontSize: 10.8,
-                      fontWeight: FontWeight.w500,
-                      height: 1.2),
+                const SizedBox(height: 8),
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(fontSize: 11, height: 1.3),
+                    children: [
+                      const TextSpan(
+                        text: 'Date & Time: ',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
+                      TextSpan(
+                        text: event.formattedDate,
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w400),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

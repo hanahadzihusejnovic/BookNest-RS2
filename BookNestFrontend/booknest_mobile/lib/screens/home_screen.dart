@@ -69,7 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'Monday', 'Tuesday', 'Wednesday', 'Thursday',
       'Friday', 'Saturday', 'Sunday'
     ];
-    return '${days[date.weekday - 1]} at '
+    return '${days[date.weekday - 1]} ${date.day}.${date.month}.${date.year} at '
         '${date.hour.toString().padLeft(2, '0')}:'
         '${date.minute.toString().padLeft(2, '0')}';
   }
@@ -517,18 +517,37 @@ class _UpcomingReservationRow extends StatelessWidget {
                   fontSize: 13,
                   fontWeight: FontWeight.w800)),
           const SizedBox(height: 4),
-          Text('Date&Time: $dateText',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600)),
+          RichText(
+            text: TextSpan(
+              style: const TextStyle(fontSize: 11, height: 1.3),
+              children: [
+                const TextSpan(
+                  text: 'Date & Time: ',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                ),
+                TextSpan(
+                  text: dateText,
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w400),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 4),
-          Text('Location: $location',
-              style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 10.8,
-                  fontWeight: FontWeight.w500,
-                  height: 1.2)),
+          RichText(
+            text: TextSpan(
+              style: const TextStyle(fontSize: 11, height: 1.2),
+              children: [
+                const TextSpan(
+                  text: 'Location: ',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                ),
+                TextSpan(
+                  text: location,
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontWeight: FontWeight.w400),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
