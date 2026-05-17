@@ -493,21 +493,23 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   fontWeight: FontWeight.w500,
                   height: 1.35),
             ),
-            const SizedBox(height: 6),
-            GestureDetector(
-              onTap: () => setState(() => _descExpanded = !_descExpanded),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  _descExpanded ? 'View less' : 'View more',
-                  style: TextStyle(
-                    color: AppColors.darkBrown.withValues(alpha: 0.6),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
+            if ((event.description?.length ?? 0) > 150) ...[
+              const SizedBox(height: 6),
+              GestureDetector(
+                onTap: () => setState(() => _descExpanded = !_descExpanded),
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    _descExpanded ? 'View less' : 'View more',
+                    style: TextStyle(
+                      color: AppColors.darkBrown.withValues(alpha: 0.6),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ),
-            ),
+            ],
 
             const SizedBox(height: 18),
 
@@ -535,11 +537,12 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             Row(
               children: [
                 _QuantityButton(
-                  icon: Icons.add,
+                  icon: Icons.remove,
                   onTap: () {
-                    final available = event.capacity - event.reservedSeats;
-                    if (_quantity < available) {
-                      setState(() => _quantity++);
+                    if (_quantity > 1) {
+                      setState(() => _quantity--);
+                    } else {
+                      AppSnackBar.show(context, 'Minimum quantity is 1.', isError: true);
                     }
                   },
                 ),
@@ -555,9 +558,12 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   ),
                 ),
                 _QuantityButton(
-                  icon: Icons.remove,
+                  icon: Icons.add,
                   onTap: () {
-                    if (_quantity > 1) setState(() => _quantity--);
+                    final available = event.capacity - event.reservedSeats;
+                    if (_quantity < available) {
+                      setState(() => _quantity++);
+                    }
                   },
                 ),
               ],
@@ -585,37 +591,46 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               child: SizedBox(
                 width: 180,
                 height: 42,
-                child: ElevatedButton(
-                  onPressed: _hasReservation
-                      ? null
-                      : () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => EventReservationScreen(
-                                event: widget.event,
-                                quantity: _quantity,
+                child: Builder(builder: (context) {
+                  final isFull = event.reservedSeats >= event.capacity;
+                  final isDisabled = _hasReservation || isFull;
+                  final label = _hasReservation
+                      ? 'ALREADY RESERVED'
+                      : isFull
+                          ? 'FULLY BOOKED'
+                          : 'RESERVE';
+                  return ElevatedButton(
+                    onPressed: isDisabled
+                        ? null
+                        : () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => EventReservationScreen(
+                                  event: widget.event,
+                                  quantity: _quantity,
+                                ),
                               ),
-                            ),
-                          );
-                        },
-                  style: ElevatedButton.styleFrom(
-                    elevation: 0,
-                    backgroundColor: AppColors.darkBrown,
-                    disabledBackgroundColor: AppColors.mediumBrown,
-                    disabledForegroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6)),
-                  ),
-                  child: Text(
-                    _hasReservation ? 'ALREADY RESERVED' : 'RESERVE',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: _hasReservation ? 11 : 15,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.6),
-                  ),
-                ),
+                            );
+                          },
+                    style: ElevatedButton.styleFrom(
+                      elevation: 0,
+                      backgroundColor: AppColors.darkBrown,
+                      disabledBackgroundColor: AppColors.mediumBrown,
+                      disabledForegroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6)),
+                    ),
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: isDisabled ? 11 : 15,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.6),
+                    ),
+                  );
+                }),
               ),
             ),
 
