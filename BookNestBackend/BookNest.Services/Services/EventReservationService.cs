@@ -61,6 +61,9 @@ namespace BookNest.Services.Services
             var query = _dbContext.EventReservations
                 .Include(r => r.User)
                 .Include(r => r.Event)
+                    .ThenInclude(e => e.City)
+                .Include(r => r.Event)
+                    .ThenInclude(e => e.Country)
                 .Include(r => r.Payment)
                 .AsQueryable();
 
@@ -98,6 +101,9 @@ namespace BookNest.Services.Services
             var reservation = await _dbContext.EventReservations
                 .Include(r => r.User)
                 .Include(r => r.Event)
+                    .ThenInclude(e => e.City)
+                .Include(r => r.Event)
+                    .ThenInclude(e => e.Country)
                 .Include(r => r.Payment)
                 .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
 
@@ -170,6 +176,32 @@ namespace BookNest.Services.Services
 
             decimal totalPrice = eventEntity.TicketPrice * request.Quantity;
 
+            // Verificiraj plaćanje na serveru
+            bool isSuccessful;
+            string? transactionId;
+
+            if (request.PaymentMethod == PaymentMethod.Card)
+            {
+                if (string.IsNullOrEmpty(request.TransactionId))
+                    throw new BusinessException("PaymentIntentId is required for card payments.");
+
+                Stripe.StripeConfiguration.ApiKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
+                var stripeService = new Stripe.PaymentIntentService();
+                var intent = await stripeService.GetAsync(request.TransactionId, cancellationToken: cancellationToken);
+
+                if (intent.Status != "succeeded")
+                    throw new BusinessException($"Payment not completed. Stripe status: {intent.Status}");
+
+                isSuccessful = true;
+                transactionId = intent.Id;
+            }
+            else
+            {
+                // Cash on Arrival — server evidentira kao uspješno
+                isSuccessful = true;
+                transactionId = $"COA-{Guid.NewGuid()}";
+            }
+
             using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
             try
             {
@@ -195,8 +227,8 @@ namespace BookNest.Services.Services
                     Amount = totalPrice,
                     EventReservationId = reservation.Id,
                     PaymentDate = DateTime.UtcNow,
-                    IsSuccessful = true,
-                    TransactionId = request.TransactionId
+                    IsSuccessful = isSuccessful,
+                    TransactionId = transactionId
                 };
 
                 _dbContext.Payments.Add(payment);
@@ -221,6 +253,9 @@ namespace BookNest.Services.Services
             var reservations = await _dbContext.EventReservations
                 .Include(r => r.User)
                 .Include(r => r.Event)
+                    .ThenInclude(e => e.City)
+                .Include(r => r.Event)
+                    .ThenInclude(e => e.Country)
                 .Include(r => r.Payment)
                 .Where(r => r.UserId == userId)
                 .OrderByDescending(r => r.ReservationDate)
@@ -234,6 +269,9 @@ namespace BookNest.Services.Services
             var reservations = await _dbContext.EventReservations
                 .Include(r => r.User)
                 .Include(r => r.Event)
+                    .ThenInclude(e => e.City)
+                .Include(r => r.Event)
+                    .ThenInclude(e => e.Country)
                 .Include(r => r.Payment)
                 .Where(r => r.EventId == eventId)
                 .OrderByDescending(r => r.ReservationDate)

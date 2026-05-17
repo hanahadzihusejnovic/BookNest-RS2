@@ -17,7 +17,8 @@ namespace BookNest.Services.Mapping
                 .ForMember(dest => dest.EventLocation, opt => opt.MapFrom(src =>
                     src.Event.EventType == EventType.Online
                         ? "Online"
-                        : (src.Event.City + ", " + src.Event.Country)))
+                        : string.Join(", ", new[] { src.Event.Address, src.Event.City != null ? src.Event.City.Name : null, src.Event.Country != null ? src.Event.Country.Name : null }
+                            .Where(s => !string.IsNullOrEmpty(s)))))
                 .ForMember(dest => dest.Payment, opt => opt.MapFrom(src => src.Payment));
 
             CreateMap<EventReservationInsertRequest, EventReservation>();

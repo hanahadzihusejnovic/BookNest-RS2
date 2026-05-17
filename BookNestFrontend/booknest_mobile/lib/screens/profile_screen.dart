@@ -685,12 +685,25 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 3),
-      child: Text(
-        '$label: $value',
-        style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.88),
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(fontSize: 12, height: 1.3),
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            TextSpan(
+              text: value,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.8),
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1039,45 +1052,20 @@ class _ReservationCard extends StatelessWidget {
                       fontWeight: FontWeight.w800),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  'Date & Time: $formattedDate',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600),
+                _ReservationInfoRow('Date & Time', formattedDate),
+                const SizedBox(height: 2),
+                _ReservationInfoRow('Location', reservation.eventLocation),
+                const SizedBox(height: 2),
+                _ReservationInfoRow('Tickets', '${reservation.quantity}'),
+                const SizedBox(height: 2),
+                _ReservationInfoRow(
+                  'Total',
+                  reservation.totalPrice == 0
+                      ? 'Free'
+                      : '${reservation.totalPrice.toStringAsFixed(2)} BAM',
                 ),
                 const SizedBox(height: 2),
-                Text(
-                  'Location: ${reservation.eventLocation}',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Tickets: ${reservation.quantity}',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Total: ${reservation.totalPrice == 0 ? 'Free' : '${reservation.totalPrice.toStringAsFixed(2)} BAM'}',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Status: ${reservation.reservationStatus}',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600),
-                ),
+                _ReservationInfoRow('Status', reservation.reservationStatus),
               ],
             ),
           ),
@@ -1157,6 +1145,38 @@ class _ReservationCard extends StatelessWidget {
                   height: 1.2,
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReservationInfoRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _ReservationInfoRow(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return RichText(
+      text: TextSpan(
+        style: const TextStyle(fontSize: 11, height: 1.3),
+        children: [
+          TextSpan(
+            text: '$label: ',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          TextSpan(
+            text: value,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.8),
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],

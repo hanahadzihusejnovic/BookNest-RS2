@@ -614,11 +614,19 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
-      child: Text(
-        '$label: ${value.isEmpty ? '-' : value}',
-        style: TextStyle(
-          color: AppColors.darkBrown,
-          fontSize: 13,
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(fontSize: 13, height: 1.3),
+          children: [
+            TextSpan(
+              text: '$label: ',
+              style: TextStyle(color: AppColors.darkBrown, fontWeight: FontWeight.w700),
+            ),
+            TextSpan(
+              text: value.isEmpty ? '-' : value,
+              style: TextStyle(color: AppColors.darkBrown.withValues(alpha: 0.72), fontWeight: FontWeight.w500),
+            ),
+          ],
         ),
       ),
     );
