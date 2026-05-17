@@ -65,9 +65,9 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
       if (!mounted) return;
       setState(() {
         _events = filtered;
-        _filteredEvents = filtered;
         _isLoading = false;
       });
+      _applySearch();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -331,7 +331,7 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
                                   separatorBuilder: (_, __) => const SizedBox(height: 16),
                                   itemBuilder: (context, index) {
                                     final event = _currentPageItems[index];
-                                    return _EventCategoryCard(event: event);
+                                    return _EventCategoryCard(event: event, onRefresh: _loadEvents);
                                   },
                                 ),
                               ),
@@ -428,8 +428,9 @@ class _FilterRow extends StatelessWidget {
 
 class _EventCategoryCard extends StatelessWidget {
   final EventModel event;
+  final VoidCallback onRefresh;
 
-  const _EventCategoryCard({required this.event});
+  const _EventCategoryCard({required this.event, required this.onRefresh});
 
   @override
   Widget build(BuildContext context) {
@@ -442,7 +443,7 @@ class _EventCategoryCard extends StatelessWidget {
       child: Column(
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Expanded(
                 child: Padding(
@@ -482,6 +483,13 @@ class _EventCategoryCard extends StatelessWidget {
                         label: 'Location',
                         value: event.location,
                       ),
+                      const SizedBox(height: 3),
+                      _EventInfoLine(
+                        label: 'Price',
+                        value: event.ticketPrice == 0
+                            ? 'Free'
+                            : '${event.ticketPrice.toStringAsFixed(2)} BAM',
+                      ),
                     ],
                   ),
                 ),
@@ -502,23 +510,27 @@ class _EventCategoryCard extends StatelessWidget {
                         builder: (context) =>
                             EventDetailsScreen(event: event),
                       ),
-                    );
+                    ).then((_) => onRefresh());
                   },
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _EventActionButton(
-                  text: 'Reserve\nspot!',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EventReservationScreen(
-                            event: event, quantity: 1),
-                      ),
-                    );
-                  },
+                  text: event.reservedSeats >= event.capacity
+                      ? 'Fully\nbooked'
+                      : 'Reserve\nspot',
+                  onTap: event.reservedSeats >= event.capacity
+                      ? null
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EventReservationScreen(
+                                  event: event, quantity: 1),
+                            ),
+                          );
+                        },
                 ),
               ),
             ],
@@ -577,7 +589,7 @@ class _EventImage extends StatelessWidget {
         child: imageUrl != null && imageUrl!.isNotEmpty
             ? Image.network(
                 imageUrl!,
-                fit: BoxFit.cover,
+                fit: BoxFit.contain,
                 errorBuilder: (_, __, ___) => _fallback(),
               )
             : _fallback(),
@@ -599,7 +611,7 @@ class _EventImage extends StatelessWidget {
 
 class _EventActionButton extends StatelessWidget {
   final String text;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _EventActionButton({required this.text, required this.onTap});
 
@@ -612,6 +624,8 @@ class _EventActionButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           elevation: 0,
           backgroundColor: AppColors.darkBrown,
+          disabledBackgroundColor: AppColors.lightBrown,
+          disabledForegroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(6),
           ),

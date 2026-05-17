@@ -121,14 +121,22 @@ namespace BookNest.Services.Services
             if (cart == null || !cart.CartItems.Any())
                 throw new BusinessException("Cart is empty or does not exist.");
 
-            // Spriječi višestruko plaćanje — provjeri pending narudžbe
-            var existingOrder = await _dbContext.Orders
-                .Include(o => o.Payment)
-                .Where(o => o.UserId == userId && o.Status == OrderStatus.Pending && o.Payment != null && o.Payment.IsSuccessful)
-                .FirstOrDefaultAsync(cancellationToken);
+            // Spriječi višestruko plaćanje iste stavke
+            var cartBookIds = cart.CartItems.Select(ci => ci.BookId).ToHashSet();
 
-            if (existingOrder != null)
-                throw new BusinessException("You already have a pending paid order.");
+            var alreadyPaid = await _dbContext.OrderItems
+                .Include(oi => oi.Order)
+                    .ThenInclude(o => o.Payment)
+                .Where(oi =>
+                    oi.Order.UserId == userId &&
+                    oi.Order.Status == OrderStatus.Pending &&
+                    oi.Order.Payment != null &&
+                    oi.Order.Payment.IsSuccessful &&
+                    cartBookIds.Contains(oi.BookId))
+                .AnyAsync(cancellationToken);
+
+            if (alreadyPaid)
+                throw new BusinessException("Some items in your cart have already been paid for.");
 
             decimal totalPrice = cart.CartItems.Sum(ci => ci.Price * ci.Quantity);
 
