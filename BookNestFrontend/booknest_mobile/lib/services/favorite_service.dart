@@ -1,6 +1,6 @@
 import 'dart:convert';
 import '../layouts/constants.dart';
-import 'package:http/http.dart' as http;
+import 'http_client.dart';
 import 'auth_service.dart';
 import '../models/favorite.dart';
 
@@ -9,7 +9,7 @@ class FavoriteService {
 
   Future<bool> isBookInFavorites(int bookId) async {
     final token = await _authService.getToken();
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Favorite/check/$bookId'),
       headers: {'Authorization': 'Bearer $token'},
     );
@@ -21,7 +21,7 @@ class FavoriteService {
 
   Future<void> addToFavorites(int bookId) async {
     final token = await _authService.getToken();
-    final response = await http.post(
+    final response = await HttpClient.post(
       Uri.parse('${AppConstants.baseUrl}/Favorite/add'),
       headers: {
         'Authorization': 'Bearer $token',
@@ -37,7 +37,7 @@ class FavoriteService {
 
   Future<List<FavoriteModel>> getMyFavorites() async {
     final token = await _authService.getToken();
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Favorite/my-favorites'),
       headers: {
         'Authorization': 'Bearer $token',
@@ -53,7 +53,7 @@ class FavoriteService {
 
   Future<void> removeFromFavoritesById(int bookId) async {
     final token = await _authService.getToken();
-    final response = await http.delete(
+    final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/Favorite/remove/$bookId'),
       headers: {'Authorization': 'Bearer $token'},
     );

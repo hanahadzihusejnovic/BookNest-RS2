@@ -1,12 +1,12 @@
 import 'dart:convert';
 import '../layouts/constants.dart';
-import 'package:http/http.dart' as http;
+import 'http_client.dart';
 import '../models/city.dart';
 
 class CityService {
 
   Future<List<City>> getCities() async {
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/City?RetrieveAll=true'),
       headers: {'Content-Type': 'application/json'},
     );

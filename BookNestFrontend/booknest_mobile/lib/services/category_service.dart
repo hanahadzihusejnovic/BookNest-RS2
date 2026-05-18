@@ -1,6 +1,6 @@
 import 'dart:convert';
 import '../layouts/constants.dart';
-import 'package:http/http.dart' as http;
+import 'http_client.dart';
 import '../models/category.dart';
 import 'auth_service.dart';
 
@@ -17,7 +17,7 @@ class CategoryService {
         throw Exception('No authentication token found');
       }
       
-      final response = await http.get(
+      final response = await HttpClient.get(
         Uri.parse('${AppConstants.baseUrl}/Category'),
         headers: {
           'Content-Type': 'application/json',

@@ -123,7 +123,7 @@ class _InfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.pageBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.15)),
+        border: Border.all(color: AppColors.darkBrown),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

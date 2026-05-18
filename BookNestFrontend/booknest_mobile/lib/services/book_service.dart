@@ -1,6 +1,6 @@
 import 'dart:convert';
 import '../layouts/constants.dart';
-import 'package:http/http.dart' as http;
+import 'http_client.dart';
 import '../models/book.dart';
 import 'auth_service.dart';
 import '../models/book_recommendation.dart';
@@ -18,7 +18,7 @@ class BookService {
         throw Exception('No authentication token found');
       }
       
-      final response = await http.get(
+      final response = await HttpClient.get(
         Uri.parse('${AppConstants.baseUrl}/Book'),
         headers: {
           'Content-Type': 'application/json',
@@ -53,7 +53,7 @@ class BookService {
         throw Exception('No authentication token found');
       }
       
-      final response = await http.get(
+      final response = await HttpClient.get(
         Uri.parse('${AppConstants.baseUrl}/Book?PageSize=5'),
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +96,7 @@ class BookService {
         throw Exception('No authentication token found');
       }
       
-      final response = await http.get(
+      final response = await HttpClient.get(
         Uri.parse('${AppConstants.baseUrl}/Book?CategoryId=$categoryId&PageSize=$pageSize'),
         headers: {
           'Content-Type': 'application/json',
@@ -132,7 +132,7 @@ class BookService {
       final token = await _authService.getToken();
       if (token == null) throw Exception('No authentication token found');
 
-      final response = await http.get(
+      final response = await HttpClient.get(
         Uri.parse('${AppConstants.baseUrl}/Book/recommended?count=6'),
         headers: {
           'Content-Type': 'application/json',
@@ -157,7 +157,7 @@ class BookService {
       final token = await _authService.getToken();
       if (token == null) throw Exception('No authentication token found');
 
-      final response = await http.get(
+      final response = await HttpClient.get(
         Uri.parse('${AppConstants.baseUrl}/Book/recommended-content?count=6'),
         headers: {
           'Content-Type': 'application/json',
@@ -181,7 +181,7 @@ class BookService {
     final token = await _authService.getToken();
     if (token == null) throw Exception('No authentication token found');
 
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Book/$id'),
       headers: {
         'Content-Type': 'application/json',

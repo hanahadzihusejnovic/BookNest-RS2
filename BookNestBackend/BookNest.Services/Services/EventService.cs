@@ -211,7 +211,7 @@ namespace BookNest.Services.Services
             .Select(x => new EventRecommendationResponse
             {
                 Event = _mapper.Map<EventResponse>(x.ev),
-                Reason = $"Users with similar interests attended this event" +
+                Reason = $"Users with similar interests reserved this event" +
                          $", happening in {(int)x.daysUntilEvent} day(s)."
             })
             .ToList();

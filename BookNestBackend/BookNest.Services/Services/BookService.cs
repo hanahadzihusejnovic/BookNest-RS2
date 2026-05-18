@@ -309,8 +309,7 @@ namespace BookNest.Services.Services
             {
                 Book = _mapper.Map<BookResponse>(x.book),
                 Reason = $"Users with similar taste also liked this book" +
-                         (x.avgRating > 0 ? $", average rating {x.avgRating:F1}/5" : "") +
-                         (x.reviewCount > 0 ? $" ({x.reviewCount} review(s))." : ".")
+                         (x.avgRating > 0 ? $" with average rating {x.avgRating:F1}/5" : "")
             })
             .ToList();
 

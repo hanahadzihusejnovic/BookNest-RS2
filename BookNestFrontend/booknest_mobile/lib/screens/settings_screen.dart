@@ -138,8 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Text(
                                 'Receive app notifications',
                                 style: TextStyle(
-                                  color: AppColors.darkBrown
-                                      .withValues(alpha: 0.6),
+                                  color: AppColors.darkBrown,
                                   fontSize: 12,
                                 ),
                               ),
@@ -226,7 +225,7 @@ class _SettingsCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.pageBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.15)),
+        border: Border.all(color: AppColors.darkBrown),
       ),
       child: child,
     );
