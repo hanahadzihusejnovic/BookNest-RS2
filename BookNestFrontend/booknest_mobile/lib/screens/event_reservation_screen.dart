@@ -7,7 +7,7 @@ import '../layouts/app_layout.dart';
 import '../services/auth_service.dart';
 import '../services/reservation_service.dart';
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import '../services/http_client.dart';
 
 class EventReservationScreen extends StatefulWidget {
   final EventModel event;
@@ -55,7 +55,7 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
         setState(() => _isLoading = false);
         return;
       }
-      final response = await http.get(
+      final response = await HttpClient.get(
         Uri.parse('${AppConstants.baseUrl}/User/current-user'),
         headers: {
           'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
       // Ako je plaćanje karticom — kreiraj PaymentIntent i potvrdi ga putem Stripea
       if (_paymentMethod == 'Card') {
         // 1. Kreiraj PaymentIntent na backendu
-        final intentResponse = await http.post(
+        final intentResponse = await HttpClient.post(
           Uri.parse('${AppConstants.baseUrl}/Order/create-payment-intent'),
           headers: {
             'Content-Type': 'application/json',
@@ -246,7 +246,7 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
                                     event.imageUrl!.isNotEmpty
                                 ? Image.network(
                                     event.imageUrl!,
-                                    fit: BoxFit.cover,
+                                    fit: BoxFit.contain,
                                     errorBuilder: (_, __, ___) =>
                                         _eventFallback(),
                                   )
@@ -434,7 +434,7 @@ class _SectionCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.pageBg,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.darkBrown.withValues(alpha: 0.15)),
+        border: Border.all(color: AppColors.darkBrown),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

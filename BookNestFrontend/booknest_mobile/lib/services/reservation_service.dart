@@ -1,6 +1,6 @@
 import 'dart:convert';
 import '../layouts/constants.dart';
-import 'package:http/http.dart' as http;
+import 'http_client.dart';
 import 'auth_service.dart';
 
 class ReservationModel {
@@ -69,7 +69,7 @@ class ReservationService {
     required int paymentMethod,
     String? transactionId,
   }) async {
-    final response = await http.post(
+    final response = await HttpClient.post(
       Uri.parse('${AppConstants.baseUrl}/EventReservation/reserve'),
       headers: await _headers(),
       body: jsonEncode({
@@ -88,7 +88,7 @@ class ReservationService {
   }
 
   Future<List<ReservationModel>> getMyReservations() async {
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/EventReservation/my-reservations'),
       headers: await _headers(),
     );

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import '../layouts/constants.dart';
 import 'package:http/http.dart' as http;
+import 'http_client.dart';
 import '../models/user.dart';
 import 'auth_service.dart';
 import 'dart:io';
@@ -18,7 +19,7 @@ class UserService {
   }
 
   Future<User> getCurrentUser() async {
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/User/current-user'),
       headers: await _headers(),
     );
@@ -39,7 +40,7 @@ class UserService {
     int? countryId,
     String? imageUrl,
   }) async {
-    final response = await http.put(
+    final response = await HttpClient.put(
       Uri.parse('${AppConstants.baseUrl}/User/update-self'),
       headers: await _headers(),
       body: jsonEncode({
@@ -67,7 +68,7 @@ class UserService {
   }
 
   Future<void> deleteSelf() async {
-    final response = await http.delete(
+    final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/User/delete-self'),
       headers: await _headers(),
     );

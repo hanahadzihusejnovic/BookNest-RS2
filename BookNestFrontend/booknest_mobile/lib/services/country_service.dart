@@ -1,12 +1,12 @@
 import 'dart:convert';
 import '../layouts/constants.dart';
-import 'package:http/http.dart' as http;
+import 'http_client.dart';
 import '../models/country.dart';
 
 class CountryService {
 
   Future<List<Country>> getCountries() async {
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Country?RetrieveAll=true'),
       headers: {'Content-Type': 'application/json'},
     );

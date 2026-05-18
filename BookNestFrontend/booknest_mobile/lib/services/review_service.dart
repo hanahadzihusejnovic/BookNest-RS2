@@ -1,6 +1,6 @@
 import 'dart:convert';
 import '../layouts/constants.dart';
-import 'package:http/http.dart' as http;
+import 'http_client.dart';
 import '../models/book.dart';
 import 'auth_service.dart';
 
@@ -15,7 +15,7 @@ class ReviewService {
     final token = await _authService.getToken();
     if (token == null) throw Exception('Not authenticated');
 
-    final response = await http.post(
+    final response = await HttpClient.post(
       Uri.parse('${AppConstants.baseUrl}/Review'),
       headers: {
         'Content-Type': 'application/json',
@@ -35,7 +35,7 @@ class ReviewService {
 
   Future<List<BookReview>> getBookReviews(int bookId) async {
     final token = await _authService.getToken();
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Review/book/$bookId'),
       headers: {'Authorization': 'Bearer $token'},
     );
@@ -56,7 +56,7 @@ class ReviewService {
     final token = await _authService.getToken();
     if (token == null) throw Exception('Not authenticated');
 
-    final response = await http.put(
+    final response = await HttpClient.put(
       Uri.parse('${AppConstants.baseUrl}/Review/$reviewId'),
       headers: {
         'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ class ReviewService {
     final token = await _authService.getToken();
     if (token == null) throw Exception('Not authenticated');
 
-    final response = await http.delete(
+    final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/Review/$reviewId'),
       headers: {
         'Authorization': 'Bearer $token',
@@ -97,7 +97,7 @@ class ReviewService {
     final token = await _authService.getToken();
     if (token == null) throw Exception('Not authenticated');
 
-    final response = await http.post(
+    final response = await HttpClient.post(
       Uri.parse('${AppConstants.baseUrl}/Review'),
       headers: {
         'Content-Type': 'application/json',
@@ -117,7 +117,7 @@ class ReviewService {
 
   Future<List<BookReview>> getEventReviews(int eventId) async {
     final token = await _authService.getToken();
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Review/event/$eventId'),
       headers: {'Authorization': 'Bearer $token'},
     );

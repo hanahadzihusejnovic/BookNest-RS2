@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'http_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:signalr_netcore/signalr_client.dart';
 import '../layouts/constants.dart';
@@ -79,7 +79,7 @@ class NotificationService {
       final token = await _authService.getToken();
       if (token == null) return;
 
-      final response = await http.get(
+      final response = await HttpClient.get(
         Uri.parse('${AppConstants.baseUrl}/Notification/my-notifications'),
         headers: {
           'Content-Type': 'application/json',
@@ -122,7 +122,7 @@ class NotificationService {
       final token = await _authService.getToken();
       if (token == null) return;
 
-      await http.put(
+      await HttpClient.put(
         Uri.parse('${AppConstants.baseUrl}/Notification/mark-all-read'),
         headers: {
           'Content-Type': 'application/json',

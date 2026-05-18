@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
-import 'package:http/http.dart' as http;
+import '../services/http_client.dart';
 
 import '../models/cart.dart';
 import '../models/city.dart';
@@ -94,7 +94,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return;
       }
 
-      final response = await http.get(
+      final response = await HttpClient.get(
         Uri.parse('${AppConstants.baseUrl}/User/current-user'),
         headers: {
           'Content-Type': 'application/json',
@@ -169,7 +169,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       // Ako je plaćanje karticom — kreiraj PaymentIntent i potvrdi ga putem Stripea
       if (_paymentMethod == 'Card') {
         // 1. Kreiraj PaymentIntent na backendu
-        final intentResponse = await http.post(
+        final intentResponse = await HttpClient.post(
           Uri.parse('${AppConstants.baseUrl}/Order/create-payment-intent'),
           headers: {
             'Content-Type': 'application/json',
@@ -208,7 +208,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         if (paymentIntentId != null) 'paymentIntentId': paymentIntentId,
       };
 
-      final response = await http.post(
+      final response = await HttpClient.post(
         Uri.parse('${AppConstants.baseUrl}/Order/checkout'),
         headers: {
           'Content-Type': 'application/json',
@@ -582,7 +582,7 @@ class _SectionCard extends StatelessWidget {
         color: AppColors.pageBg,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.darkBrown.withValues(alpha: 0.15),
+          color: AppColors.darkBrown,
         ),
       ),
       child: Column(
