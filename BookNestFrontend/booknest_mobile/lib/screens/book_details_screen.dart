@@ -626,7 +626,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
     return AppLayout(
       pageTitle: 'Book Details',
-      showBackButton: true,
+      onBack: () => Navigator.pop(context),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(18, 6, 18, 28),
         child: Column(

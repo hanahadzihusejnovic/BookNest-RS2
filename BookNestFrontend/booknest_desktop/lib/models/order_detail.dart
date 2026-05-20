@@ -75,8 +75,8 @@ class OrderShipping {
   factory OrderShipping.fromJson(Map<String, dynamic> json) {
     return OrderShipping(
       address: json['address'] ?? '',
-      city: json['city'] ?? '',
-      country: json['country'] ?? '',
+      city: json['cityName'] ?? '',
+      country: json['countryName'] ?? '',
       postalCode: json['postalCode'] ?? '',
       shippedDate: json['shippedDate'] != null
           ? DateTime.tryParse(json['shippedDate'].toString())

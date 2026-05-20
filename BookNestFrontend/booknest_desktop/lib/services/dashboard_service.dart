@@ -1,7 +1,7 @@
 import 'dart:convert';
 import '../layouts/constants.dart';
-import 'package:http/http.dart' as http;
 import 'auth_service.dart';
+import 'http_client.dart';
 
 class DashboardService {
   final AuthService _authService = AuthService();
@@ -15,9 +15,8 @@ class DashboardService {
     };
   }
 
-  // Ukupan broj usera
   Future<int> getTotalUsers() async {
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/User?PageSize=1'),
       headers: await _headers(),
     );
@@ -28,9 +27,8 @@ class DashboardService {
     throw Exception('Failed to load users count');
   }
 
-  // Ukupan broj knjiga
   Future<int> getTotalBooks() async {
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Book?PageSize=1'),
       headers: await _headers(),
     );
@@ -41,9 +39,8 @@ class DashboardService {
     throw Exception('Failed to load books count');
   }
 
-  // Broj narudžbi sa statusom Pending
   Future<int> getPendingOrdersCount() async {
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Order?Status=Pending&PageSize=1'),
       headers: await _headers(),
     );
@@ -54,9 +51,8 @@ class DashboardService {
     throw Exception('Failed to load orders count');
   }
 
-  // Broj rezervacija sa statusom Pending
   Future<int> getPendingReservationsCount() async {
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/EventReservation?ReservationStatus=0&PageSize=1'),
       headers: await _headers(),
     );
@@ -67,9 +63,8 @@ class DashboardService {
     throw Exception('Failed to load reservations count');
   }
 
-  // Broj nadolazećih evenata (datum > danas)
   Future<int> getUpcomingEventsCount() async {
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Event?IsActive=true&PageSize=1000'),
       headers: await _headers(),
     );
@@ -85,7 +80,7 @@ class DashboardService {
   }
 
   Future<List<Map<String, dynamic>>> getCategoryStats() async {
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Dashboard/category-stats'),
       headers: await _headers(),
     );

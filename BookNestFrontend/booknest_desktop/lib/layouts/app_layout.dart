@@ -6,16 +6,19 @@ import '../screens/books_screen.dart';
 import '../screens/orders_screen.dart';
 import '../screens/events_screen.dart';
 import '../screens/reservations_screen.dart';
-import '../screens/settings_screen.dart';
+import '../screens/login_screen.dart';
+import '../services/auth_service.dart';
 
 class AppLayout extends StatelessWidget {
   final String pageTitle;
   final Widget body;
+  final VoidCallback? onBack;
 
   const AppLayout({
     super.key,
     required this.pageTitle,
     required this.body,
+    this.onBack,
   });
 
   @override
@@ -76,6 +79,14 @@ class AppLayout extends StatelessWidget {
                   // Page title + bell
                   Row(
                     children: [
+                      if (onBack != null) ...[
+                        GestureDetector(
+                          onTap: onBack,
+                          child: const Icon(Icons.arrow_back,
+                              color: AppColors.darkBrown, size: 22),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
                       Expanded(
                         child: Text(
                           pageTitle,
@@ -86,11 +97,6 @@ class AppLayout extends StatelessWidget {
                             letterSpacing: 0.5,
                           ),
                         ),
-                      ),
-                      const Icon(
-                        Icons.notifications_none,
-                        color: AppColors.darkBrown,
-                        size: 26,
                       ),
                     ],
                   ),
@@ -220,26 +226,24 @@ class _AdminDrawer extends StatelessWidget {
               },
             ),
             _DrawerDivider(),
-            _DrawerItem(
-              title: 'SETTINGS',
-              isActive: currentPage == 'SETTINGS',
-              onTap: () {
-                Navigator.pop(context);
-                if (currentPage != 'SETTINGS') {
-                  Navigator.pushReplacement(context,
-                      MaterialPageRoute(builder: (_) => const SettingsScreen()));
-                }
-              },
-            ),
-            _DrawerDivider(),
 
             const Spacer(),
 
-            // MY PROFILE
+            // LOGOUT
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               child: InkWell(
-                onTap: () => Navigator.pop(context),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await AuthService().logout();
+                  if (context.mounted) {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (route) => false,
+                    );
+                  }
+                },
                 borderRadius: BorderRadius.circular(18),
                 child: Row(
                   children: [
@@ -250,12 +254,12 @@ class _AdminDrawer extends StatelessWidget {
                         border: Border.all(color: AppColors.pageBg, width: 1.5),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.person_outline,
+                      child: const Icon(Icons.logout,
                           color: AppColors.pageBg, size: 22),
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      'MY PROFILE',
+                      'LOGOUT',
                       style: TextStyle(
                         color: AppColors.pageBg,
                         fontSize: 20,

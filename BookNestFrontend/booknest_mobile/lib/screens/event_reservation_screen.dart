@@ -204,7 +204,7 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
 
     return AppLayout(
       pageTitle: 'RESERVATION INFORMATION',
-      showBackButton: true,
+      onBack: () => Navigator.pop(context),
       body: _isLoading
           ? Center(
               child: CircularProgressIndicator(color: AppColors.darkBrown))
@@ -307,7 +307,7 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
                                   placeholderColor: Colors.white54,
                                   borderColor: Colors.transparent,
                                   borderRadius: 10,
-                                  fontSize: 14,
+                                  fontSize: 16,
                                 ),
                                 onCardChanged: (details) {
                                   setState(() => _cardDetails = details);
@@ -442,7 +442,7 @@ class _SectionCard extends StatelessWidget {
           Text(title,
               style: TextStyle(
                   color: AppColors.darkBrown,
-                  fontSize: 14,
+                  fontSize: 16,
                   fontWeight: FontWeight.w800)),
           const SizedBox(height: 10),
           child,
@@ -464,7 +464,7 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 4),
       child: RichText(
         text: TextSpan(
-          style: const TextStyle(fontSize: 13, height: 1.3),
+          style: const TextStyle(fontSize: 14, height: 1.3),
           children: [
             TextSpan(
               text: '$label: ',
@@ -507,7 +507,7 @@ class _PaymentOption extends StatelessWidget {
         Text(label,
             style: TextStyle(
                 color: AppColors.darkBrown,
-                fontSize: 14,
+                fontSize: 16,
                 fontWeight: FontWeight.w500)),
       ],
     );

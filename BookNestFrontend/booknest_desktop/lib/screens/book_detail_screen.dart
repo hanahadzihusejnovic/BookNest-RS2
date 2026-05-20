@@ -143,6 +143,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'BOOKS',
+      onBack: () => Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const BooksScreen())),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.darkBrown))
           : _book == null
@@ -157,14 +159,6 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IconButton(
-            onPressed: () => Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => const BooksScreen())),
-            icon: const Icon(Icons.arrow_back, color: AppColors.darkBrown, size: 22),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(height: 16),
 
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -470,6 +464,7 @@ class _EditBookDialogState extends State<_EditBookDialog> {
   Author? _selectedAuthor;
   List<Category> _selectedCategories = [];
   File? _newImage;
+  bool _imageDeleted = false;
   bool _isLoading = false;
   bool _dataLoading = true;
 
@@ -589,6 +584,7 @@ class _EditBookDialogState extends State<_EditBookDialog> {
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         child: Text(
                           labelFn(item).toUpperCase(),
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             color: AppColors.darkBrown,
                             fontSize: 11.5,
@@ -651,7 +647,36 @@ class _EditBookDialogState extends State<_EditBookDialog> {
   Future<void> _pickImage() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.image, allowMultiple: false);
     if (result != null && result.files.single.path != null) {
-      setState(() => _newImage = File(result.files.single.path!));
+      setState(() {
+        _newImage = File(result.files.single.path!);
+        _imageDeleted = false;
+      });
+    }
+  }
+
+  Future<void> _removeImage() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.darkBrown,
+        title: const Text('Remove cover', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        content: Text('Are you sure you want to remove the cover image?',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.8))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No', style: TextStyle(color: AppColors.lightBrown))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Yes', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      setState(() {
+        _newImage = null;
+        _imageDeleted = true;
+      });
     }
   }
 
@@ -674,12 +699,16 @@ class _EditBookDialogState extends State<_EditBookDialog> {
 
     setState(() => _isLoading = true);
     try {
-      String? coverUrl = widget.book.imageUrl;
+      String? coverUrl;
       if (_newImage != null) {
         try {
           coverUrl = await _bookService.uploadCover(
               _newImage!, category: _selectedCategories.firstOrNull?.name);
         } catch (_) {}
+      } else if (_imageDeleted) {
+        coverUrl = null;
+      } else {
+        coverUrl = widget.book.imageUrl;
       }
 
       final body = <String, dynamic>{
@@ -755,63 +784,90 @@ class _EditBookDialogState extends State<_EditBookDialog> {
                                 }),
                               ),
                               const SizedBox(height: 16),
-                              GestureDetector(
-                                onTap: _pickImage,
-                                child: Container(
-                                  width: double.infinity,
-                                  height: 110,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.lightBrown.withValues(alpha: 0.25),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: AppColors.lightBrown.withValues(alpha: 0.4)),
-                                  ),
-                                  child: _newImage != null
-                                      ? Stack(
-                                          fit: StackFit.expand,
-                                          children: [
-                                            ClipRRect(
-                                                borderRadius: BorderRadius.circular(7),
-                                                child: Image.file(_newImage!, fit: BoxFit.cover)),
-                                            Positioned(
-                                              top: 4, right: 4,
-                                              child: GestureDetector(
-                                                onTap: () => setState(() => _newImage = null),
-                                                child: Container(
-                                                  decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle),
-                                                  child: const Icon(Icons.close, color: Colors.white, size: 16),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        )
-                                      : widget.book.imageUrl != null
-                                          ? Stack(
-                                              fit: StackFit.expand,
-                                              children: [
-                                                ClipRRect(
-                                                    borderRadius: BorderRadius.circular(7),
-                                                    child: Image.network(widget.book.imageUrl!, fit: BoxFit.cover,
-                                                        errorBuilder: (_, __, ___) => const Icon(Icons.book_outlined, color: AppColors.lightBrown, size: 32))),
-                                                Positioned(
-                                                  bottom: 0, left: 0, right: 0,
-                                                  child: Container(
-                                                    color: Colors.black45,
-                                                    padding: const EdgeInsets.symmetric(vertical: 4),
-                                                    child: const Text('Tap to change', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11)),
+                              Builder(builder: (_) {
+                                final hasExisting = !_imageDeleted && widget.book.imageUrl != null && _newImage == null;
+                                final hasAny = _newImage != null || hasExisting;
+                                return Column(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: _pickImage,
+                                      child: Container(
+                                        width: double.infinity,
+                                        height: 110,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.lightBrown.withValues(alpha: 0.25),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: AppColors.lightBrown.withValues(alpha: 0.4)),
+                                        ),
+                                        child: _newImage != null
+                                            ? Stack(
+                                                fit: StackFit.expand,
+                                                children: [
+                                                  ClipRRect(
+                                                      borderRadius: BorderRadius.circular(7),
+                                                      child: Image.file(_newImage!, fit: BoxFit.cover)),
+                                                  Positioned(
+                                                    top: 4, right: 4,
+                                                    child: GestureDetector(
+                                                      onTap: () => setState(() => _newImage = null),
+                                                      child: Container(
+                                                        decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle),
+                                                        child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                                      ),
+                                                    ),
                                                   ),
-                                                ),
-                                              ],
-                                            )
-                                          : Column(
-                                              mainAxisAlignment: MainAxisAlignment.center,
-                                              children: [
-                                                const Icon(Icons.image_outlined, color: AppColors.lightBrown, size: 32),
-                                                const SizedBox(height: 6),
-                                                Text('Import picture', style: TextStyle(color: AppColors.lightBrown.withValues(alpha: 0.8), fontSize: 13)),
-                                              ],
-                                            ),
-                                ),
-                              ),
+                                                ],
+                                              )
+                                            : hasExisting
+                                                ? Stack(
+                                                    fit: StackFit.expand,
+                                                    children: [
+                                                      ClipRRect(
+                                                          borderRadius: BorderRadius.circular(7),
+                                                          child: Image.network(widget.book.imageUrl!, fit: BoxFit.cover,
+                                                              errorBuilder: (_, __, ___) => const Icon(Icons.book_outlined, color: AppColors.lightBrown, size: 32))),
+                                                      Positioned(
+                                                        bottom: 0, left: 0, right: 0,
+                                                        child: Container(
+                                                          color: Colors.black45,
+                                                          padding: const EdgeInsets.symmetric(vertical: 4),
+                                                          child: const Text('Tap to change', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11)),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  )
+                                                : Column(
+                                                    mainAxisAlignment: MainAxisAlignment.center,
+                                                    children: [
+                                                      const Icon(Icons.image_outlined, color: AppColors.lightBrown, size: 32),
+                                                      const SizedBox(height: 6),
+                                                      Text('Import picture', style: TextStyle(color: AppColors.lightBrown.withValues(alpha: 0.8), fontSize: 13)),
+                                                    ],
+                                                  ),
+                                      ),
+                                    ),
+                                    if (hasAny) ...[
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          GestureDetector(
+                                            onTap: _pickImage,
+                                            child: Text('Change cover',
+                                                style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.w600)),
+                                          ),
+                                          Text('  |  ', style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12)),
+                                          GestureDetector(
+                                            onTap: _removeImage,
+                                            child: Text('Remove',
+                                                style: TextStyle(color: Colors.red.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600)),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
+                                );
+                              }),
                             ],
                           ),
                         ),

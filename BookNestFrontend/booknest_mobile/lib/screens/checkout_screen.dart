@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import '../services/http_client.dart';
+import '../widgets/app_dropdown.dart';
 
 import '../models/cart.dart';
 import '../models/city.dart';
@@ -270,7 +271,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'PURCHASE INFORMATION',
-      showBackButton: true,
+      onBack: () => Navigator.pop(context),
       body: _isLoading
           ? Center(
               child: CircularProgressIndicator(color: AppColors.darkBrown))
@@ -374,7 +375,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           }),
                         ),
                         const SizedBox(height: 12),
-                        _ShippingDropdown<Country>(
+                        AppDropdown<Country>(
                           hint: 'Country',
                           value: _selectedCountry,
                           items: _countries,
@@ -387,7 +388,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: _ShippingDropdown<City>(
+                              child: AppDropdown<City>(
                                 hint: _selectedCountry == null
                                     ? 'Select country first'
                                     : 'City',
@@ -454,7 +455,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 placeholderColor: Colors.white54,
                                 borderColor: Colors.transparent,
                                 borderRadius: 10,
-                                fontSize: 14,
+                                fontSize: 16,
                               ),
                               onCardChanged: (details) {
                                 setState(() => _cardDetails = details);
@@ -592,7 +593,7 @@ class _SectionCard extends StatelessWidget {
             title,
             style: TextStyle(
               color: AppColors.darkBrown,
-              fontSize: 14,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -616,7 +617,7 @@ class _InfoRow extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 4),
       child: RichText(
         text: TextSpan(
-          style: const TextStyle(fontSize: 13, height: 1.3),
+          style: const TextStyle(fontSize: 14, height: 1.3),
           children: [
             TextSpan(
               text: '$label: ',
@@ -658,15 +659,15 @@ class _ShippingField extends StatelessWidget {
             onChanged: onChanged,
             style: const TextStyle(
               color: AppColors.darkBrown,
-              fontSize: 14,
+              fontSize: 16,
             ),
             decoration: InputDecoration(
               hintText: label,
               hintStyle: TextStyle(
                 color: error != null
                     ? Colors.red
-                    : AppColors.darkBrown.withValues(alpha: 0.6),
-                fontSize: 14,
+                    : AppColors.darkBrown,
+                fontSize: 16,
               ),
               border: InputBorder.none,
               isDense: true,
@@ -688,75 +689,6 @@ class _ShippingField extends StatelessWidget {
               fontSize: 11,
               color: Colors.red,
             ),
-          ),
-        ],
-      ],
-    );
-  }
-}
-
-class _ShippingDropdown<T> extends StatelessWidget {
-  final String hint;
-  final T? value;
-  final List<T> items;
-  final String Function(T) labelFn;
-  final ValueChanged<T?>? onChanged;
-  final String? error;
-
-  const _ShippingDropdown({
-    required this.hint,
-    required this.value,
-    required this.items,
-    required this.labelFn,
-    required this.onChanged,
-    this.error,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 24,
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<T>(
-              value: value,
-              isExpanded: true,
-              hint: Text(
-                hint,
-                style: TextStyle(
-                  color: error != null
-                      ? Colors.red
-                      : AppColors.darkBrown.withValues(alpha: 0.6),
-                  fontSize: 14,
-                ),
-              ),
-              icon: Icon(Icons.arrow_drop_down,
-                  color: error != null ? Colors.red : AppColors.darkBrown),
-              style: const TextStyle(color: AppColors.darkBrown, fontSize: 14),
-              dropdownColor: AppColors.lightBrown,
-              onChanged: onChanged,
-              items: items.map((item) {
-                return DropdownMenuItem<T>(
-                  value: item,
-                  child: Text(labelFn(item)),
-                );
-              }).toList(),
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(
-          width: double.infinity,
-          height: 1,
-          color: error != null ? Colors.red : AppColors.darkBrown,
-        ),
-        if (error != null) ...[
-          const SizedBox(height: 4),
-          Text(
-            error!,
-            style: const TextStyle(fontSize: 11, color: Colors.red),
           ),
         ],
       ],
@@ -791,7 +723,7 @@ class _PaymentOption extends StatelessWidget {
           label,
           style: TextStyle(
             color: AppColors.darkBrown,
-            fontSize: 14,
+            fontSize: 16,
             fontWeight: FontWeight.w500,
           ),
         ),

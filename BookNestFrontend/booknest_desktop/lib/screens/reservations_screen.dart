@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../layouts/app_layout.dart';
 import '../layouts/constants.dart';
+import 'dashboard_screen.dart';
 import '../models/reservation.dart';
 import '../services/reservation_service.dart';
 import '../widgets/pagination_bar.dart';
@@ -80,9 +81,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
       case 'cancelled':
         return const Color(0xFFE53935);
       case 'attended':
-        return AppColors.mediumBrown;
-      case 'pending':
-        return const Color(0xFFFF9800);
+        return const Color(0xFF2196F3);
       default:
         return AppColors.darkBrown;
     }
@@ -92,6 +91,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'RESERVATIONS',
+      onBack: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardScreen())),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         child: Column(

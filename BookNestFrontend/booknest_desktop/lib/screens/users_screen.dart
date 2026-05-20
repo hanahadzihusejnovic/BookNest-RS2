@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../layouts/app_layout.dart';
 import '../layouts/constants.dart';
 import '../models/user.dart';
+import 'dashboard_screen.dart';
 import '../services/user_service.dart';
 import '../widgets/pagination_bar.dart';
 import '../widgets/admin_table.dart';
@@ -79,6 +80,7 @@ class _UsersScreenState extends State<UsersScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'USERS',
+      onBack: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardScreen())),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         child: Column(

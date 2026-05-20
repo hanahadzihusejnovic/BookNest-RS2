@@ -4,6 +4,7 @@ import '../models/category.dart';
 import '../services/book_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
+import 'shop_screen.dart';
 import 'book_details_screen.dart';
 import '../widgets/book_card.dart';
 import '../screens/cart_screen.dart';
@@ -437,7 +438,7 @@ Future<void> _addToFavorites(Book book) async {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: '${widget.category.name} category',
-      showBackButton: true,
+      onBack: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const ShopScreen())),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

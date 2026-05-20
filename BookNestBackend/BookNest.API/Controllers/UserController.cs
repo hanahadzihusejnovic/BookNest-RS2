@@ -46,6 +46,11 @@ namespace BookNest.API.Controllers
         [Authorize(Roles = Roles.Admin)]
         public override async Task<UserResponse?> Update(int id, [FromBody] UserUpdateRequest request)
         {
+            var currentUser = await _userService.GetByIdAsync(id);
+            if (currentUser?.ImageUrl != null && currentUser.ImageUrl != request.ImageUrl)
+            {
+                await _imageService.DeleteImageAsync(currentUser.ImageUrl, "user-images");
+            }
             return await base.Update(id, request);
         }
 

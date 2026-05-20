@@ -170,7 +170,7 @@ class _TBRScreenState extends State<TBRScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'TO BE READ LIST',
-      showBackButton: true,
+      onBack: () => Navigator.pop(context),
       body: _isLoading
           ? Center(
               child: CircularProgressIndicator(color: AppColors.darkBrown),

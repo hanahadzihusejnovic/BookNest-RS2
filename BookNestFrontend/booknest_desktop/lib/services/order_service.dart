@@ -1,9 +1,9 @@
 import 'dart:convert';
 import '../layouts/constants.dart';
-import 'package:http/http.dart' as http;
 import '../models/order.dart';
 import '../models/order_detail.dart';
 import 'auth_service.dart';
+import 'http_client.dart';
 
 class OrderService {
   final AuthService _authService = AuthService();
@@ -15,7 +15,7 @@ class OrderService {
     final uri = Uri.parse('${AppConstants.baseUrl}/Order')
         .replace(queryParameters: {'PageSize': pageSize.toString()});
 
-    final response = await http.get(uri, headers: {
+    final response = await HttpClient.get(uri, headers: {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
     });
@@ -31,7 +31,7 @@ class OrderService {
   Future<OrderDetail> getOrder(int id) async {
     final token = await _authService.getToken();
     if (token == null) throw Exception('Not authenticated');
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Order/$id'),
       headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
     );
@@ -46,7 +46,7 @@ class OrderService {
     if (token == null) throw Exception('Not authenticated');
     final body = <String, dynamic>{'status': status};
     if (status == 2) body['shippedDate'] = DateTime.now().toIso8601String();
-    final response = await http.put(
+    final response = await HttpClient.put(
       Uri.parse('${AppConstants.baseUrl}/Order/$id'),
       headers: {
         'Content-Type': 'application/json',

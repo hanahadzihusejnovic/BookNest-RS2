@@ -6,6 +6,7 @@ import '../services/event_service.dart';
 import '../services/event_category_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
+import 'home_screen.dart';
 import 'event_category_screen.dart';
 import '../screens/event_details_screen.dart';
 
@@ -181,7 +182,7 @@ class _EventsScreenState extends State<EventsScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'EVENTS',
-      showBackButton: false,
+      onBack: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen())),
       body: _isLoading
           ? Center(child: CircularProgressIndicator(color: AppColors.darkBrown))
           : _error != null
@@ -468,6 +469,20 @@ class _EventTile extends StatelessWidget {
                     ],
                   ),
                 ),
+                if (event.description != null && event.description!.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    event.description!.length > 80
+                        ? '${event.description!.substring(0, 80)}...'
+                        : event.description!,
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.75),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w400,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

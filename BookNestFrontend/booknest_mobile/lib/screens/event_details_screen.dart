@@ -417,7 +417,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
     return AppLayout(
       pageTitle: 'Event Details',
-      showBackButton: true,
+      onBack: () => Navigator.pop(context),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(18, 12, 18, 28),
         child: Column(

@@ -74,7 +74,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'FAVORITES',
-      showBackButton: true,
+      onBack: () => Navigator.pop(context),
       body: _isLoading
           ? Center(
               child: CircularProgressIndicator(color: AppColors.darkBrown),

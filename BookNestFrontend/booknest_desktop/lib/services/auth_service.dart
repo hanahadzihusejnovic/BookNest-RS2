@@ -1,6 +1,8 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
 import '../models/login_request.dart';
 import '../models/login_response.dart';
+import '../layouts/constants.dart';
 import 'api_service.dart';
 
 class AuthService {
@@ -13,6 +15,7 @@ class AuthService {
   static const String _lastNameKey = 'last_name';
   static const String _emailKey = 'email';
   static const String _rolesKey = 'roles';
+  static const String _expiresAtKey = 'expires_at';
 
   static const String _rememberMeKey = 'remember_me';
   static const String _savedUsernameKey = 'saved_username';
@@ -28,6 +31,19 @@ class AuthService {
 
   // Logout
   Future<void> logout() async {
+    try {
+      final token = await getToken();
+      if (token != null && token.isNotEmpty) {
+        await http.post(
+          Uri.parse('${AppConstants.baseUrl}/Auth/logout'),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+        );
+      }
+    } catch (_) {}
+
     final prefs = await SharedPreferences.getInstance();
 
     final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
@@ -44,8 +60,32 @@ class AuthService {
   }
 
   Future<bool> isLoggedIn() async {
-    final token = await getToken();
-    return token != null && token.isNotEmpty;
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(_tokenKey);
+
+    if (token == null || token.isEmpty) return false;
+
+    final expiresAtStr = prefs.getString(_expiresAtKey);
+    if (expiresAtStr != null) {
+      final expiresAt = DateTime.parse(expiresAtStr);
+      if (DateTime.now().isAfter(expiresAt)) {
+        final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
+        final savedUsername = prefs.getString(_savedUsernameKey);
+        final savedPassword = prefs.getString(_savedPasswordKey);
+
+        await prefs.clear();
+
+        if (rememberMe && savedUsername != null && savedPassword != null) {
+          await prefs.setBool(_rememberMeKey, true);
+          await prefs.setString(_savedUsernameKey, savedUsername);
+          await prefs.setString(_savedPasswordKey, savedPassword);
+        }
+
+        return false;
+      }
+    }
+
+    return true;
   }
 
   Future<String?> getToken() async {
@@ -88,6 +128,7 @@ class AuthService {
     await prefs.setString(_lastNameKey, response.lastName);
     await prefs.setString(_emailKey, response.emailAddress);
     await prefs.setStringList(_rolesKey, response.roles);
+    await prefs.setString(_expiresAtKey, response.expiresAt.toIso8601String());
   }
 
   // ========== REMEMBER ME ========== //

@@ -11,14 +11,14 @@ import '../services/notification_service.dart';
 class AppLayout extends StatelessWidget {
   final String pageTitle;
   final Widget body;
-  final bool showBackButton;
+  final VoidCallback? onBack;
   final bool showPageActionsRow;
 
   const AppLayout({
     super.key,
     required this.pageTitle,
     required this.body,
-    this.showBackButton = false,
+    this.onBack,
     this.showPageActionsRow = true,
   });
 
@@ -38,14 +38,6 @@ class AppLayout extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      if (showBackButton) ...[
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Icon(Icons.arrow_back,
-                              color: AppColors.darkBrown, size: 26),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -83,6 +75,14 @@ class AppLayout extends StatelessWidget {
                     const SizedBox(height: 12),
                     Row(
                       children: [
+                        if (onBack != null) ...[
+                          GestureDetector(
+                            onTap: onBack,
+                            child: Icon(Icons.arrow_back,
+                                color: AppColors.darkBrown, size: 22),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
                         Expanded(
                           child: Text(
                             pageTitle,

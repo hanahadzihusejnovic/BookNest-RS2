@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../models/event.dart';
 import '../models/reservation.dart';
 import 'auth_service.dart';
+import 'http_client.dart';
 
 class EventService {
   final AuthService _authService = AuthService();
@@ -24,7 +25,7 @@ class EventService {
     final uri = Uri.parse('${AppConstants.baseUrl}/Event')
         .replace(queryParameters: params);
 
-    final response = await http.get(uri, headers: {
+    final response = await HttpClient.get(uri, headers: {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer $token',
     });
@@ -40,7 +41,7 @@ class EventService {
   Future<Event> getEvent(int id) async {
     final token = await _authService.getToken();
     if (token == null) throw Exception('Not authenticated');
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Event/$id'),
       headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
     );
@@ -52,7 +53,7 @@ class EventService {
     final token = await _authService.getToken();
     if (token == null) throw Exception('Not authenticated');
     final uri = Uri.parse('${AppConstants.baseUrl}/EventReservation/event/$eventId');
-    final response = await http.get(
+    final response = await HttpClient.get(
       uri,
       headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
     );
@@ -66,7 +67,7 @@ class EventService {
   Future<void> updateEvent(int id, Map<String, dynamic> body) async {
     final token = await _authService.getToken();
     if (token == null) throw Exception('Not authenticated');
-    final response = await http.put(
+    final response = await HttpClient.put(
       Uri.parse('${AppConstants.baseUrl}/Event/$id'),
       headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
       body: jsonEncode(body),
@@ -79,7 +80,7 @@ class EventService {
   Future<void> deleteEvent(int id) async {
     final token = await _authService.getToken();
     if (token == null) throw Exception('Not authenticated');
-    final response = await http.delete(
+    final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/Event/$id'),
       headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
     );
@@ -92,7 +93,7 @@ class EventService {
     final token = await _authService.getToken();
     if (token == null) throw Exception('Not authenticated');
 
-    final response = await http.post(
+    final response = await HttpClient.post(
       Uri.parse('${AppConstants.baseUrl}/Event'),
       headers: {
         'Content-Type': 'application/json',

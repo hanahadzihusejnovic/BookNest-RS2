@@ -4,11 +4,16 @@ import 'package:file_picker/file_picker.dart';
 import '../layouts/app_layout.dart';
 import '../layouts/constants.dart';
 import '../models/event.dart';
+import 'dashboard_screen.dart';
 import '../models/event_category.dart';
 import '../models/organizer.dart';
+import '../models/city.dart';
+import '../models/country.dart';
 import '../services/event_service.dart';
 import '../services/event_category_service.dart';
 import '../services/organizer_service.dart';
+import '../services/city_service.dart';
+import '../services/country_service.dart';
 import '../widgets/pagination_bar.dart';
 import '../widgets/admin_table.dart';
 import '../widgets/book_form_widgets.dart';
@@ -218,6 +223,7 @@ class _EventsScreenState extends State<EventsScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'EVENTS',
+      onBack: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardScreen())),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         child: Column(
@@ -415,21 +421,26 @@ class _AddEventDialog extends StatefulWidget {
 class _AddEventDialogState extends State<_AddEventDialog> {
   final _eventService = EventService();
   final _organizerService = OrganizerService();
+  final _cityService = CityService();
+  final _countryService = CountryService();
 
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
   final _capacityController = TextEditingController();
   final _addressController = TextEditingController();
-  final _cityController = TextEditingController();
-  final _countryController = TextEditingController();
 
   List<Organizer> _organizers = [];
+  List<City> _cities = [];
+  List<City> _filteredCities = [];
+  List<Country> _countries = [];
   bool _organizersLoading = true;
 
   EventCategory? _selectedCategory;
   Organizer? _selectedOrganizer;
   int? _selectedEventType;
+  City? _selectedCity;
+  Country? _selectedCountry;
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   bool _isActive = true;
@@ -448,6 +459,14 @@ class _AddEventDialogState extends State<_AddEventDialog> {
   OverlayEntry? _eventTypeOverlay;
   bool _eventTypeOpen = false;
 
+  final LayerLink _cityLink = LayerLink();
+  OverlayEntry? _cityOverlay;
+  bool _cityOpen = false;
+
+  final LayerLink _countryLink = LayerLink();
+  OverlayEntry? _countryOverlay;
+  bool _countryOpen = false;
+
   String? _nameError;
   String? _categoryError;
   String? _organizerError;
@@ -457,10 +476,8 @@ class _AddEventDialogState extends State<_AddEventDialog> {
   String? _priceError;
   String? _capacityError;
   String? _addressError;
-  String? _cityError;
-  String? _countryError;
 
-  static const _eventTypeLabels = ['Online', 'InPerson'];
+  static const _eventTypeLabels = ['Online', 'In Person'];
 
   @override
   void initState() {
@@ -470,10 +487,16 @@ class _AddEventDialogState extends State<_AddEventDialog> {
 
   Future<void> _loadOrganizers() async {
     try {
-      final organizers = await _organizerService.getOrganizers();
+      final results = await Future.wait([
+        _organizerService.getOrganizers(),
+        _cityService.getCities(),
+        _countryService.getCountries(),
+      ]);
       if (mounted) {
         setState(() {
-          _organizers = organizers;
+          _organizers = results[0] as List<Organizer>;
+          _cities = results[1] as List<City>;
+          _countries = results[2] as List<Country>;
           _organizersLoading = false;
         });
       }
@@ -486,6 +509,8 @@ class _AddEventDialogState extends State<_AddEventDialog> {
     _closeCategoryDropdown();
     _closeOrganizerDropdown();
     _closeEventTypeDropdown();
+    _closeCityDropdown();
+    _closeCountryDropdown();
   }
 
   void _closeCategoryDropdown() {
@@ -504,6 +529,18 @@ class _AddEventDialogState extends State<_AddEventDialog> {
     _eventTypeOverlay?.remove();
     _eventTypeOverlay = null;
     if (mounted) setState(() => _eventTypeOpen = false);
+  }
+
+  void _closeCityDropdown() {
+    _cityOverlay?.remove();
+    _cityOverlay = null;
+    if (mounted) setState(() => _cityOpen = false);
+  }
+
+  void _closeCountryDropdown() {
+    _countryOverlay?.remove();
+    _countryOverlay = null;
+    if (mounted) setState(() => _countryOpen = false);
   }
 
   void _toggleCategoryDropdown() {
@@ -546,6 +583,43 @@ class _AddEventDialogState extends State<_AddEventDialog> {
       onClose: _closeEventTypeDropdown,
     );
     setState(() => _eventTypeOpen = true);
+  }
+
+  void _onCountryChanged(Country country) {
+    setState(() {
+      _selectedCountry = country;
+      _selectedCity = null;
+      _filteredCities = _cities.where((c) => c.countryId == country.id).toList();
+    });
+  }
+
+  void _toggleCityDropdown() {
+    if (_selectedCountry == null) return;
+    if (_cityOpen) { _closeCityDropdown(); return; }
+    _closeAll();
+    _cityOverlay = _showOverlayDropdown<City>(
+      link: _cityLink,
+      items: _filteredCities,
+      selected: _selectedCity,
+      labelFn: (c) => c.name,
+      onSelect: (c) => setState(() => _selectedCity = c),
+      onClose: _closeCityDropdown,
+    );
+    setState(() => _cityOpen = true);
+  }
+
+  void _toggleCountryDropdown() {
+    if (_countryOpen) { _closeCountryDropdown(); return; }
+    _closeAll();
+    _countryOverlay = _showOverlayDropdown<Country>(
+      link: _countryLink,
+      items: _countries,
+      selected: _selectedCountry,
+      labelFn: (c) => c.name,
+      onSelect: _onCountryChanged,
+      onClose: _closeCountryDropdown,
+    );
+    setState(() => _countryOpen = true);
   }
 
   OverlayEntry _showOverlayDropdown<T>({
@@ -600,6 +674,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                             horizontal: 14, vertical: 10),
                         child: Text(
                           labelFn(item).toUpperCase(),
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             color: AppColors.darkBrown,
                             fontSize: 11.5,
@@ -683,14 +758,11 @@ class _AddEventDialogState extends State<_AddEventDialog> {
       _priceError = _priceController.text.isEmpty ? 'Required' : null;
       _capacityError = _capacityController.text.isEmpty ? 'Required' : null;
       _addressError = isInPerson && _addressController.text.isEmpty ? 'Required for in-person event' : null;
-      _cityError = isInPerson && _cityController.text.isEmpty ? 'Required for in-person event' : null;
-      _countryError = isInPerson && _countryController.text.isEmpty ? 'Required for in-person event' : null;
     });
 
     if ([
       _nameError, _categoryError, _organizerError, _eventTypeError,
-      _dateError, _timeError, _priceError, _capacityError,
-      _addressError, _cityError, _countryError,
+      _dateError, _timeError, _priceError, _capacityError, _addressError,
     ].any((e) => e != null)) { return; }
 
     final price = double.tryParse(_priceController.text);
@@ -731,10 +803,8 @@ class _AddEventDialogState extends State<_AddEventDialog> {
           'description': _descriptionController.text.trim(),
         if (_addressController.text.isNotEmpty)
           'address': _addressController.text.trim(),
-        if (_cityController.text.isNotEmpty)
-          'city': _cityController.text.trim(),
-        if (_countryController.text.isNotEmpty)
-          'country': _countryController.text.trim(),
+        if (_selectedCity != null) 'cityId': _selectedCity!.id,
+        if (_selectedCountry != null) 'countryId': _selectedCountry!.id,
         if (imageUrl != null) 'imageUrl': imageUrl,
       };
 
@@ -787,8 +857,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                           controller: _nameController,
                           hint: 'Name',
                           error: _nameError,
-                          onChanged: (_) =>
-                              setState(() => _nameError = null),
+                          onChanged: (_) => setState(() => _nameError = null),
                         ),
                         const SizedBox(height: 14),
                         BookFormDropdownTrigger(
@@ -822,65 +891,61 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                         ),
                         const SizedBox(height: 14),
                         // Image picker
-                        GestureDetector(
-                          onTap: _pickImage,
-                          child: Container(
-                            width: double.infinity,
-                            height: 110,
-                            decoration: BoxDecoration(
-                              color:
-                                  AppColors.lightBrown.withValues(alpha: 0.25),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: AppColors.lightBrown
-                                      .withValues(alpha: 0.4)),
+                        Column(
+                          children: [
+                            GestureDetector(
+                              onTap: _pickImage,
+                              child: Container(
+                                width: double.infinity,
+                                height: 110,
+                                decoration: BoxDecoration(
+                                  color: AppColors.lightBrown.withValues(alpha: 0.25),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppColors.lightBrown.withValues(alpha: 0.4)),
+                                ),
+                                child: _selectedImage != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(7),
+                                        child: Image.file(_selectedImage!, fit: BoxFit.cover),
+                                      )
+                                    : Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(Icons.image_outlined, color: AppColors.lightBrown, size: 32),
+                                          const SizedBox(height: 6),
+                                          Text('Import picture',
+                                              style: TextStyle(color: AppColors.lightBrown.withValues(alpha: 0.8), fontSize: 13)),
+                                        ],
+                                      ),
+                              ),
                             ),
-                            child: _selectedImage != null
-                                ? Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius:
-                                            BorderRadius.circular(7),
-                                        child: Image.file(_selectedImage!,
-                                            fit: BoxFit.cover),
-                                      ),
-                                      Positioned(
-                                        top: 4,
-                                        right: 4,
-                                        child: GestureDetector(
-                                          onTap: () => setState(
-                                              () => _selectedImage = null),
-                                          child: Container(
-                                            decoration: const BoxDecoration(
-                                                color: Colors.black45,
-                                                shape: BoxShape.circle),
-                                            child: const Icon(Icons.close,
-                                                color: Colors.white, size: 16),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : Column(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(Icons.image_outlined,
-                                          color: AppColors.lightBrown,
-                                          size: 32),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        'Import picture',
-                                        style: TextStyle(
-                                          color: AppColors.lightBrown
-                                              .withValues(alpha: 0.8),
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ],
+                            if (_selectedImage != null) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  GestureDetector(
+                                    onTap: _pickImage,
+                                    child: Text('Change cover',
+                                        style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.w600)),
                                   ),
-                          ),
+                                  Text('  |  ', style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12)),
+                                  GestureDetector(
+                                    onTap: () => setState(() => _selectedImage = null),
+                                    child: Text('Remove',
+                                        style: TextStyle(color: Colors.red.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600)),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 14),
+                        BookFormField(
+                          controller: _descriptionController,
+                          hint: 'Description (optional)',
+                          maxLines: 3,
+                          onChanged: (_) {},
                         ),
                       ],
                     ),
@@ -891,15 +956,6 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                   Expanded(
                     child: Column(
                       children: [
-                        BookFormField(
-                          controller: _descriptionController,
-                          hint: 'Description (optional)',
-                          maxLines: 3,
-                          onChanged: (_) {},
-                        ),
-                        const SizedBox(height: 14),
-
-                        // Date picker
                         FormDateTimeTrigger(
                           label: _selectedDate != null
                               ? '${_selectedDate!.day}.${_selectedDate!.month}.${_selectedDate!.year}'
@@ -910,8 +966,6 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                           onTap: _pickDate,
                         ),
                         const SizedBox(height: 14),
-
-                        // Time picker
                         FormDateTimeTrigger(
                           label: _selectedTime != null
                               ? _selectedTime!.format(context)
@@ -922,14 +976,12 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                           onTap: _pickTime,
                         ),
                         const SizedBox(height: 14),
-
                         BookFormField(
                           controller: _priceController,
                           hint: 'Ticket Price',
                           error: _priceError,
                           keyboardType: TextInputType.number,
-                          onChanged: (_) =>
-                              setState(() => _priceError = null),
+                          onChanged: (_) => setState(() => _priceError = null),
                         ),
                         const SizedBox(height: 14),
                         BookFormField(
@@ -937,8 +989,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                           hint: 'Capacity',
                           error: _capacityError,
                           keyboardType: TextInputType.number,
-                          onChanged: (_) =>
-                              setState(() => _capacityError = null),
+                          onChanged: (_) => setState(() => _capacityError = null),
                         ),
                         const SizedBox(height: 14),
                         BookFormField(
@@ -948,40 +999,31 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                           onChanged: (_) => setState(() => _addressError = null),
                         ),
                         const SizedBox(height: 14),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: BookFormField(
-                                controller: _cityController,
-                                hint: _selectedEventType == 1 ? 'City' : 'City (optional)',
-                                error: _cityError,
-                                onChanged: (_) => setState(() => _cityError = null),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: BookFormField(
-                                controller: _countryController,
-                                hint: _selectedEventType == 1 ? 'Country' : 'Country (optional)',
-                                error: _countryError,
-                                onChanged: (_) => setState(() => _countryError = null),
-                              ),
-                            ),
-                          ],
+                        BookFormDropdownTrigger(
+                          link: _countryLink,
+                          hint: 'Country (optional)',
+                          selectedLabel: _selectedCountry?.name,
+                          isOpen: _countryOpen,
+                          onTap: _toggleCountryDropdown,
+                        ),
+                        const SizedBox(height: 14),
+                        BookFormDropdownTrigger(
+                          link: _cityLink,
+                          hint: _selectedCountry == null ? 'Select country first' : 'City (optional)',
+                          selectedLabel: _selectedCity?.name,
+                          isOpen: _cityOpen,
+                          onTap: _toggleCityDropdown,
                         ),
                         const SizedBox(height: 14),
                         Row(
                           children: [
                             Switch(
                               value: _isActive,
-                              onChanged: (v) =>
-                                  setState(() => _isActive = v),
+                              onChanged: (v) => setState(() => _isActive = v),
                               activeThumbColor: AppColors.lightBrown,
                             ),
                             const SizedBox(width: 8),
-                            const Text('Active',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 14)),
+                            const Text('Active', style: TextStyle(color: Colors.white, fontSize: 14)),
                           ],
                         ),
                       ],
@@ -1050,13 +1092,13 @@ class _AddEventDialogState extends State<_AddEventDialog> {
     _categoryOverlay?.remove();
     _organizerOverlay?.remove();
     _eventTypeOverlay?.remove();
+    _cityOverlay?.remove();
+    _countryOverlay?.remove();
     _nameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
     _capacityController.dispose();
     _addressController.dispose();
-    _cityController.dispose();
-    _countryController.dispose();
     super.dispose();
   }
 }
