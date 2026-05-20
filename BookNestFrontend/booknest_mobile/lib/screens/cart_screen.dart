@@ -69,7 +69,7 @@ class _CartScreenState extends State<CartScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'SHOPPING CART',
-      showBackButton: true,
+      onBack: () => Navigator.pop(context),
       body: _isLoading
           ? Center(
               child: CircularProgressIndicator(

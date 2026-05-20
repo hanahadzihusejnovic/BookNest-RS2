@@ -300,6 +300,12 @@ namespace BookNest.Services.Services
             if (reservation == null)
                 throw new NotFoundException("Reservation not found.");
 
+            if (request.ReservationStatus == ReservationStatus.Cancelled &&
+                reservation.ReservationStatus != ReservationStatus.Cancelled)
+            {
+                reservation.Event.ReservedSeats = Math.Max(0, reservation.Event.ReservedSeats - reservation.Quantity);
+            }
+
             reservation.ReservationStatus = request.ReservationStatus;
 
             await _dbContext.SaveChangesAsync(cancellationToken);

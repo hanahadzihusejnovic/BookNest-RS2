@@ -5,6 +5,7 @@ import '../services/book_service.dart';
 import '../services/category_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
+import 'home_screen.dart';
 import 'category_screen.dart';
 import '../screens/book_details_screen.dart';
 import '../widgets/book_card.dart';
@@ -260,6 +261,7 @@ class _ShopScreenState extends State<ShopScreen> {
 
     return AppLayout(
       pageTitle: 'SHOP',
+      onBack: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen())),
       body: NotificationListener<ScrollNotification>(
         onNotification: (n) {
           if (_catOpen) _closeCategoriesDropdown();

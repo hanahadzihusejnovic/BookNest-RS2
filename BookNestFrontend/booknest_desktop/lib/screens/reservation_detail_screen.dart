@@ -112,6 +112,8 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'RESERVATIONS',
+      onBack: () => Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const ReservationsScreen())),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.darkBrown))
           : _reservation == null
@@ -128,14 +130,6 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IconButton(
-            onPressed: () => Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => const ReservationsScreen())),
-            icon: const Icon(Icons.arrow_back, color: AppColors.darkBrown, size: 22),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(height: 16),
           _buildHeader(r),
           const SizedBox(height: 32),
           _buildEventTable(r),
@@ -174,13 +168,13 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
                             style: TextStyle(
                                 color: AppColors.darkBrown,
                                 fontWeight: FontWeight.w700,
-                                fontSize: 13)),
+                                fontSize: 16)),
                         const SizedBox(height: 10),
                         DetailRow('User:', r.userFullName),
                         const SizedBox(height: 10),
                         DetailRow('Email:', r.userEmail),
                         const SizedBox(height: 10),
-                        DetailRow('Reserved On:', _fmt(r.reservationDate)),
+                        DetailRow('Reservation Date:', _fmt(r.reservationDate)),
                         const SizedBox(height: 10),
                         DetailRow('Quantity:', '${r.quantity} ticket${r.quantity != 1 ? 's' : ''}'),
                         const SizedBox(height: 10),
@@ -199,7 +193,7 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
                             style: TextStyle(
                                 color: AppColors.darkBrown,
                                 fontWeight: FontWeight.w700,
-                                fontSize: 13)),
+                                fontSize: 16)),
                         const SizedBox(height: 10),
                         DetailRow('Method:', r.payment.paymentMethod),
                         const SizedBox(height: 10),
@@ -282,9 +276,9 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
           child: Row(
             children: const [
               SizedBox(width: 56),
-              AdminColHeader('Event Name', flex: 4),
-              AdminColHeader('Location', flex: 3),
-              AdminColHeader('Date & Time', flex: 3),
+              AdminColHeader('Event Name', flex: 3),
+              AdminColHeader('Location', flex: 4),
+              AdminColHeader('Date & Time', flex: 2),
               AdminColHeader('Ticket Price', flex: 2),
             ],
           ),
@@ -296,9 +290,9 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
             children: [
               AdminThumbnail(imageUrl: r.eventImageUrl, fallbackIcon: Icons.event_outlined),
               const SizedBox(width: 12),
-              Expanded(flex: 4, child: Text(r.eventName, style: adminRowStyle, overflow: TextOverflow.ellipsis)),
-              Expanded(flex: 3, child: Text(r.eventLocation, style: adminRowStyle, overflow: TextOverflow.ellipsis)),
-              Expanded(flex: 3, child: Text(_fmtDateTime(r.eventDateTime), style: adminRowStyle)),
+              Expanded(flex: 3, child: Text(r.eventName, style: adminRowStyle, overflow: TextOverflow.ellipsis)),
+              Expanded(flex: 4, child: Text(r.eventLocation, style: adminRowStyle, overflow: TextOverflow.ellipsis)),
+              Expanded(flex: 2, child: Text(_fmtDateTime(r.eventDateTime), style: adminRowStyle)),
               Expanded(flex: 2, child: Text(r.ticketPrice == 0 ? 'Free' : '${r.ticketPrice.toStringAsFixed(2)} BAM', style: adminRowStyle)),
             ],
           ),

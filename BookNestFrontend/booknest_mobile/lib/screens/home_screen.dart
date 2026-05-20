@@ -413,7 +413,7 @@ class _InterestRow extends StatelessWidget {
                         fontSize: 13,
                         fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
-                Text("Date&Time: $timeText",
+                Text("Date & Time: $timeText",
                     style: const TextStyle(
                         color: Colors.white,
                         fontSize: 11,

@@ -9,7 +9,9 @@ class Event {
   final String eventTime;
   final String eventType;
   final String? address;
+  final int? cityId;
   final String? city;
+  final int? countryId;
   final String? country;
   final double ticketPrice;
   final int capacity;
@@ -28,7 +30,9 @@ class Event {
     required this.eventTime,
     required this.eventType,
     this.address,
+    this.cityId,
     this.city,
+    this.countryId,
     this.country,
     required this.ticketPrice,
     required this.capacity,
@@ -49,8 +53,10 @@ class Event {
       eventTime: json['eventTime'] ?? '00:00:00',
       eventType: json['eventType'] ?? '',
       address: json['address'],
-      city: json['city'],
-      country: json['country'],
+      cityId: json['cityId'] as int?,
+      city: json['cityName'],
+      countryId: json['countryId'] as int?,
+      country: json['countryName'],
       ticketPrice: (json['ticketPrice'] as num?)?.toDouble() ?? 0,
       capacity: (json['capacity'] as num?)?.toInt() ?? 0,
       isActive: json['isActive'] ?? false,

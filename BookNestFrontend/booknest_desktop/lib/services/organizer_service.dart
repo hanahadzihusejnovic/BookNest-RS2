@@ -1,8 +1,8 @@
 import 'dart:convert';
 import '../layouts/constants.dart';
-import 'package:http/http.dart' as http;
 import '../models/organizer.dart';
 import 'auth_service.dart';
+import 'http_client.dart';
 
 class OrganizerService {
   final AuthService _authService = AuthService();
@@ -11,7 +11,7 @@ class OrganizerService {
     final token = await _authService.getToken();
     if (token == null) throw Exception('Not authenticated');
 
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Organizer?RetrieveAll=true'),
       headers: {
         'Content-Type': 'application/json',

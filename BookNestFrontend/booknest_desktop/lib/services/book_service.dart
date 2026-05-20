@@ -4,6 +4,7 @@ import '../layouts/constants.dart';
 import 'package:http/http.dart' as http;
 import '../models/book.dart';
 import 'auth_service.dart';
+import 'http_client.dart';
 
 class BookService {
   final AuthService _authService = AuthService();
@@ -21,7 +22,7 @@ class BookService {
     final uri = Uri.parse('${AppConstants.baseUrl}/Book')
         .replace(queryParameters: {'PageSize': pageSize.toString()});
 
-    final response = await http.get(uri, headers: await _headers());
+    final response = await HttpClient.get(uri, headers: await _headers());
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -32,7 +33,7 @@ class BookService {
   }
 
   Future<Book> getBook(int id) async {
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Book/$id'),
       headers: await _headers(),
     );
@@ -43,7 +44,7 @@ class BookService {
   }
 
   Future<void> createBook(Map<String, dynamic> request) async {
-    final response = await http.post(
+    final response = await HttpClient.post(
       Uri.parse('${AppConstants.baseUrl}/Book'),
       headers: await _headers(),
       body: jsonEncode(request),
@@ -54,7 +55,7 @@ class BookService {
   }
 
   Future<void> updateBook(int id, Map<String, dynamic> data) async {
-    final response = await http.put(
+    final response = await HttpClient.put(
       Uri.parse('${AppConstants.baseUrl}/Book/$id'),
       headers: await _headers(),
       body: jsonEncode(data),
@@ -65,7 +66,7 @@ class BookService {
   }
 
   Future<void> deleteBook(int id) async {
-    final response = await http.delete(
+    final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/Book/$id'),
       headers: await _headers(),
     );
@@ -75,7 +76,7 @@ class BookService {
   }
 
   Future<List<Map<String, dynamic>>> getBookReviews(int bookId) async {
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Review/book/$bookId'),
       headers: await _headers(),
     );
@@ -86,7 +87,7 @@ class BookService {
   }
 
   Future<void> deleteReview(int id) async {
-    final response = await http.delete(
+    final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/Review/$id'),
       headers: await _headers(),
     );

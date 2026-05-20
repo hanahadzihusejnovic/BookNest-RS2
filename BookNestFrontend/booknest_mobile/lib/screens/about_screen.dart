@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
+import 'home_screen.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -9,7 +10,7 @@ class AboutScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'ABOUT US',
-      showBackButton: true,
+      onBack: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen())),
       body: Column(
         children: [
           Expanded(

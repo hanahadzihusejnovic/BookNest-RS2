@@ -109,6 +109,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'ORDERS',
+      onBack: () => Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const OrdersScreen())),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.darkBrown))
           : _order == null
@@ -125,14 +127,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IconButton(
-            onPressed: () => Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => const OrdersScreen())),
-            icon: const Icon(Icons.arrow_back, color: AppColors.darkBrown, size: 22),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(height: 16),
           _buildHeader(order),
           const SizedBox(height: 32),
           _buildOrderItems(order),
@@ -170,7 +164,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       style: TextStyle(
                           color: AppColors.darkBrown,
                           fontWeight: FontWeight.w700,
-                          fontSize: 13)),
+                          fontSize: 16)),
                   const SizedBox(height: 10),
                   DetailRow('User:', order.userFullName),
                   const SizedBox(height: 10),
@@ -191,7 +185,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       style: TextStyle(
                           color: AppColors.darkBrown,
                           fontWeight: FontWeight.w700,
-                          fontSize: 13)),
+                          fontSize: 16)),
                   const SizedBox(height: 10),
                   DetailRow('Method:', order.payment.paymentMethod),
                   const SizedBox(height: 10),
@@ -216,7 +210,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       style: TextStyle(
                           color: AppColors.darkBrown,
                           fontWeight: FontWeight.w700,
-                          fontSize: 13)),
+                          fontSize: 16)),
                   const SizedBox(height: 10),
                   DetailRow('Address:', order.shipping.address),
                   const SizedBox(height: 10),
@@ -264,7 +258,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               AdminColHeader('Author', flex: 3),
               AdminColHeader('Qty', flex: 1),
               AdminColHeader('Unit Price', flex: 2),
-              AdminColHeader('Subtotal', flex: 2),
+              AdminColHeader('Total', flex: 2),
             ],
           ),
         ),
@@ -294,19 +288,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           },
         ),
         Divider(color: AppColors.darkBrown.withValues(alpha: 0.25), thickness: 1, height: 12),
-        Align(
-          alignment: Alignment.centerRight,
-          child: Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Text(
-              'Total: ${order.totalPrice.toStringAsFixed(2)} BAM',
-              style: const TextStyle(
-                  color: AppColors.darkBrown,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700),
-            ),
-          ),
-        ),
       ],
     );
   }

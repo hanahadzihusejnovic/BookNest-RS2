@@ -16,6 +16,7 @@ import '../models/order.dart';
 import '../services/order_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../services/reservation_service.dart';
+import '../widgets/app_dropdown.dart';
 import '../widgets/book_card.dart';
 import '../widgets/pagination_bar.dart';
 import '../services/book_service.dart';
@@ -100,7 +101,7 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'MY PROFILE',
-      showBackButton: true,
+      onBack: () => Navigator.pop(context),
       body: _isLoading
           ? Center(
               child: CircularProgressIndicator(color: AppColors.darkBrown),
@@ -308,45 +309,6 @@ class _ProfileScreenState extends State<ProfileScreen>
             }
             final hasImage = currentImageProvider != null;
 
-            Widget dropdownField<T>({
-              required String hint,
-              required T? value,
-              required List<T> items,
-              required String Function(T) labelFn,
-              required ValueChanged<T?>? onChanged,
-            }) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(
-                    height: 24,
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<T>(
-                        value: value,
-                        isExpanded: true,
-                        hint: Text(hint,
-                            style: TextStyle(
-                                color: AppColors.darkBrown.withValues(alpha: 0.5),
-                                fontSize: 15)),
-                        icon: Icon(Icons.arrow_drop_down, color: AppColors.darkBrown),
-                        style: TextStyle(color: AppColors.darkBrown, fontSize: 15),
-                        dropdownColor: AppColors.lightBrown,
-                        onChanged: onChanged,
-                        items: items
-                            .map((item) => DropdownMenuItem<T>(
-                                  value: item,
-                                  child: Text(labelFn(item)),
-                                ))
-                            .toList(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(width: double.infinity, height: 1, color: AppColors.darkBrown),
-                ],
-              );
-            }
-
             return AlertDialog(
               backgroundColor: AppColors.pageBg,
               title: Text('Edit profile',
@@ -511,7 +473,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       hint: 'Address (optional)',
                     ),
                     const SizedBox(height: 20),
-                    dropdownField<Country>(
+                    AppDropdown<Country>(
                       hint: 'Country (optional)',
                       value: selectedCountry,
                       items: _countries,
@@ -529,7 +491,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                       },
                     ),
                     const SizedBox(height: 20),
-                    dropdownField<City>(
+                    AppDropdown<City>(
                       hint: selectedCountry == null
                           ? 'Select country first'
                           : 'City (optional)',

@@ -3,10 +3,14 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../layouts/app_layout.dart';
 import '../layouts/constants.dart';
+import '../models/city.dart';
+import '../models/country.dart';
 import '../models/event.dart';
 import '../models/event_category.dart';
 import '../models/organizer.dart';
 import '../models/reservation.dart';
+import '../services/city_service.dart';
+import '../services/country_service.dart';
 import '../services/event_service.dart';
 import '../services/event_category_service.dart';
 import '../services/organizer_service.dart';
@@ -152,6 +156,8 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'EVENTS',
+      onBack: () => Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const EventsScreen())),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.darkBrown))
           : _event == null
@@ -168,14 +174,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IconButton(
-            onPressed: () => Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => const EventsScreen())),
-            icon: const Icon(Icons.arrow_back, color: AppColors.darkBrown, size: 22),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(height: 16),
           _buildHeader(event),
           const SizedBox(height: 32),
           _buildReservations(),
@@ -220,7 +218,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               const SizedBox(height: 4),
               Row(
                 children: [
-                  _Badge(event.eventType),
+                  _Badge(event.eventType == 'InPerson' ? 'In Person' : event.eventType),
                   const SizedBox(width: 8),
                   _Badge(event.isActive ? 'Active' : 'Inactive',
                       color: event.isActive
@@ -435,28 +433,34 @@ class _EditEventDialogState extends State<_EditEventDialog> {
   final _eventService = EventService();
   final _categoryService = EventCategoryService();
   final _organizerService = OrganizerService();
+  final _cityService = CityService();
+  final _countryService = CountryService();
 
-  static const _eventTypeLabels = ['Online', 'InPerson'];
+  static const _eventTypeLabels = ['Online', 'In Person'];
 
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _priceController;
   late final TextEditingController _capacityController;
   late final TextEditingController _addressController;
-  late final TextEditingController _cityController;
-  late final TextEditingController _countryController;
 
   List<EventCategory> _categories = [];
   List<Organizer> _organizers = [];
+  List<City> _cities = [];
+  List<City> _filteredCities = [];
+  List<Country> _countries = [];
   bool _dataLoading = true;
 
   EventCategory? _selectedCategory;
   Organizer? _selectedOrganizer;
   int? _selectedEventType;
+  City? _selectedCity;
+  Country? _selectedCountry;
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   bool _isActive = true;
   File? _newImage;
+  bool _imageDeleted = false;
   bool _isLoading = false;
 
   String? _nameError;
@@ -480,6 +484,14 @@ class _EditEventDialogState extends State<_EditEventDialog> {
   OverlayEntry? _eventTypeOverlay;
   bool _eventTypeOpen = false;
 
+  final LayerLink _countryLink = LayerLink();
+  OverlayEntry? _countryOverlay;
+  bool _countryOpen = false;
+
+  final LayerLink _cityLink = LayerLink();
+  OverlayEntry? _cityOverlay;
+  bool _cityOpen = false;
+
   @override
   void initState() {
     super.initState();
@@ -489,8 +501,6 @@ class _EditEventDialogState extends State<_EditEventDialog> {
     _priceController = TextEditingController(text: e.ticketPrice.toStringAsFixed(2));
     _capacityController = TextEditingController(text: '${e.capacity}');
     _addressController = TextEditingController(text: e.address ?? '');
-    _cityController = TextEditingController(text: e.city ?? '');
-    _countryController = TextEditingController(text: e.country ?? '');
     _selectedDate = e.eventDate;
     _isActive = e.isActive;
     _selectedEventType = e.eventType.toLowerCase() == 'online' ? 0 : 1;
@@ -509,13 +519,19 @@ class _EditEventDialogState extends State<_EditEventDialog> {
       final results = await Future.wait([
         _categoryService.getCategories(),
         _organizerService.getOrganizers(),
+        _cityService.getCities(),
+        _countryService.getCountries(),
       ]);
       if (!mounted) return;
       final cats = results[0] as List<EventCategory>;
       final orgs = results[1] as List<Organizer>;
+      final cities = results[2] as List<City>;
+      final countries = results[3] as List<Country>;
       setState(() {
         _categories = cats;
         _organizers = orgs;
+        _cities = cities;
+        _countries = countries;
         _selectedCategory = cats.firstWhere(
           (c) => c.id == widget.event.eventCategoryId,
           orElse: () => cats.first,
@@ -524,6 +540,17 @@ class _EditEventDialogState extends State<_EditEventDialog> {
           (o) => o.name == widget.event.organizerName,
           orElse: () => orgs.first,
         );
+        if (widget.event.countryId != null) {
+          try {
+            _selectedCountry = countries.firstWhere((c) => c.id == widget.event.countryId);
+            _filteredCities = cities.where((c) => c.countryId == _selectedCountry!.id).toList();
+          } catch (_) {}
+        }
+        if (widget.event.cityId != null && _filteredCities.isNotEmpty) {
+          try {
+            _selectedCity = _filteredCities.firstWhere((c) => c.id == widget.event.cityId);
+          } catch (_) {}
+        }
         _dataLoading = false;
       });
     } catch (_) {
@@ -535,6 +562,51 @@ class _EditEventDialogState extends State<_EditEventDialog> {
     _closeCategoryDropdown();
     _closeOrganizerDropdown();
     _closeEventTypeDropdown();
+    _closeCountryDropdown();
+    _closeCityDropdown();
+  }
+
+  void _closeCountryDropdown() {
+    _countryOverlay?.remove(); _countryOverlay = null;
+    if (mounted) setState(() => _countryOpen = false);
+  }
+
+  void _closeCityDropdown() {
+    _cityOverlay?.remove(); _cityOverlay = null;
+    if (mounted) setState(() => _cityOpen = false);
+  }
+
+  void _onCountryChanged(Country country) {
+    setState(() {
+      _selectedCountry = country;
+      _selectedCity = null;
+      _filteredCities = _cities.where((c) => c.countryId == country.id).toList();
+    });
+  }
+
+  void _toggleCountryDropdown() {
+    if (_countryOpen) { _closeCountryDropdown(); return; }
+    _closeAll();
+    _countryOverlay = _showOverlay<Country>(
+      link: _countryLink, items: _countries, selected: _selectedCountry,
+      labelFn: (c) => c.name,
+      onSelect: _onCountryChanged,
+      onClose: _closeCountryDropdown,
+    );
+    setState(() => _countryOpen = true);
+  }
+
+  void _toggleCityDropdown() {
+    if (_selectedCountry == null) return;
+    if (_cityOpen) { _closeCityDropdown(); return; }
+    _closeAll();
+    _cityOverlay = _showOverlay<City>(
+      link: _cityLink, items: _filteredCities, selected: _selectedCity,
+      labelFn: (c) => c.name,
+      onSelect: (c) => setState(() => _selectedCity = c),
+      onClose: _closeCityDropdown,
+    );
+    setState(() => _cityOpen = true);
   }
 
   void _closeCategoryDropdown() {
@@ -586,6 +658,7 @@ class _EditEventDialogState extends State<_EditEventDialog> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                         child: Text(labelFn(item).toUpperCase(),
+                            textAlign: TextAlign.center,
                             style: TextStyle(
                               color: AppColors.darkBrown, fontSize: 11.5, letterSpacing: 0.6,
                               fontWeight: item == selected ? FontWeight.w900 : FontWeight.w500,
@@ -678,8 +751,24 @@ class _EditEventDialogState extends State<_EditEventDialog> {
   Future<void> _pickImage() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.image, allowMultiple: false);
     if (result != null && result.files.single.path != null) {
-      setState(() => _newImage = File(result.files.single.path!));
+      setState(() { _newImage = File(result.files.single.path!); _imageDeleted = false; });
     }
+  }
+
+  Future<void> _removeImage() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.darkBrown,
+        title: const Text('Remove Image', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        content: const Text('Remove the event image?', style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: AppColors.lightBrown))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Remove', style: TextStyle(color: Color(0xFFE57373)))),
+        ],
+      ),
+    );
+    if (confirmed == true) setState(() { _newImage = null; _imageDeleted = true; });
   }
 
   Future<void> _submit() async {
@@ -706,11 +795,15 @@ class _EditEventDialogState extends State<_EditEventDialog> {
 
     setState(() => _isLoading = true);
     try {
-      String? imageUrl = widget.event.imageUrl;
+      String? imageUrl;
       if (_newImage != null) {
         try {
           imageUrl = await _eventService.uploadImage(_newImage!, category: _selectedCategory?.name);
-        } catch (_) {}
+        } catch (_) { imageUrl = widget.event.imageUrl; }
+      } else if (_imageDeleted) {
+        imageUrl = null;
+      } else {
+        imageUrl = widget.event.imageUrl;
       }
       final h = _selectedTime!.hour.toString().padLeft(2, '0');
       final m = _selectedTime!.minute.toString().padLeft(2, '0');
@@ -727,9 +820,9 @@ class _EditEventDialogState extends State<_EditEventDialog> {
         'reservedSeats': widget.event.reservedSeats,
         if (_descriptionController.text.isNotEmpty) 'description': _descriptionController.text.trim(),
         if (isInPerson && _addressController.text.isNotEmpty) 'address': _addressController.text.trim(),
-        if (isInPerson && _cityController.text.isNotEmpty) 'city': _cityController.text.trim(),
-        if (isInPerson && _countryController.text.isNotEmpty) 'country': _countryController.text.trim(),
-        if (imageUrl != null) 'imageUrl': imageUrl,
+        if (isInPerson && _selectedCountry != null) 'countryId': _selectedCountry!.id,
+        if (isInPerson && _selectedCity != null) 'cityId': _selectedCity!.id,
+        'imageUrl': imageUrl,
       };
       await _eventService.updateEvent(widget.event.id, body);
       if (mounted) {
@@ -777,35 +870,52 @@ class _EditEventDialogState extends State<_EditEventDialog> {
                               BookFormDropdownTrigger(link: _eventTypeLink, hint: 'Event Type', selectedLabel: _selectedEventType != null ? _eventTypeLabels[_selectedEventType!] : null, isOpen: _eventTypeOpen, error: _eventTypeError, onTap: _toggleEventType),
                               const SizedBox(height: 14),
                               // Image picker
-                              GestureDetector(
-                                onTap: _pickImage,
-                                child: Container(
-                                  width: double.infinity, height: 110,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.lightBrown.withValues(alpha: 0.25),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: AppColors.lightBrown.withValues(alpha: 0.4)),
-                                  ),
-                                  child: _newImage != null
-                                      ? Stack(fit: StackFit.expand, children: [
-                                          ClipRRect(borderRadius: BorderRadius.circular(7), child: Image.file(_newImage!, fit: BoxFit.cover)),
-                                          Positioned(top: 4, right: 4, child: GestureDetector(
-                                            onTap: () => setState(() => _newImage = null),
-                                            child: Container(decoration: const BoxDecoration(color: Colors.black45, shape: BoxShape.circle), child: const Icon(Icons.close, color: Colors.white, size: 16)),
-                                          )),
-                                        ])
-                                      : widget.event.imageUrl != null
-                                          ? Stack(fit: StackFit.expand, children: [
-                                              ClipRRect(borderRadius: BorderRadius.circular(7), child: Image.network(widget.event.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.event_outlined, color: AppColors.lightBrown, size: 32))),
-                                              Positioned(bottom: 0, left: 0, right: 0, child: Container(color: Colors.black45, padding: const EdgeInsets.symmetric(vertical: 4), child: const Text('Tap to change', textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 11)))),
-                                            ])
-                                          : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                                              const Icon(Icons.image_outlined, color: AppColors.lightBrown, size: 32),
-                                              const SizedBox(height: 6),
-                                              Text('Import picture', style: TextStyle(color: AppColors.lightBrown.withValues(alpha: 0.8), fontSize: 13)),
-                                            ]),
-                                ),
-                              ),
+                              Builder(builder: (_) {
+                                final hasAny = _newImage != null || (!_imageDeleted && widget.event.imageUrl != null);
+                                return Column(
+                                  children: [
+                                    GestureDetector(
+                                      onTap: _pickImage,
+                                      child: Container(
+                                        width: double.infinity, height: 110,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.lightBrown.withValues(alpha: 0.25),
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: AppColors.lightBrown.withValues(alpha: 0.4)),
+                                        ),
+                                        child: _newImage != null
+                                            ? ClipRRect(borderRadius: BorderRadius.circular(7), child: Image.file(_newImage!, fit: BoxFit.cover))
+                                            : (!_imageDeleted && widget.event.imageUrl != null)
+                                                ? ClipRRect(borderRadius: BorderRadius.circular(7), child: Image.network(widget.event.imageUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.event_outlined, color: AppColors.lightBrown, size: 32)))
+                                                : Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                                                    const Icon(Icons.image_outlined, color: AppColors.lightBrown, size: 32),
+                                                    const SizedBox(height: 6),
+                                                    Text('Import picture', style: TextStyle(color: AppColors.lightBrown.withValues(alpha: 0.8), fontSize: 13)),
+                                                  ]),
+                                      ),
+                                    ),
+                                    if (hasAny) ...[
+                                      const SizedBox(height: 6),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          GestureDetector(
+                                            onTap: _pickImage,
+                                            child: Text('Change cover', style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.w600)),
+                                          ),
+                                          Text('  |  ', style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12)),
+                                          GestureDetector(
+                                            onTap: _removeImage,
+                                            child: Text('Remove', style: TextStyle(color: Colors.red.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600)),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
+                                );
+                              }),
+                              const SizedBox(height: 14),
+                              BookFormField(controller: _descriptionController, hint: 'Description (optional)', maxLines: 3, onChanged: (_) {}),
                             ],
                           ),
                         ),
@@ -814,8 +924,6 @@ class _EditEventDialogState extends State<_EditEventDialog> {
                         Expanded(
                           child: Column(
                             children: [
-                              BookFormField(controller: _descriptionController, hint: 'Description (optional)', maxLines: 3, onChanged: (_) {}),
-                              const SizedBox(height: 14),
                               _DateTrigger(
                                 label: _selectedDate != null ? '${_selectedDate!.day}.${_selectedDate!.month}.${_selectedDate!.year}' : 'Event Date',
                                 hasValue: _selectedDate != null, error: _dateError,
@@ -834,11 +942,9 @@ class _EditEventDialogState extends State<_EditEventDialog> {
                               const SizedBox(height: 14),
                               BookFormField(controller: _addressController, hint: _selectedEventType == 1 ? 'Address' : 'Address (optional)', onChanged: (_) {}),
                               const SizedBox(height: 14),
-                              Row(children: [
-                                Expanded(child: BookFormField(controller: _cityController, hint: _selectedEventType == 1 ? 'City' : 'City (optional)', onChanged: (_) {})),
-                                const SizedBox(width: 10),
-                                Expanded(child: BookFormField(controller: _countryController, hint: _selectedEventType == 1 ? 'Country' : 'Country (optional)', onChanged: (_) {})),
-                              ]),
+                              BookFormDropdownTrigger(link: _countryLink, hint: _selectedEventType == 1 ? 'Country' : 'Country (optional)', selectedLabel: _selectedCountry?.name, isOpen: _countryOpen, onTap: _toggleCountryDropdown),
+                              const SizedBox(height: 14),
+                              BookFormDropdownTrigger(link: _cityLink, hint: _selectedCountry == null ? 'Select country first' : (_selectedEventType == 1 ? 'City' : 'City (optional)'), selectedLabel: _selectedCity?.name, isOpen: _cityOpen, onTap: _toggleCityDropdown),
                               const SizedBox(height: 14),
                               Row(children: [
                                 Switch(value: _isActive, onChanged: (v) => setState(() => _isActive = v), activeThumbColor: AppColors.lightBrown),
@@ -896,13 +1002,13 @@ class _EditEventDialogState extends State<_EditEventDialog> {
     _categoryOverlay?.remove();
     _organizerOverlay?.remove();
     _eventTypeOverlay?.remove();
+    _countryOverlay?.remove();
+    _cityOverlay?.remove();
     _nameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
     _capacityController.dispose();
     _addressController.dispose();
-    _cityController.dispose();
-    _countryController.dispose();
     super.dispose();
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../layouts/app_layout.dart';
 import '../layouts/constants.dart';
 import '../models/order.dart';
+import 'dashboard_screen.dart';
 import '../services/order_service.dart';
 import '../widgets/pagination_bar.dart';
 import '../widgets/admin_table.dart';
@@ -81,7 +82,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       case 'processing':
         return const Color(0xFFFF9800);
       default:
-        return AppColors.mediumBrown;
+        return AppColors.darkBrown;
     }
   }
 
@@ -89,6 +90,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'ORDERS',
+      onBack: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardScreen())),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         child: Column(

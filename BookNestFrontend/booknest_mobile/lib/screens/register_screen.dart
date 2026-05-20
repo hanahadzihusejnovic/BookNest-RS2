@@ -10,6 +10,7 @@ import '../services/country_service.dart';
 import '../services/user_service.dart';
 import 'home_screen.dart';
 import '../layouts/constants.dart';
+import '../widgets/app_dropdown.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -517,38 +518,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     required String Function(T) labelFn,
     required ValueChanged<T?>? onChanged,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 24,
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<T>(
-              value: value,
-              isExpanded: true,
-              hint: Text(
-                hint,
-                style: const TextStyle(
-                  color: AppColors.darkBrown,
-                  fontSize: 16,
-                ),
-              ),
-              icon: const Icon(Icons.arrow_drop_down, color: AppColors.darkBrown),
-              style: const TextStyle(color: AppColors.darkBrown, fontSize: 16),
-              dropdownColor: AppColors.lightBrown,
-              onChanged: onChanged,
-              items: items.map((item) {
-                return DropdownMenuItem<T>(
-                  value: item,
-                  child: Text(labelFn(item)),
-                );
-              }).toList(),
-            ),
-          ),
-        ),
-        const SizedBox(height: 4),
-        Container(width: double.infinity, height: 1, color: AppColors.darkBrown),
-      ],
+    return AppDropdown<T>(
+      hint: hint,
+      value: value,
+      items: items,
+      labelFn: labelFn,
+      onChanged: onChanged,
     );
   }
 

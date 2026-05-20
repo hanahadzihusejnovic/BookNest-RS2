@@ -1,11 +1,13 @@
 import 'dart:convert';
-import '../layouts/constants.dart';
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import '../layouts/constants.dart';
 import '../models/user.dart';
 import '../models/review.dart';
 import '../models/reservation.dart';
 import '../models/order.dart';
 import 'auth_service.dart';
+import 'http_client.dart';
 
 class UserService {
   final AuthService _authService = AuthService();
@@ -26,7 +28,7 @@ class UserService {
     final uri = Uri.parse('${AppConstants.baseUrl}/User')
         .replace(queryParameters: params);
 
-    final response = await http.get(uri, headers: await _headers());
+    final response = await HttpClient.get(uri, headers: await _headers());
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -37,7 +39,7 @@ class UserService {
   }
 
   Future<User> getUser(int id) async {
-    final response = await http.get(
+    final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/User/$id'),
       headers: await _headers(),
     );
@@ -46,7 +48,7 @@ class UserService {
   }
 
   Future<void> updateUser(int id, Map<String, dynamic> data) async {
-    final response = await http.put(
+    final response = await HttpClient.put(
       Uri.parse('${AppConstants.baseUrl}/User/$id'),
       headers: await _headers(),
       body: jsonEncode(data),
@@ -57,7 +59,7 @@ class UserService {
   }
 
   Future<void> deleteUser(int id) async {
-    final response = await http.delete(
+    final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/User/$id'),
       headers: await _headers(),
     );
@@ -69,7 +71,7 @@ class UserService {
   Future<List<Review>> getUserReviews(int userId) async {
     final uri = Uri.parse('${AppConstants.baseUrl}/Review')
         .replace(queryParameters: {'PageSize': '500'});
-    final response = await http.get(uri, headers: await _headers());
+    final response = await HttpClient.get(uri, headers: await _headers());
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final List<dynamic> items = data['items'] ?? data;
@@ -84,7 +86,7 @@ class UserService {
   Future<List<Reservation>> getUserReservations(int userId) async {
     final uri = Uri.parse('${AppConstants.baseUrl}/EventReservation')
         .replace(queryParameters: {'PageSize': '500'});
-    final response = await http.get(uri, headers: await _headers());
+    final response = await HttpClient.get(uri, headers: await _headers());
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final List<dynamic> items = data['items'] ?? data;
@@ -97,7 +99,7 @@ class UserService {
   }
 
   Future<void> deleteReview(int reviewId) async {
-    final response = await http.delete(
+    final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/Review/$reviewId'),
       headers: await _headers(),
     );
@@ -109,7 +111,7 @@ class UserService {
   Future<List<Order>> getUserOrders(int userId) async {
     final uri = Uri.parse('${AppConstants.baseUrl}/Order')
         .replace(queryParameters: {'PageSize': '500'});
-    final response = await http.get(uri, headers: await _headers());
+    final response = await HttpClient.get(uri, headers: await _headers());
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final List<dynamic> items = data['items'] ?? data;
@@ -121,4 +123,22 @@ class UserService {
     throw Exception('Failed to load user orders');
   }
 
+  Future<String> uploadImage(File imageFile) async {
+    final token = await _authService.getToken();
+    if (token == null) throw Exception('Not authenticated');
+
+    final uri = Uri.parse('${AppConstants.baseUrl}/User/upload-image');
+    final request = http.MultipartRequest('POST', uri);
+    request.headers['Authorization'] = 'Bearer $token';
+    request.files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+
+    final streamed = await request.send();
+    final body = await streamed.stream.bytesToString();
+
+    if (streamed.statusCode == 200) {
+      final data = jsonDecode(body);
+      return data['imageUrl'] as String;
+    }
+    throw Exception('Failed to upload image');
+  }
 }

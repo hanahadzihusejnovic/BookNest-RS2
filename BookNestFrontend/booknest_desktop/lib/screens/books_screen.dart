@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import '../layouts/app_layout.dart';
 import '../layouts/constants.dart';
 import '../models/book.dart';
+import 'dashboard_screen.dart';
 import '../models/category.dart';
 import '../models/author.dart';
 import '../services/book_service.dart';
@@ -116,6 +117,7 @@ class _BooksScreenState extends State<BooksScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'BOOKS',
+      onBack: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const DashboardScreen())),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         child: Column(
@@ -576,6 +578,7 @@ class _AddBookDialogState extends State<_AddBookDialog> {
                             horizontal: 14, vertical: 10),
                         child: Text(
                           labelFn(item).toUpperCase(),
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             color: AppColors.darkBrown,
                             fontSize: 11.5,
@@ -746,67 +749,54 @@ class _AddBookDialogState extends State<_AddBookDialog> {
                         const SizedBox(height: 16),
 
                         // Image picker
-                        GestureDetector(
-                          onTap: _pickImage,
-                          child: Container(
-                            width: double.infinity,
-                            height: 110,
-                            decoration: BoxDecoration(
-                              color: AppColors.lightBrown
-                                  .withValues(alpha: 0.25),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                  color: AppColors.lightBrown
-                                      .withValues(alpha: 0.4)),
+                        Column(
+                          children: [
+                            GestureDetector(
+                              onTap: _pickImage,
+                              child: Container(
+                                width: double.infinity,
+                                height: 110,
+                                decoration: BoxDecoration(
+                                  color: AppColors.lightBrown.withValues(alpha: 0.25),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: AppColors.lightBrown.withValues(alpha: 0.4)),
+                                ),
+                                child: _selectedImage != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(7),
+                                        child: Image.file(_selectedImage!, fit: BoxFit.cover),
+                                      )
+                                    : Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(Icons.image_outlined, color: AppColors.lightBrown, size: 32),
+                                          const SizedBox(height: 6),
+                                          Text('Import picture',
+                                              style: TextStyle(color: AppColors.lightBrown.withValues(alpha: 0.8), fontSize: 13)),
+                                        ],
+                                      ),
+                              ),
                             ),
-                            child: _selectedImage != null
-                                ? Stack(
-                                    fit: StackFit.expand,
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius:
-                                            BorderRadius.circular(7),
-                                        child: Image.file(_selectedImage!,
-                                            fit: BoxFit.cover),
-                                      ),
-                                      Positioned(
-                                        top: 4,
-                                        right: 4,
-                                        child: GestureDetector(
-                                          onTap: () => setState(
-                                              () => _selectedImage = null),
-                                          child: Container(
-                                            decoration: const BoxDecoration(
-                                              color: Colors.black45,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: const Icon(Icons.close,
-                                                color: Colors.white,
-                                                size: 16),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  )
-                                : Column(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(Icons.image_outlined,
-                                          color: AppColors.lightBrown,
-                                          size: 32),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        'Import picture',
-                                        style: TextStyle(
-                                          color: AppColors.lightBrown
-                                              .withValues(alpha: 0.8),
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ],
+                            if (_selectedImage != null) ...[
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  GestureDetector(
+                                    onTap: _pickImage,
+                                    child: Text('Change cover',
+                                        style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.w600)),
                                   ),
-                          ),
+                                  Text('  |  ', style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12)),
+                                  GestureDetector(
+                                    onTap: () => setState(() => _selectedImage = null),
+                                    child: Text('Remove',
+                                        style: TextStyle(color: Colors.red.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600)),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
                         ),
                       ],
                     ),

@@ -4,6 +4,7 @@ import '../models/event_category.dart';
 import '../services/event_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
+import 'events_screen.dart';
 import '../screens/event_details_screen.dart';
 import '../screens/event_reservation_screen.dart';
 import '../widgets/pagination_bar.dart';
@@ -268,7 +269,7 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: '${widget.category.name} category',
-      showBackButton: true,
+      onBack: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const EventsScreen())),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

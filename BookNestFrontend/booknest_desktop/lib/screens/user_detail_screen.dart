@@ -1,11 +1,17 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../layouts/app_layout.dart';
 import '../layouts/constants.dart';
 import '../models/user.dart';
+import '../models/city.dart';
+import '../models/country.dart';
 import '../models/review.dart';
 import '../models/reservation.dart';
 import '../models/order.dart';
 import '../services/user_service.dart';
+import '../services/city_service.dart';
+import '../services/country_service.dart';
 import '../services/reservation_service.dart';
 import '../services/order_service.dart';
 import '../widgets/admin_table.dart';
@@ -218,6 +224,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   Widget build(BuildContext context) {
     return AppLayout(
       pageTitle: 'USERS',
+      onBack: () => Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (_) => const UsersScreen())),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: AppColors.darkBrown))
           : _user == null
@@ -234,14 +242,6 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          IconButton(
-            onPressed: () => Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (_) => const UsersScreen())),
-            icon: const Icon(Icons.arrow_back, color: AppColors.darkBrown, size: 22),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-          const SizedBox(height: 16),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -365,8 +365,9 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
             children: const [
               Expanded(flex: 3, child: Text('Book', style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600))),
               Expanded(flex: 2, child: Text('Rating', style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600))),
-              Expanded(flex: 4, child: Text('Review', style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600))),
-              Expanded(flex: 2, child: Text('Date', style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600))),
+              Expanded(flex: 5, child: Text('Review', style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600))),
+              SizedBox(width: 24),
+              Expanded(flex: 2, child: Text('Review Date', style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600))),
               SizedBox(width: 140),
             ],
           ),
@@ -393,7 +394,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                   children: [
                     Expanded(flex: 3, child: Text(r.bookTitle ?? '-', style: adminRowStyle, overflow: TextOverflow.ellipsis)),
                     Expanded(flex: 2, child: StarRating(r.rating)),
-                    Expanded(flex: 4, child: Text(r.comment ?? '-', style: adminRowStyle, overflow: TextOverflow.ellipsis)),
+                    Expanded(flex: 5, child: Text(r.comment ?? '-', style: adminRowStyle, overflow: TextOverflow.ellipsis)),
+                    const SizedBox(width: 24),
                     Expanded(flex: 2, child: Text(_fmt(r.createdAt), style: adminRowStyle)),
                     SizedBox(
                       width: 140,
@@ -434,8 +436,9 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           child: Row(
             children: const [
               Expanded(flex: 3, child: Text('Event', style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600))),
-              Expanded(flex: 2, child: Text('Location', style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600))),
-              Expanded(flex: 2, child: Text('Event Date', style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600))),
+              Expanded(flex: 3, child: Text('Location', style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600))),
+              SizedBox(width: 16),
+              Expanded(flex: 2, child: Text('Reservation Date', style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600))),
               Expanded(flex: 1, child: Text('Qty', style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600))),
               Expanded(flex: 2, child: Text('Total', style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600))),
               Expanded(flex: 2, child: Text('Status', style: TextStyle(color: AppColors.darkBrown, fontSize: 13, fontWeight: FontWeight.w600))),
@@ -464,10 +467,11 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
                 child: Row(
                   children: [
                     Expanded(flex: 3, child: Text(r.eventName, style: adminRowStyle, overflow: TextOverflow.ellipsis)),
-                    Expanded(flex: 2, child: Text(r.eventLocation, style: adminRowStyle, overflow: TextOverflow.ellipsis)),
-                    Expanded(flex: 2, child: Text(_fmt(r.eventDateTime), style: adminRowStyle)),
+                    Expanded(flex: 3, child: Text(r.eventLocation, style: adminRowStyle, overflow: TextOverflow.ellipsis)),
+                    const SizedBox(width: 16),
+                    Expanded(flex: 2, child: Text(_fmt(r.reservationDate), style: adminRowStyle)),
                     Expanded(flex: 1, child: Text('${r.quantity}', style: adminRowStyle)),
-                    Expanded(flex: 2, child: Text('${r.totalPrice.toStringAsFixed(2)} BAM', style: adminRowStyle)),
+                    Expanded(flex: 2, child: Text(r.totalPrice == 0 ? 'Free' : '${r.totalPrice.toStringAsFixed(2)} BAM', style: adminRowStyle)),
                     Expanded(flex: 2, child: Text(r.reservationStatus, style: adminRowStyle)),
                     if (_reservationTransitions.containsKey(r.reservationStatus))
                       SizedBox(
@@ -588,6 +592,8 @@ class _EditUserDialog extends StatefulWidget {
 
 class _EditUserDialogState extends State<_EditUserDialog> {
   final _userService = UserService();
+  final _cityService = CityService();
+  final _countryService = CountryService();
 
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
@@ -595,8 +601,23 @@ class _EditUserDialogState extends State<_EditUserDialog> {
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
-  late final TextEditingController _cityController;
-  late final TextEditingController _countryController;
+
+  List<Country> _countries = [];
+  List<City> _cities = [];
+  List<City> _filteredCities = [];
+  Country? _selectedCountry;
+  City? _selectedCity;
+
+  File? _selectedImage;
+  bool _imageDeleted = false;
+
+  final LayerLink _countryLink = LayerLink();
+  OverlayEntry? _countryOverlay;
+  bool _countryOpen = false;
+
+  final LayerLink _cityLink = LayerLink();
+  OverlayEntry? _cityOverlay;
+  bool _cityOpen = false;
 
   String? _firstNameError;
   String? _lastNameError;
@@ -613,8 +634,81 @@ class _EditUserDialogState extends State<_EditUserDialog> {
     _emailController = TextEditingController(text: widget.user.emailAddress);
     _phoneController = TextEditingController(text: widget.user.phoneNumber ?? '');
     _addressController = TextEditingController(text: widget.user.address ?? '');
-    _cityController = TextEditingController(text: widget.user.city ?? '');
-    _countryController = TextEditingController(text: widget.user.country ?? '');
+    _loadLocations();
+  }
+
+  Future<void> _loadLocations() async {
+    try {
+      final results = await Future.wait([
+        _countryService.getCountries(),
+        _cityService.getCities(),
+      ]);
+      if (!mounted) return;
+      final countries = results[0] as List<Country>;
+      final cities = results[1] as List<City>;
+      final preCountry = widget.user.countryId != null
+          ? countries.where((c) => c.id == widget.user.countryId).firstOrNull
+          : null;
+      final filtered = preCountry != null
+          ? cities.where((c) => c.countryId == preCountry.id).toList()
+          : <City>[];
+      final preCity = widget.user.cityId != null
+          ? filtered.where((c) => c.id == widget.user.cityId).firstOrNull
+          : null;
+      setState(() {
+        _countries = countries;
+        _cities = cities;
+        _filteredCities = filtered;
+        _selectedCountry = preCountry;
+        _selectedCity = preCity;
+      });
+    } catch (_) {}
+  }
+
+  void _onCountryChanged(Country? country) {
+    setState(() {
+      _selectedCountry = country;
+      _selectedCity = null;
+      _filteredCities = country == null
+          ? []
+          : _cities.where((c) => c.countryId == country.id).toList();
+    });
+  }
+
+  Future<void> _pickImage() async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image, allowMultiple: false);
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        _selectedImage = File(result.files.single.path!);
+        _imageDeleted = false;
+      });
+    }
+  }
+
+  Future<void> _removeImage() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.darkBrown,
+        title: const Text('Remove photo', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        content: Text('Are you sure you want to remove the profile photo?',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.8))),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No', style: TextStyle(color: AppColors.lightBrown))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Yes', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      setState(() {
+        _selectedImage = null;
+        _imageDeleted = true;
+      });
+    }
   }
 
   bool _validate() {
@@ -632,15 +726,26 @@ class _EditUserDialogState extends State<_EditUserDialog> {
     if (!_validate()) return;
     setState(() => _isLoading = true);
     try {
+      String? imageUrl;
+      if (_selectedImage != null) {
+        imageUrl = await _userService.uploadImage(_selectedImage!);
+      } else if (_imageDeleted) {
+        imageUrl = null;
+      } else {
+        imageUrl = widget.user.imageUrl;
+      }
+
       await _userService.updateUser(widget.user.id, {
         'firstName': _firstNameController.text.trim(),
         'lastName': _lastNameController.text.trim(),
         'username': _usernameController.text.trim(),
         'emailAddress': _emailController.text.trim(),
+        'dateOfBirth': widget.user.dateOfBirth?.toIso8601String() ?? DateTime(2000, 1, 1).toIso8601String(),
         if (_phoneController.text.trim().isNotEmpty) 'phoneNumber': _phoneController.text.trim(),
         if (_addressController.text.trim().isNotEmpty) 'address': _addressController.text.trim(),
-        if (_cityController.text.trim().isNotEmpty) 'city': _cityController.text.trim(),
-        if (_countryController.text.trim().isNotEmpty) 'country': _countryController.text.trim(),
+        'cityId': _selectedCity?.id,
+        'countryId': _selectedCountry?.id,
+        'imageUrl': imageUrl,
       });
       if (mounted) {
         Navigator.pop(context);
@@ -652,6 +757,130 @@ class _EditUserDialogState extends State<_EditUserDialog> {
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _closeCountryDropdown() {
+    _countryOverlay?.remove();
+    _countryOverlay = null;
+    if (mounted) setState(() => _countryOpen = false);
+  }
+
+  void _closeCityDropdown() {
+    _cityOverlay?.remove();
+    _cityOverlay = null;
+    if (mounted) setState(() => _cityOpen = false);
+  }
+
+  void _toggleCountryDropdown() {
+    if (_countryOpen) {
+      _closeCountryDropdown();
+    } else {
+      _closeCityDropdown();
+      _countryOverlay = _showOverlayDropdown<Country>(
+        link: _countryLink,
+        items: _countries,
+        selected: _selectedCountry,
+        labelFn: (c) => c.name,
+        onSelect: _onCountryChanged,
+        onClose: _closeCountryDropdown,
+      );
+      setState(() => _countryOpen = true);
+    }
+  }
+
+  void _toggleCityDropdown() {
+    if (_selectedCountry == null) return;
+    if (_cityOpen) {
+      _closeCityDropdown();
+    } else {
+      _closeCountryDropdown();
+      _cityOverlay = _showOverlayDropdown<City>(
+        link: _cityLink,
+        items: _filteredCities,
+        selected: _selectedCity,
+        labelFn: (c) => c.name,
+        onSelect: (c) => setState(() => _selectedCity = c),
+        onClose: _closeCityDropdown,
+      );
+      setState(() => _cityOpen = true);
+    }
+  }
+
+  OverlayEntry _showOverlayDropdown<T>({
+    required LayerLink link,
+    required List<T> items,
+    required T? selected,
+    required String Function(T) labelFn,
+    required void Function(T) onSelect,
+    required void Function() onClose,
+  }) {
+    final entry = OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: onClose,
+              behavior: HitTestBehavior.translucent,
+              child: const SizedBox(),
+            ),
+          ),
+          CompositedTransformFollower(
+            link: link,
+            showWhenUnlinked: false,
+            offset: const Offset(0, 44),
+            child: Material(
+              color: Colors.transparent,
+              child: Container(
+                width: 240,
+                constraints: const BoxConstraints(maxHeight: 220),
+                decoration: BoxDecoration(
+                  color: AppColors.lightBrown,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  shrinkWrap: true,
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => Divider(
+                    color: AppColors.darkBrown.withValues(alpha: 0.2),
+                    height: 1,
+                    thickness: 1,
+                    indent: 14,
+                    endIndent: 14,
+                  ),
+                  itemBuilder: (context, i) {
+                    final item = items[i];
+                    final isSelected = item == selected;
+                    return InkWell(
+                      onTap: () {
+                        onClose();
+                        onSelect(item);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        child: Text(
+                          labelFn(item).toUpperCase(),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppColors.darkBrown,
+                            fontSize: 11.5,
+                            fontWeight: isSelected ? FontWeight.w900 : FontWeight.w500,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    Overlay.of(context).insert(entry);
+    return entry;
   }
 
   @override
@@ -675,6 +904,51 @@ class _EditUserDialogState extends State<_EditUserDialog> {
                     letterSpacing: 1.2),
               ),
               const SizedBox(height: 28),
+              // Avatar picker
+              Builder(builder: (_) {
+                ImageProvider? imgProvider;
+                if (_selectedImage != null) {
+                  imgProvider = FileImage(_selectedImage!);
+                } else if (!_imageDeleted && widget.user.imageUrl != null) {
+                  imgProvider = NetworkImage(widget.user.imageUrl!);
+                }
+                final hasImage = imgProvider != null;
+                return Column(
+                  children: [
+                    GestureDetector(
+                      onTap: _pickImage,
+                      child: CircleAvatar(
+                        radius: 36,
+                        backgroundColor: AppColors.lightBrown.withValues(alpha: 0.3),
+                        backgroundImage: imgProvider,
+                        child: !hasImage
+                            ? const Icon(Icons.person_outline, size: 36, color: Colors.white)
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: _pickImage,
+                          child: Text('Change photo',
+                              style: TextStyle(color: Colors.white.withValues(alpha: 0.85), fontSize: 12, fontWeight: FontWeight.w600)),
+                        ),
+                        if (hasImage) ...[
+                          Text('  |  ', style: TextStyle(color: Colors.white.withValues(alpha: 0.3), fontSize: 12)),
+                          GestureDetector(
+                            onTap: _removeImage,
+                            child: Text('Remove',
+                                style: TextStyle(color: Colors.red.withValues(alpha: 0.8), fontSize: 12, fontWeight: FontWeight.w600)),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                );
+              }),
+              const SizedBox(height: 24),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -699,9 +973,21 @@ class _EditUserDialogState extends State<_EditUserDialog> {
                         const SizedBox(height: 16),
                         BookFormField(controller: _addressController, hint: 'Address (optional)', onChanged: (_) {}),
                         const SizedBox(height: 16),
-                        BookFormField(controller: _cityController, hint: 'City (optional)', onChanged: (_) {}),
+                        BookFormDropdownTrigger(
+                          link: _countryLink,
+                          hint: 'Country (optional)',
+                          selectedLabel: _selectedCountry?.name,
+                          isOpen: _countryOpen,
+                          onTap: _toggleCountryDropdown,
+                        ),
                         const SizedBox(height: 16),
-                        BookFormField(controller: _countryController, hint: 'Country (optional)', onChanged: (_) {}),
+                        BookFormDropdownTrigger(
+                          link: _cityLink,
+                          hint: _selectedCountry == null ? 'Select country first' : 'City (optional)',
+                          selectedLabel: _selectedCity?.name,
+                          isOpen: _cityOpen,
+                          onTap: _toggleCityDropdown,
+                        ),
                       ],
                     ),
                   ),
@@ -753,14 +1039,14 @@ class _EditUserDialogState extends State<_EditUserDialog> {
 
   @override
   void dispose() {
+    _countryOverlay?.remove();
+    _cityOverlay?.remove();
     _firstNameController.dispose();
     _lastNameController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
-    _cityController.dispose();
-    _countryController.dispose();
     super.dispose();
   }
 }
