@@ -1,4 +1,5 @@
-﻿using BookNest.API.BaseControllers;
+using BookNest.API.BaseControllers;
+using BookNest.API.Helpers;
 using BookNest.Model.Constants;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
@@ -14,9 +15,11 @@ namespace BookNest.API.Controllers
     [Authorize]
     public class AuthorController : BaseCRUDController<AuthorResponse, AuthorSearchObject, AuthorInsertRequest, AuthorUpdateRequest>
     {
-        public AuthorController(IAuthorService service) : base(service)
+        private readonly IImageService _imageService;
+
+        public AuthorController(IAuthorService service, IImageService imageService) : base(service)
         {
-            
+            _imageService = imageService;
         }
 
         [Authorize(Roles = Roles.Admin)]
@@ -35,6 +38,18 @@ namespace BookNest.API.Controllers
         public override async Task<bool> Delete(int id)
         {
             return await base.Delete(id);
+        }
+
+        [HttpPost("upload-image")]
+        [Authorize(Roles = Roles.Admin)]
+        public async Task<ActionResult<object>> UploadImage(IFormFile file)
+        {
+            await ImageValidationHelper.ValidateImageAsync(file);
+
+            var uniqueName = $"{Guid.NewGuid()}-{file.FileName}";
+            using var stream = file.OpenReadStream();
+            var url = await _imageService.UploadImageAsync(stream, uniqueName, "author-images");
+            return Ok(new { imageUrl = url });
         }
     }
 }

@@ -12,6 +12,7 @@ class EventService {
 
   Future<List<Event>> getEvents({
     int? eventCategoryId,
+    int? organizerId,
     int pageSize = 200,
   }) async {
     final token = await _authService.getToken();
@@ -20,6 +21,9 @@ class EventService {
     final params = <String, String>{'PageSize': pageSize.toString()};
     if (eventCategoryId != null) {
       params['EventCategoryId'] = eventCategoryId.toString();
+    }
+    if (organizerId != null) {
+      params['OrganizerId'] = organizerId.toString();
     }
 
     final uri = Uri.parse('${AppConstants.baseUrl}/Event')

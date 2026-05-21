@@ -222,7 +222,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  DetailRow('Date Added:', _fmt(book.publicationDate)),
+                  DetailRow('Publication Date:', _fmt(book.publicationDate)),
                   const SizedBox(height: 10),
                   DetailRow('Books Available:', book.stock != null ? '${book.stock}' : '-'),
                 ],
@@ -467,6 +467,7 @@ class _EditBookDialogState extends State<_EditBookDialog> {
   bool _imageDeleted = false;
   bool _isLoading = false;
   bool _dataLoading = true;
+  DateTime? _publicationDate;
 
   final LayerLink _authorLink = LayerLink();
   OverlayEntry? _authorOverlay;
@@ -494,6 +495,7 @@ class _EditBookDialogState extends State<_EditBookDialog> {
     _priceController = TextEditingController(text: b.price?.toStringAsFixed(0) ?? '');
     _stockController = TextEditingController(text: b.stock?.toString() ?? '');
     _pageCountController = TextEditingController(text: b.pageCount?.toString() ?? '');
+    _publicationDate = b.publicationDate;
     _loadData();
   }
 
@@ -644,6 +646,27 @@ class _EditBookDialogState extends State<_EditBookDialog> {
     }
   }
 
+  Future<void> _pickPublicationDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _publicationDate ?? DateTime(2000),
+      firstDate: DateTime(1000),
+      lastDate: DateTime.now(),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.lightBrown,
+            onPrimary: AppColors.darkBrown,
+            surface: AppColors.darkBrown,
+            onSurface: Colors.white,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null && mounted) setState(() => _publicationDate = picked);
+  }
+
   Future<void> _pickImage() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.image, allowMultiple: false);
     if (result != null && result.files.single.path != null) {
@@ -719,6 +742,8 @@ class _EditBookDialogState extends State<_EditBookDialog> {
         'stock': stock,
         'categoryIds': _selectedCategories.map((c) => c.id).toList(),
         if (coverUrl != null) 'coverImageUrl': coverUrl,
+        if (_publicationDate != null)
+          'publicationDate': _publicationDate!.toIso8601String(),
       };
       if (_pageCountController.text.isNotEmpty) {
         body['pageCount'] = int.tryParse(_pageCountController.text);
@@ -882,6 +907,13 @@ class _EditBookDialogState extends State<_EditBookDialog> {
                               BookFormField(controller: _stockController, hint: 'Stock', error: _stockError, keyboardType: TextInputType.number, onChanged: (_) => setState(() => _stockError = null)),
                               const SizedBox(height: 16),
                               BookFormField(controller: _pageCountController, hint: 'Page count (optional)', keyboardType: TextInputType.number, onChanged: (_) {}),
+                              const SizedBox(height: 16),
+                              _DatePickerField(
+                                label: 'Publication date (optional)',
+                                date: _publicationDate,
+                                onTap: _pickPublicationDate,
+                                onClear: () => setState(() => _publicationDate = null),
+                              ),
                             ],
                           ),
                         ),
@@ -1024,6 +1056,59 @@ class _CategoryChipsField extends StatelessWidget {
           Text(error!, style: const TextStyle(color: Colors.red, fontSize: 11)),
         ],
       ],
+    );
+  }
+}
+
+class _DatePickerField extends StatelessWidget {
+  final String label;
+  final DateTime? date;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+
+  const _DatePickerField({
+    required this.label,
+    required this.date,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  String _fmt(DateTime d) => '${d.day}.${d.month}.${d.year}';
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 42,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: AppColors.lightBrown.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.transparent),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                date != null ? _fmt(date!) : label,
+                style: TextStyle(
+                  color: date != null
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.5),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            if (date != null)
+              GestureDetector(
+                onTap: onClear,
+                child: const Icon(Icons.close,
+                    size: 14, color: AppColors.lightBrown),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

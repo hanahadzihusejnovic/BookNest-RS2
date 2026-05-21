@@ -14,6 +14,8 @@ import '../widgets/pagination_bar.dart';
 import '../widgets/admin_table.dart';
 import '../widgets/book_form_widgets.dart';
 import 'book_detail_screen.dart';
+import 'authors_screen.dart';
+import 'categories_screen.dart';
 
 class BooksScreen extends StatefulWidget {
   const BooksScreen({super.key});
@@ -159,6 +161,46 @@ class _BooksScreenState extends State<BooksScreen> {
                   ),
                 ),
                 const Spacer(),
+                ElevatedButton(
+                  onPressed: () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CategoriesScreen())),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.darkBrown,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                  ),
+                  child: const Text(
+                    'Categories',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AuthorsScreen())),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.darkBrown,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                  ),
+                  child: const Text(
+                    'Authors',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 12),
                 ElevatedButton(
                   onPressed: _openAddBookDialog,
                   style: ElevatedButton.styleFrom(
@@ -433,6 +475,7 @@ class _AddBookDialogState extends State<_AddBookDialog> {
   Author? _selectedAuthor;
   Category? _selectedCategory;
   File? _selectedImage;
+  DateTime? _publicationDate;
   bool _isLoading = false;
   bool _authorsLoading = true;
 
@@ -613,6 +656,27 @@ class _AddBookDialogState extends State<_AddBookDialog> {
     }
   }
 
+  Future<void> _pickPublicationDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _publicationDate ?? DateTime(2000),
+      firstDate: DateTime(1000),
+      lastDate: DateTime.now(),
+      builder: (ctx, child) => Theme(
+        data: Theme.of(ctx).copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: AppColors.lightBrown,
+            onPrimary: AppColors.darkBrown,
+            surface: AppColors.darkBrown,
+            onSurface: Colors.white,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null && mounted) setState(() => _publicationDate = picked);
+  }
+
   Future<void> _submit() async {
     setState(() {
       _titleError = _titleController.text.isEmpty ? 'Required' : null;
@@ -668,6 +732,8 @@ class _AddBookDialogState extends State<_AddBookDialog> {
         'stock': stock,
         'categoryIds': [_selectedCategory!.id],
         if (coverUrl != null) 'coverImageUrl': coverUrl,
+        if (_publicationDate != null)
+          'publicationDate': _publicationDate!.toIso8601String(),
       };
       if (_pageCountController.text.isNotEmpty) {
         body['pageCount'] = int.tryParse(_pageCountController.text);
@@ -840,6 +906,12 @@ class _AddBookDialogState extends State<_AddBookDialog> {
                           keyboardType: TextInputType.number,
                           onChanged: (_) {},
                         ),
+                        const SizedBox(height: 16),
+                        _BookDatePickerField(
+                          date: _publicationDate,
+                          onTap: _pickPublicationDate,
+                          onClear: () => setState(() => _publicationDate = null),
+                        ),
                       ],
                     ),
                   ),
@@ -911,6 +983,57 @@ class _AddBookDialogState extends State<_AddBookDialog> {
     _stockController.dispose();
     _pageCountController.dispose();
     super.dispose();
+  }
+}
+
+class _BookDatePickerField extends StatelessWidget {
+  final DateTime? date;
+  final VoidCallback onTap;
+  final VoidCallback onClear;
+
+  const _BookDatePickerField({
+    required this.date,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  String _fmt(DateTime d) => '${d.day}.${d.month}.${d.year}';
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 42,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: AppColors.lightBrown.withValues(alpha: 0.2),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.transparent),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                date != null ? _fmt(date!) : 'Publication date (optional)',
+                style: TextStyle(
+                  color: date != null
+                      ? Colors.white
+                      : Colors.white.withValues(alpha: 0.5),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            if (date != null)
+              GestureDetector(
+                onTap: onClear,
+                child: const Icon(Icons.close,
+                    size: 14, color: AppColors.lightBrown),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
