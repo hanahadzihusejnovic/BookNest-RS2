@@ -17,6 +17,8 @@ namespace BookNest.Model.Requests
 
         public string? CoverImageUrl { get; set; }
 
+        public DateTime? PublicationDate { get; set; }
+
         public int? PageCount { get; set; }
 
         [Required]

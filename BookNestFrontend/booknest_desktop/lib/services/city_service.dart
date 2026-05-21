@@ -28,4 +28,38 @@ class CityService {
     }
     throw Exception('Failed to load cities');
   }
+
+  Future<City> createCity(String name, int countryId) async {
+    final response = await HttpClient.post(
+      Uri.parse('${AppConstants.baseUrl}/City'),
+      headers: await _headers(),
+      body: jsonEncode({'name': name, 'countryId': countryId}),
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return City.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to create city');
+  }
+
+  Future<City> updateCity(int id, String name, int countryId) async {
+    final response = await HttpClient.put(
+      Uri.parse('${AppConstants.baseUrl}/City/$id'),
+      headers: await _headers(),
+      body: jsonEncode({'name': name, 'countryId': countryId}),
+    );
+    if (response.statusCode == 200) {
+      return City.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to update city');
+  }
+
+  Future<void> deleteCity(int id) async {
+    final response = await HttpClient.delete(
+      Uri.parse('${AppConstants.baseUrl}/City/$id'),
+      headers: await _headers(),
+    );
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Failed to delete city');
+    }
+  }
 }

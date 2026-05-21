@@ -18,6 +18,8 @@ import '../widgets/pagination_bar.dart';
 import '../widgets/admin_table.dart';
 import '../widgets/book_form_widgets.dart';
 import 'event_detail_screen.dart';
+import 'event_categories_screen.dart';
+import 'organizers_screen.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -268,6 +270,49 @@ class _EventsScreenState extends State<EventsScreen> {
                 ),
                 const Spacer(),
                 ElevatedButton(
+                  onPressed: () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) =>
+                              const EventCategoriesScreen())),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.darkBrown,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                  ),
+                  child: const Text(
+                    'Categories',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
+                  onPressed: () => Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const OrganizersScreen())),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.darkBrown,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                  ),
+                  child: const Text(
+                    'Organizers',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
                   onPressed: _openAddEventDialog,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.darkBrown,
@@ -320,7 +365,7 @@ class _EventsScreenState extends State<EventsScreen> {
                   SizedBox(width: 56),
                   AdminColHeader('Name', flex: 3),
                   AdminColHeader('Category', flex: 2),
-                  AdminColHeader('Organizator', flex: 2),
+                  AdminColHeader('Organizer', flex: 2),
                   AdminColHeader('Date & Time', flex: 3),
                   SizedBox(width: 120),
                 ],

@@ -6,6 +6,7 @@ import '../screens/books_screen.dart';
 import '../screens/orders_screen.dart';
 import '../screens/events_screen.dart';
 import '../screens/reservations_screen.dart';
+import '../screens/locations_screen.dart';
 import '../screens/login_screen.dart';
 import '../services/auth_service.dart';
 
@@ -222,6 +223,18 @@ class _AdminDrawer extends StatelessWidget {
                 if (currentPage != 'RESERVATIONS') {
                   Navigator.pushReplacement(context,
                       MaterialPageRoute(builder: (_) => const ReservationsScreen()));
+                }
+              },
+            ),
+            _DrawerDivider(),
+            _DrawerItem(
+              title: 'LOCATIONS',
+              isActive: currentPage == 'LOCATIONS',
+              onTap: () {
+                Navigator.pop(context);
+                if (currentPage != 'LOCATIONS') {
+                  Navigator.pushReplacement(context,
+                      MaterialPageRoute(builder: (_) => const LocationsScreen()));
                 }
               },
             ),
