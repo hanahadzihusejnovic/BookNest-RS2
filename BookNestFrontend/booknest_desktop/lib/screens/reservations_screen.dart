@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
 import '../layouts/app_layout.dart';
 import '../layouts/constants.dart';
 import 'dashboard_screen.dart';
@@ -74,6 +77,106 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   String _formatDate(DateTime date) =>
       '${date.day}.${date.month}.${date.year}';
 
+  Future<void> _generatePdf() async {
+    final doc = pw.Document();
+    final now = DateTime.now();
+    final reservations = _filteredReservations;
+
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4,
+        margin: const pw.EdgeInsets.all(32),
+        header: (_) => pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.start,
+          children: [
+            pw.Text('Reservations Report',
+                style: pw.TextStyle(
+                    fontSize: 20, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 4),
+            pw.Text(
+                'Generated: ${now.day}.${now.month}.${now.year}  ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+                style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey600)),
+            pw.SizedBox(height: 4),
+            pw.Text('Total reservations: ${reservations.length}',
+                style: const pw.TextStyle(fontSize: 10)),
+            pw.SizedBox(height: 12),
+            pw.Divider(),
+          ],
+        ),
+        build: (_) => [
+          pw.Table(
+            border: pw.TableBorder.all(color: PdfColors.grey300, width: 0.5),
+            columnWidths: {
+              0: const pw.FlexColumnWidth(0.5),
+              1: const pw.FlexColumnWidth(2.5),
+              2: const pw.FlexColumnWidth(2),
+              3: const pw.FlexColumnWidth(1.5),
+              4: const pw.FlexColumnWidth(1.5),
+              5: const pw.FlexColumnWidth(1.5),
+            },
+            children: [
+              pw.TableRow(
+                decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                children: [
+                  '#',
+                  'Event',
+                  'User',
+                  'Reservation Date',
+                  'Status',
+                  'Price (BAM)',
+                ].map((h) => pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 6, vertical: 5),
+                      child: pw.Text(h,
+                          style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold, fontSize: 9)),
+                    )).toList(),
+              ),
+              ...reservations.asMap().entries.map((entry) {
+                final i = entry.key;
+                final r = entry.value;
+                return pw.TableRow(
+                  decoration: pw.BoxDecoration(
+                      color: i.isEven ? PdfColors.white : PdfColors.grey50),
+                  children: [
+                    '${i + 1}',
+                    r.eventName,
+                    r.userFullName,
+                    _formatDate(r.reservationDate),
+                    r.reservationStatus,
+                    r.totalPrice == 0 ? 'Free' : r.totalPrice.toStringAsFixed(2),
+                  ].map((cell) => pw.Padding(
+                        padding: const pw.EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 4),
+                        child: pw.Text(cell,
+                            style: const pw.TextStyle(fontSize: 9)),
+                      )).toList(),
+                );
+              }),
+            ],
+          ),
+          pw.SizedBox(height: 12),
+          pw.Align(
+            alignment: pw.Alignment.centerRight,
+            child: pw.Text(
+              'Total revenue: ${reservations.fold(0.0, (s, r) => s + r.totalPrice).toStringAsFixed(2)} BAM',
+              style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold, fontSize: 10),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    final downloadsPath = '${Platform.environment['USERPROFILE']}\\Downloads';
+    final filename = 'reservations_report_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.pdf';
+    final file = File('$downloadsPath\\$filename');
+    await file.writeAsBytes(await doc.save());
+    if (mounted) {
+      AppSnackBar.show(context, 'Report saved to Downloads\\$filename');
+    }
+  }
+
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
       case 'confirmed':
@@ -97,7 +200,29 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Search bar
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ElevatedButton(
+                  onPressed: _generatePdf,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.darkBrown,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                  ),
+                  child: const Text(
+                    'Generate PDF Report',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
             Container(
               height: 42,
               decoration: BoxDecoration(
@@ -130,6 +255,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                   AdminColHeader('User', flex: 3),
                   AdminColHeader('Reservation Date', flex: 3),
                   AdminColHeader('Reservation Status', flex: 3),
+                  AdminColHeader('Price', flex: 2),
                   SizedBox(width: 250),
                 ],
               ),
@@ -173,6 +299,12 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                                         text: r.reservationStatus,
                                         color: _statusColor(r.reservationStatus),
                                         fontWeight: FontWeight.w600,
+                                      ),
+                                      AdminColumn(
+                                        flex: 2,
+                                        text: r.totalPrice == 0
+                                            ? 'Free'
+                                            : '${r.totalPrice.toStringAsFixed(2)} BAM',
                                       ),
                                     ],
                                     actions: [
