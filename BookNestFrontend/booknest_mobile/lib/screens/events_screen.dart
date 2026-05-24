@@ -4,6 +4,7 @@ import '../models/event_category.dart';
 import '../models/event_recommendation.dart';
 import '../services/event_service.dart';
 import '../services/event_category_service.dart';
+import '../services/notification_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import 'home_screen.dart';
@@ -20,6 +21,7 @@ class EventsScreen extends StatefulWidget {
 class _EventsScreenState extends State<EventsScreen> {
   final _eventService = EventService();
   final _categoryService = EventCategoryService();
+  final _notificationService = NotificationService();
 
   List<EventModel> _allEvents = [];
   List<EventModel> _filteredEvents = [];
@@ -38,6 +40,14 @@ class _EventsScreenState extends State<EventsScreen> {
   void initState() {
     super.initState();
     _loadData();
+    _notificationService.addListener(_onNotification);
+  }
+
+  void _onNotification(Map<String, dynamic> notification) {
+    if (!mounted) return;
+    if (notification['type'] == 'EventCancelled') {
+      _loadData();
+    }
   }
 
   Future<void> _loadData() async {
@@ -174,7 +184,9 @@ class _EventsScreenState extends State<EventsScreen> {
 
   @override
   void dispose() {
-    _closeCategoriesDropdown();
+    _notificationService.removeListener(_onNotification);
+    _catOverlay?.remove();
+    _catOverlay = null;
     super.dispose();
   }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/cart.dart';
 import '../services/cart_service.dart';
+import '../services/book_service.dart';
+import '../services/notification_service.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import 'checkout_screen.dart';
@@ -14,6 +16,8 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   final _cartService = CartService();
+  final _bookService = BookService();
+  final _notificationService = NotificationService();
   CartModel? _cart;
   bool _isLoading = true;
   String? _error;
@@ -22,16 +26,67 @@ class _CartScreenState extends State<CartScreen> {
   void initState() {
     super.initState();
     _loadCart();
+    _notificationService.addListener(_onNotification);
+  }
+
+  @override
+  void dispose() {
+    _notificationService.removeListener(_onNotification);
+    super.dispose();
+  }
+
+  void _onNotification(Map<String, dynamic> notification) {
+    if (!mounted) return;
+    if (notification['type'] == 'BookUnavailable') {
+      _loadCart();
+    }
   }
 
   Future<void> _loadCart() async {
     try {
       final cart = await _cartService.getMyCart();
-      setState(() {
-        _cart = cart;
-        _isLoading = false;
-      });
+
+      if (cart.cartItems.isNotEmpty) {
+        final books = await Future.wait(
+          cart.cartItems.map((item) => _bookService.getBookById(item.bookId)),
+        );
+
+        final unavailable = <String>[];
+        final validItems = <CartItemModel>[];
+
+        for (int i = 0; i < cart.cartItems.length; i++) {
+          if (books[i].stock > 0) {
+            validItems.add(cart.cartItems[i]);
+          } else {
+            unavailable.add(cart.cartItems[i].bookTitle);
+          }
+        }
+
+        if (!mounted) return;
+
+        if (unavailable.isNotEmpty) {
+          AppSnackBar.show(
+            context,
+            '${unavailable.map((t) => '\'$t\'').join(', ')} no longer available.',
+          );
+        }
+
+        setState(() {
+          _cart = CartModel(
+            id: cart.id,
+            userId: cart.userId,
+            cartItems: validItems,
+          );
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _cart = cart;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;

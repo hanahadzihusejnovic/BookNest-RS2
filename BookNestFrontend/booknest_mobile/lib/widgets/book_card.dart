@@ -122,7 +122,7 @@ class BookCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           statusLabel!,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
                           style: TextStyle(

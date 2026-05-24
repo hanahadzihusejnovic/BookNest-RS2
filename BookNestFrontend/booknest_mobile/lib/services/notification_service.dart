@@ -17,6 +17,7 @@ class NotificationService {
   bool _notificationsEnabled = true;
 
   List<Map<String, dynamic>> get notifications => List.unmodifiable(_notifications);
+  bool get notificationsEnabled => _notificationsEnabled;
   int get unreadCount => _notificationsEnabled
       ? _notifications.where((n) => !(n['isRead'] ?? false)).length
       : 0;
@@ -28,6 +29,9 @@ class NotificationService {
     _notificationsEnabled = prefs.getBool('notifications_enabled') ?? true;
 
     await _loadFromServer();
+    for (final listener in _listeners) {
+      listener({});
+    }
 
     _hubConnection = HubConnectionBuilder()
       .withUrl('http://10.0.2.2:7110/hubs/notifications?userId=$userId')
@@ -43,6 +47,7 @@ class NotificationService {
         'title': data['title'],
         'message': data['message'],
         'type': data['notificationType'],
+        'bookId': data['bookId'],
         'sendAt': data['sendAt'],
         'isRead': false,
       };

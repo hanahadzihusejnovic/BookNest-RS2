@@ -10,6 +10,7 @@ class Book {
   final String? authorImageUrl;
   final double? averageRating;
   final int reviewCount;
+  final int stock;
   final List<BookReview> reviews;
   final List<String> categories;
 
@@ -25,6 +26,7 @@ class Book {
     this.authorImageUrl,
     this.averageRating,
     this.reviewCount = 0,
+    this.stock = 0,
     this.reviews = const [],
     this.categories = const [],
   });
@@ -42,6 +44,7 @@ class Book {
       authorImageUrl: json['authorImageUrl'],
       averageRating: (json['averageRating'] as num?)?.toDouble(),
       reviewCount: json['reviewCount'] ?? 0,
+      stock: json['stock'] ?? 0,
       reviews: (json['reviews'] as List<dynamic>?)
               ?.map((r) => BookReview.fromJson(r))
               .toList() ??

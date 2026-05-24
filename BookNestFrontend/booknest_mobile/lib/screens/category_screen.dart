@@ -83,15 +83,19 @@ class _CategoryScreenState extends State<CategoryScreen> {
   }
 
   Future<void> _addToCart(Book book) async {
-  try {
-    await _cartService.addItem(book.id, 1);
-    if (!mounted) return;
-    AppSnackBar.show(context, '${book.title} added to cart!');
-  } catch (e) {
-    if (!mounted) return;
-    AppSnackBar.showError(context, e);
+    if (book.stock == 0) {
+      AppSnackBar.show(context, '\'${book.title}\' is no longer available.');
+      return;
+    }
+    try {
+      await _cartService.addItem(book.id, 1);
+      if (!mounted) return;
+      AppSnackBar.show(context, '${book.title} added to cart!');
+    } catch (e) {
+      if (!mounted) return;
+      AppSnackBar.showError(context, e);
+    }
   }
-}
 
 Future<void> _addToFavorites(Book book) async {
   try {
