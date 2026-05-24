@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -720,8 +721,11 @@ class _ProfileButton extends StatelessWidget {
       with AutomaticKeepAliveClientMixin {
     final _orderService = OrderService();
     final _bookService = BookService();
+    final _notificationService = NotificationService();
+    Timer? _refreshTimer;
     List<OrderItemModel> _books = [];
-    Map<int, int> _bookQuantities = {}; // bookId → total quantity bought (best-effort)
+    Map<int, String> _bookStatuses = {};
+    Map<int, int> _bookQuantities = {};
     bool _isLoading = true;
     String? _error;
 
@@ -743,27 +747,50 @@ class _ProfileButton extends StatelessWidget {
     void initState() {
       super.initState();
       _loadBooks();
+      _notificationService.addListener(_onNotification);
+      _refreshTimer = Timer.periodic(
+        const Duration(seconds: 15),
+        (_) { if (mounted) _loadBooks(); },
+      );
+    }
+
+    @override
+    void dispose() {
+      _refreshTimer?.cancel();
+      _notificationService.removeListener(_onNotification);
+      super.dispose();
+    }
+
+    void _onNotification(Map<String, dynamic> _) {
+      if (mounted) _loadBooks();
     }
 
     Future<void> _loadBooks() async {
       try {
         final orders = await _orderService.getMyOrders();
-        final allItems = orders.expand((order) => order.orderItems).toList();
+        // Najnovije narudžbe prve — njihov status je relevantan
+        orders.sort((a, b) => b.orderDate.compareTo(a.orderDate));
 
-        // Deduplicate by bookId, summing quantities
-        // Deduplicate by bookId; fall back to title+author if bookId repeats as 0
         final Map<String, OrderItemModel> uniqueBooks = {};
+        final Map<String, String> statuses = {};
         final Map<String, int> quantities = {};
-        for (final item in allItems) {
-          final key = item.bookId > 0
-              ? 'id:${item.bookId}'
-              : 'title:${item.bookTitle.toLowerCase().trim()}';
-          quantities[key] = (quantities[key] ?? 0) + item.quantity;
-          uniqueBooks.putIfAbsent(key, () => item);
+        for (final order in orders) {
+          for (final item in order.orderItems) {
+            final key = item.bookId > 0
+                ? 'id:${item.bookId}'
+                : 'title:${item.bookTitle.toLowerCase().trim()}';
+            quantities[key] = (quantities[key] ?? 0) + item.quantity;
+            uniqueBooks.putIfAbsent(key, () => item);
+            statuses.putIfAbsent(key, () => order.status);
+          }
         }
 
         setState(() {
           _books = uniqueBooks.values.toList();
+          _bookStatuses = {
+            for (final entry in statuses.entries)
+              uniqueBooks[entry.key]!.bookId: entry.value,
+          };
           _bookQuantities = {
             for (final entry in quantities.entries)
               uniqueBooks[entry.key]!.bookId: entry.value,
@@ -835,17 +862,22 @@ class _ProfileButton extends StatelessWidget {
                                         crossAxisCount: 3,
                                         mainAxisSpacing: 14,
                                         crossAxisSpacing: 14,
-                                        childAspectRatio: 0.50,
+                                        childAspectRatio: 0.44,
                                       ),
                                       itemBuilder: (context, index) {
                                         final item = _currentPageItems[index];
-                                        final qty = _bookQuantities[item.bookId] ?? 1;
                                         return BookCard(
                                           title: item.bookTitle,
                                           author: item.bookAuthorName,
                                           imageUrl: item.bookImageUrl,
                                           style: BookCardStyle.details,
-                                          statusLabel: qty > 1 ? 'Bought: $qty books' : null,
+                                          statusLabel: () {
+                                            final status = _bookStatuses[item.bookId];
+                                            final qty = _bookQuantities[item.bookId] ?? 1;
+                                            if (status == null) return null;
+                                            if (qty > 1) return 'Status: $status\nBought: $qty';
+                                            return 'Status: $status';
+                                          }(),
                                           onTap: () async {
                                             try {
                                               final book = await _bookService.getBookById(item.bookId);
@@ -893,6 +925,8 @@ class _ReservationsTab extends StatefulWidget {
 class _ReservationsTabState extends State<_ReservationsTab>
     with AutomaticKeepAliveClientMixin {
   final _reservationService = ReservationService();
+  final _notificationService = NotificationService();
+  Timer? _refreshTimer;
   List<ReservationModel> _reservations = [];
   bool _isLoading = true;
   String? _error;
@@ -915,16 +949,34 @@ class _ReservationsTabState extends State<_ReservationsTab>
   void initState() {
     super.initState();
     _loadReservations();
+    _notificationService.addListener(_onNotification);
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) { if (mounted) _loadReservations(); },
+    );
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _notificationService.removeListener(_onNotification);
+    super.dispose();
+  }
+
+  void _onNotification(Map<String, dynamic> _) {
+    if (mounted) _loadReservations();
   }
 
   Future<void> _loadReservations() async {
     try {
       final reservations = await _reservationService.getMyReservations();
+      if (!mounted) return;
       setState(() {
         _reservations = reservations;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;

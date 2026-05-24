@@ -719,6 +719,10 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                     text: 'Add to cart',
                     onTap: () async {
                       final overlay = Overlay.of(context);
+                      if (widget.book.stock == 0) {
+                        AppSnackBar.show(overlay, '\'${widget.book.title}\' is no longer available.');
+                        return;
+                      }
                       try {
                         final cartService = CartService();
                         await cartService.addItem(

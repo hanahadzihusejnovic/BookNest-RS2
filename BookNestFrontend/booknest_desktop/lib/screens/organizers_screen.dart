@@ -129,22 +129,29 @@ class _OrganizersScreenState extends State<OrganizersScreen> {
             Container(
               height: 42,
               decoration: BoxDecoration(
-                color: AppColors.lightBrown.withValues(alpha: 0.5),
+                color: AppColors.lightBrown.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.lightBrown.withValues(alpha: 0.4)),
               ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (_) => _applyFilter(),
-                style: const TextStyle(
-                    color: AppColors.darkBrown, fontSize: 14),
-                decoration: const InputDecoration(
-                  hintText: 'Search by first name, last name and email',
-                  hintStyle: TextStyle(
-                      color: AppColors.mediumBrown, fontSize: 14),
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 12),
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.search, color: AppColors.mediumBrown, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (_) => _applyFilter(),
+                      style: const TextStyle(color: AppColors.darkBrown, fontSize: 14),
+                      decoration: const InputDecoration(
+                        hintText: 'Search by first name, last name and email',
+                        hintStyle: TextStyle(color: AppColors.mediumBrown, fontSize: 14),
+                        border: InputBorder.none,
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),

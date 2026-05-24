@@ -238,7 +238,8 @@ class _ShopScreenState extends State<ShopScreen> {
 
   @override
   void dispose() {
-    _closeCategoriesDropdown();
+    _catOverlay?.remove();
+    _catOverlay = null;
     super.dispose();
   }
 
