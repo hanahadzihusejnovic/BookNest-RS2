@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
@@ -21,6 +22,7 @@ class ReservationsScreen extends StatefulWidget {
 class _ReservationsScreenState extends State<ReservationsScreen> {
   final _reservationService = ReservationService();
   final _searchController = TextEditingController();
+  Timer? _refreshTimer;
 
   List<Reservation> _allReservations = [];
   List<Reservation> _filteredReservations = [];
@@ -41,6 +43,9 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   void initState() {
     super.initState();
     _loadReservations();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) _loadReservations();
+    });
   }
 
   Future<void> _loadReservations() async {
@@ -253,7 +258,6 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Column headers
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
@@ -272,7 +276,6 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                 thickness: 1,
                 height: 12),
 
-            // List
             Expanded(
               child: _isLoading
                   ? const Center(
@@ -316,17 +319,24 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                                     ],
                                     actions: [
                                       AdminActionButton(
-                                        label: 'Send a\nreminder!',
-                                        onPressed: () async {
-                                          try {
-                                            await _reservationService.sendReminder(r.id);
-                                            if (!mounted) return;
-                                            AppSnackBar.show(context, 'Reminder sent successfully!');
-                                          } catch (e) {
-                                            if (!mounted) return;
-                                            AppSnackBar.show(context, 'Failed to send reminder', isError: true);
-                                          }
-                                        },
+                                        label: r.reservationStatus == 'Cancelled'
+                                            ? 'Reservation\ncancelled'
+                                            : 'Send a\nreminder!',
+                                        backgroundColor: r.reservationStatus == 'Cancelled'
+                                            ? AppColors.mediumBrown
+                                            : null,
+                                        onPressed: r.reservationStatus == 'Cancelled'
+                                            ? null
+                                            : () async {
+                                                try {
+                                                  await _reservationService.sendReminder(r.id);
+                                                  if (!mounted) return;
+                                                  AppSnackBar.show(context, 'Reminder sent successfully!');
+                                                } catch (e) {
+                                                  if (!mounted) return;
+                                                  AppSnackBar.show(context, 'Failed to send reminder', isError: true);
+                                                }
+                                              },
                                       ),
                                       AdminActionButton(
                                         label: 'Click for more\ndetails',
@@ -335,7 +345,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                                           MaterialPageRoute(
                                             builder: (_) => ReservationDetailScreen(reservationId: r.id),
                                           ),
-                                        ),
+                                        ).then((_) { if (mounted) _loadReservations(); }),
                                       ),
                                     ],
                                   );
@@ -360,6 +370,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }

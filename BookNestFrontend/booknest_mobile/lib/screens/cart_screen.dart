@@ -51,23 +51,29 @@ class _CartScreenState extends State<CartScreen> {
           cart.cartItems.map((item) => _bookService.getBookById(item.bookId)),
         );
 
-        final unavailable = <String>[];
+        final unavailableItems = <CartItemModel>[];
         final validItems = <CartItemModel>[];
 
         for (int i = 0; i < cart.cartItems.length; i++) {
           if (books[i].stock > 0) {
             validItems.add(cart.cartItems[i]);
           } else {
-            unavailable.add(cart.cartItems[i].bookTitle);
+            unavailableItems.add(cart.cartItems[i]);
           }
+        }
+
+        if (unavailableItems.isNotEmpty) {
+          await Future.wait(
+            unavailableItems.map((item) => _cartService.removeItem(item.id)),
+          );
         }
 
         if (!mounted) return;
 
-        if (unavailable.isNotEmpty) {
+        if (unavailableItems.isNotEmpty) {
           AppSnackBar.show(
             context,
-            '${unavailable.map((t) => '\'$t\'').join(', ')} no longer available.',
+            '${unavailableItems.map((i) => '\'${i.bookTitle}\'').join(', ')} no longer available.',
           );
         }
 

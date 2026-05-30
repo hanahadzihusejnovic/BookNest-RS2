@@ -47,24 +47,28 @@ class AdminActionButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final double width;
+  final Color? backgroundColor;
 
   const AdminActionButton({
     super.key,
     required this.label,
     this.onPressed,
     this.width = 120,
+    this.backgroundColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bg = backgroundColor ?? AppColors.darkBrown;
     return SizedBox(
       width: width,
       height: 34,
       child: ElevatedButton(
-        onPressed: onPressed ?? () {},
+        onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           elevation: 0,
-          backgroundColor: AppColors.darkBrown,
+          backgroundColor: bg,
+          disabledBackgroundColor: bg,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           padding: EdgeInsets.zero,
         ),

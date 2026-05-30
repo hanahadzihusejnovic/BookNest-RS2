@@ -7,12 +7,8 @@ import '../models/register_request.dart';
 
 class ApiService {
 
-  // Login
   Future<LoginResponse> login(LoginRequest request) async {
     try {
-      print('🔵 API: Sending login request to: ${AppConstants.baseUrl}/Auth/login');
-      print('🔵 API: Username: ${request.username}');
-      print('🔵 API: Password length: ${request.password.length}');
       
       final response = await http.post(
         Uri.parse('${AppConstants.baseUrl}/Auth/login'),
@@ -22,27 +18,18 @@ class ApiService {
         body: jsonEncode(request.toJson()),
       );
 
-      print('🔵 API: Response status: ${response.statusCode}');
-      print('🔵 API: Response body: ${response.body}');
-
       if (response.statusCode == 200) {
-        print('✅ API: Login successful!');
         return LoginResponse.fromJson(jsonDecode(response.body));
       } else {
-        print('❌ API: Login failed with status ${response.statusCode}');
         throw Exception('Login failed: ${response.body}');
       }
     } catch (e) {
-      print('❌ API: Exception caught: $e');
-      print('❌ API: Exception type: ${e.runtimeType}');
       throw Exception('Error during login: $e');
     }
   }
 
-  // Register
   Future<void> register(RegisterRequest request) async {
     try {
-      print('🔵 API: Sending register request to: ${AppConstants.baseUrl}/Auth/register');
       
       final response = await http.post(
         Uri.parse('${AppConstants.baseUrl}/Auth/register'),
@@ -52,13 +39,8 @@ class ApiService {
         body: jsonEncode(request.toJson()),
       );
 
-      print('🔵 API: Response status: ${response.statusCode}');
-      print('🔵 API: Response body: ${response.body}');
-
       if (response.statusCode == 200) {
-        print('✅ API: Registration successful!');
       } else {
-        print('❌ API: Registration failed with status ${response.statusCode}');
         try {
           final body = jsonDecode(response.body);
           throw Exception(body['message'] ?? 'Registration failed. Please try again.');
@@ -68,12 +50,10 @@ class ApiService {
         }
       }
     } catch (e) {
-      print('❌ API: Exception: $e');
       rethrow;
     }
   }
 
-  // GET request 
   Future<http.Response> get(String endpoint, String token) async {
     final response = await http.get(
       Uri.parse('${AppConstants.baseUrl}/$endpoint'),
@@ -85,7 +65,6 @@ class ApiService {
     return response;
   }
 
-  // POST request 
   Future<http.Response> post(String endpoint, Map<String, dynamic> data, String token) async {
     final response = await http.post(
       Uri.parse('${AppConstants.baseUrl}/$endpoint'),
@@ -98,10 +77,8 @@ class ApiService {
     return response;
   }
 
-  // Forgot Password
   Future<void> forgotPassword(String email) async {
     try {
-      print('🔵 API: Sending forgot password request');
       
       final response = await http.post(
         Uri.parse('${AppConstants.baseUrl}/Auth/forgot-password'),
@@ -109,21 +86,17 @@ class ApiService {
         body: jsonEncode({'email': email}),
       );
 
-      print('🔵 API: Response status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw Exception('Request failed: ${response.body}');
       }
     } catch (e) {
-      print('❌ API: Exception: $e');
       throw Exception('Error during forgot password: $e');
     }
   }
 
-  // Reset Password
   Future<void> resetPassword(String token, String newPassword, String confirmPassword) async {
     try {
-      print('🔵 API: Sending reset password request');
       
       final response = await http.post(
         Uri.parse('${AppConstants.baseUrl}/Auth/reset-password'),
@@ -135,13 +108,11 @@ class ApiService {
         }),
       );
 
-      print('🔵 API: Response status: ${response.statusCode}');
 
       if (response.statusCode != 200) {
         throw Exception('Request failed: ${response.body}');
       }
     } catch (e) {
-      print('❌ API: Exception: $e');
       throw Exception('Error during reset password: $e');
     }
   }

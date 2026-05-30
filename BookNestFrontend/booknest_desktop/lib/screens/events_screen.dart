@@ -231,7 +231,6 @@ class _EventsScreenState extends State<EventsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top row: category dropdown + add button
             Row(
               children: [
                 CompositedTransformTarget(
@@ -333,7 +332,6 @@ class _EventsScreenState extends State<EventsScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Search bar
             Container(
               height: 42,
               decoration: BoxDecoration(
@@ -364,7 +362,6 @@ class _EventsScreenState extends State<EventsScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Column headers
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
@@ -383,7 +380,6 @@ class _EventsScreenState extends State<EventsScreen> {
                 thickness: 1,
                 height: 12),
 
-            // Events list
             Expanded(
               child: _isLoading
                   ? const Center(
@@ -473,6 +469,7 @@ class _AddEventDialog extends StatefulWidget {
 class _AddEventDialogState extends State<_AddEventDialog> {
   final _eventService = EventService();
   final _organizerService = OrganizerService();
+  final _eventCategoryService = EventCategoryService();
   final _cityService = CityService();
   final _countryService = CountryService();
 
@@ -483,6 +480,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
   final _addressController = TextEditingController();
 
   List<Organizer> _organizers = [];
+  List<EventCategory> _localCategories = [];
   List<City> _cities = [];
   List<City> _filteredCities = [];
   List<Country> _countries = [];
@@ -534,6 +532,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
   @override
   void initState() {
     super.initState();
+    _localCategories = List.of(widget.categories);
     _loadOrganizers();
   }
 
@@ -555,6 +554,20 @@ class _AddEventDialogState extends State<_AddEventDialog> {
     } catch (_) {
       if (mounted) setState(() => _organizersLoading = false);
     }
+  }
+
+  Future<void> _reloadOrganizers() async {
+    try {
+      final orgs = await _organizerService.getOrganizers();
+      if (mounted) setState(() => _organizers = orgs);
+    } catch (_) {}
+  }
+
+  Future<void> _reloadCategories() async {
+    try {
+      final cats = await _eventCategoryService.getCategories();
+      if (mounted) setState(() => _localCategories = cats);
+    } catch (_) {}
   }
 
   void _closeAll() {
@@ -600,7 +613,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
     _closeAll();
     _categoryOverlay = _showOverlayDropdown<EventCategory>(
       link: _categoryLink,
-      items: widget.categories,
+      items: _localCategories,
       selected: _selectedCategory,
       labelFn: (c) => c.name,
       onSelect: (c) => setState(() { _selectedCategory = c; _categoryError = null; }),
@@ -801,15 +814,15 @@ class _AddEventDialogState extends State<_AddEventDialog> {
   Future<void> _submit() async {
     final isInPerson = _selectedEventType == 1;
     setState(() {
-      _nameError = _nameController.text.isEmpty ? 'Required' : null;
-      _categoryError = _selectedCategory == null ? 'Required' : null;
-      _organizerError = _selectedOrganizer == null ? 'Required' : null;
-      _eventTypeError = _selectedEventType == null ? 'Required' : null;
-      _dateError = _selectedDate == null ? 'Required' : null;
-      _timeError = _selectedTime == null ? 'Required' : null;
-      _priceError = _priceController.text.isEmpty ? 'Required' : null;
-      _capacityError = _capacityController.text.isEmpty ? 'Required' : null;
-      _addressError = isInPerson && _addressController.text.isEmpty ? 'Required for in-person event' : null;
+      _nameError = _nameController.text.isEmpty ? 'Event name is required.' : null;
+      _categoryError = _selectedCategory == null ? 'Please select a category.' : null;
+      _organizerError = _selectedOrganizer == null ? 'Please select an organizer.' : null;
+      _eventTypeError = _selectedEventType == null ? 'Please select an event type.' : null;
+      _dateError = _selectedDate == null ? 'Event date is required.' : null;
+      _timeError = _selectedTime == null ? 'Event time is required.' : null;
+      _priceError = _priceController.text.isEmpty ? 'Ticket price is required.' : null;
+      _capacityError = _capacityController.text.isEmpty ? 'Capacity is required.' : null;
+      _addressError = isInPerson && _addressController.text.isEmpty ? 'Address is required for in-person events.' : null;
     });
 
     if ([
@@ -888,20 +901,33 @@ class _AddEventDialogState extends State<_AddEventDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'ADD NEW EVENT',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2),
+              Row(
+                children: [
+                  const SizedBox(width: 28),
+                  const Expanded(
+                    child: Text(
+                      'ADD NEW EVENT',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
               ),
               const SizedBox(height: 28),
 
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Left column
                   Expanded(
                     child: Column(
                       children: [
@@ -912,24 +938,86 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                           onChanged: (_) => setState(() => _nameError = null),
                         ),
                         const SizedBox(height: 14),
-                        BookFormDropdownTrigger(
-                          link: _categoryLink,
-                          hint: 'Category',
-                          selectedLabel: _selectedCategory?.name,
-                          isOpen: _categoryOpen,
-                          error: _categoryError,
-                          onTap: _toggleCategoryDropdown,
-                        ),
+                        if (_localCategories.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+                            ),
+                            child: const Text(
+                              'No categories found. Please add a category first.',
+                              style: TextStyle(color: Colors.orange, fontSize: 12),
+                            ),
+                          )
+                        else
+                          Row(
+                            children: [
+                              Expanded(
+                                child: BookFormDropdownTrigger(
+                                  link: _categoryLink,
+                                  hint: 'Category',
+                                  selectedLabel: _selectedCategory?.name,
+                                  isOpen: _categoryOpen,
+                                  error: _categoryError,
+                                  onTap: _toggleCategoryDropdown,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _QuickAddIconButton(
+                                tooltip: 'Add new category',
+                                onPressed: () => showDialog(
+                                  context: context,
+                                  builder: (_) => EventCategoryDialog(
+                                    categoryService: _eventCategoryService,
+                                    onSaved: _reloadCategories,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         const SizedBox(height: 14),
-                        BookFormDropdownTrigger(
-                          link: _organizerLink,
-                          hint: 'Organizer',
-                          selectedLabel: _selectedOrganizer?.name,
-                          isOpen: _organizerOpen,
-                          error: _organizerError,
-                          loading: _organizersLoading,
-                          onTap: _toggleOrganizerDropdown,
-                        ),
+                        if (!_organizersLoading && _organizers.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+                            ),
+                            child: const Text(
+                              'No organizers found. Please add an organizer first.',
+                              style: TextStyle(color: Colors.orange, fontSize: 12),
+                            ),
+                          )
+                        else
+                          Row(
+                            children: [
+                              Expanded(
+                                child: BookFormDropdownTrigger(
+                                  link: _organizerLink,
+                                  hint: 'Organizer',
+                                  selectedLabel: _selectedOrganizer?.name,
+                                  isOpen: _organizerOpen,
+                                  error: _organizerError,
+                                  loading: _organizersLoading,
+                                  onTap: _toggleOrganizerDropdown,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _QuickAddIconButton(
+                                tooltip: 'Add new organizer',
+                                onPressed: () => showDialog(
+                                  context: context,
+                                  builder: (_) => OrganizerFormDialog(
+                                    organizerService: _organizerService,
+                                    onSaved: _reloadOrganizers,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         const SizedBox(height: 14),
                         BookFormDropdownTrigger(
                           link: _eventTypeLink,
@@ -942,7 +1030,6 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                           onTap: _toggleEventTypeDropdown,
                         ),
                         const SizedBox(height: 14),
-                        // Image picker
                         Column(
                           children: [
                             GestureDetector(
@@ -1004,7 +1091,6 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                   ),
                   const SizedBox(width: 20),
 
-                  // Right column
                   Expanded(
                     child: Column(
                       children: [
@@ -1091,22 +1177,6 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                 children: [
                   SizedBox(
                     height: 42,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.lightBrown),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 24),
-                      ),
-                      child: const Text('Cancel',
-                          style: TextStyle(color: AppColors.lightBrown)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  SizedBox(
-                    height: 42,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _submit,
                       style: ElevatedButton.styleFrom(
@@ -1152,6 +1222,34 @@ class _AddEventDialogState extends State<_AddEventDialog> {
     _capacityController.dispose();
     _addressController.dispose();
     super.dispose();
+  }
+}
+
+class _QuickAddIconButton extends StatelessWidget {
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  const _QuickAddIconButton({required this.tooltip, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 42,
+          width: 38,
+          decoration: BoxDecoration(
+            color: AppColors.lightBrown.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.lightBrown.withValues(alpha: 0.4)),
+          ),
+          child: const Icon(Icons.add, color: Colors.white, size: 18),
+        ),
+      ),
+    );
   }
 }
 

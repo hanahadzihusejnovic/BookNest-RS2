@@ -38,7 +38,7 @@ namespace BookNest.API.Controllers
         [HttpGet("my-tbr-list")]
         public async Task<ActionResult<List<TBRListResponse>>> GetMyTBRList([FromQuery] ReadingStatus? status = null)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {
@@ -52,7 +52,7 @@ namespace BookNest.API.Controllers
         [HttpPost("add")]
         public async Task<ActionResult<TBRListResponse>> AddToTBRList([FromBody] TBRListInsertRequest request)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {
@@ -66,7 +66,7 @@ namespace BookNest.API.Controllers
         [HttpPut("update-status/{bookId}")]
         public async Task<ActionResult<TBRListResponse>> UpdateStatus(int bookId, [FromBody] ReadingStatus status)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {
@@ -80,7 +80,7 @@ namespace BookNest.API.Controllers
         [HttpDelete("remove/{bookId}")]
         public async Task<ActionResult<bool>> RemoveFromTBRList(int bookId)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {
@@ -95,7 +95,7 @@ namespace BookNest.API.Controllers
         [HttpGet("check/{bookId}")]
         public async Task<ActionResult<bool>> IsBookInTBRList(int bookId)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {
@@ -107,3 +107,4 @@ namespace BookNest.API.Controllers
         }
     }
 }
+

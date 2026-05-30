@@ -47,7 +47,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       if (mounted) {
         setState(() {
           _hasReservation = reservations.any(
-            (r) => r.eventId == widget.event.id && r.reservationStatus != 'Cancelled',
+            (r) => r.eventId == widget.event.id && r.reservationStatus == 'Confirmed',
           );
         });
       }
@@ -84,7 +84,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         });
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoadingReviews = false);
+      if (mounted) {
+        setState(() => _isLoadingReviews = false);
+        AppSnackBar.show(context, 'Failed to load reviews', isError: true);
+      }
     }
   }
 
@@ -100,10 +103,24 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: AppColors.pageBg,
-              title: Text('Add a review',
-                  style: TextStyle(
-                      color: AppColors.darkBrown,
-                      fontWeight: FontWeight.w800)),
+              title: Row(
+                children: [
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Text(
+                      'Add a review',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: AppColors.darkBrown,
+                          fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Icon(Icons.close, color: AppColors.darkBrown, size: 20),
+                  ),
+                ],
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,11 +173,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 ],
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel',
-                      style: TextStyle(color: AppColors.darkBrown)),
-                ),
                 ElevatedButton(
                   onPressed: isSubmitting
                       ? null
@@ -232,10 +244,24 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: AppColors.pageBg,
-              title: Text('Update your review',
-                  style: TextStyle(
-                      color: AppColors.darkBrown,
-                      fontWeight: FontWeight.w800)),
+              title: Row(
+                children: [
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Text(
+                      'Update your review',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: AppColors.darkBrown,
+                          fontWeight: FontWeight.w800),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Icon(Icons.close, color: AppColors.darkBrown, size: 20),
+                  ),
+                ],
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,11 +314,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 ],
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel',
-                      style: TextStyle(color: AppColors.darkBrown)),
-                ),
                 ElevatedButton(
                   onPressed: isSubmitting
                       ? null
@@ -481,39 +502,58 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),
-            Text(
-              event.description ?? 'No description available.',
-              maxLines: _descExpanded ? null : 3,
-              overflow: _descExpanded
-                  ? TextOverflow.visible
-                  : TextOverflow.ellipsis,
-              style: TextStyle(
-                  color: AppColors.darkBrown.withValues(alpha: 0.78),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const descStyle = TextStyle(
+                  color: AppColors.darkBrown,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  height: 1.35),
-            ),
-            if ((event.description?.length ?? 0) > 150) ...[
-              const SizedBox(height: 6),
-              GestureDetector(
-                onTap: () => setState(() => _descExpanded = !_descExpanded),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    _descExpanded ? 'View less' : 'View more',
-                    style: TextStyle(
-                      color: AppColors.darkBrown.withValues(alpha: 0.6),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                  height: 1.35,
+                );
+                final text = event.description ?? 'No description available.';
+                final tp = TextPainter(
+                  text: TextSpan(text: text, style: descStyle),
+                  maxLines: 3,
+                  textDirection: TextDirection.ltr,
+                )..layout(maxWidth: constraints.maxWidth);
+                final overflows = tp.didExceedMaxLines;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      text,
+                      maxLines: _descExpanded ? null : 3,
+                      overflow: _descExpanded
+                          ? TextOverflow.visible
+                          : TextOverflow.ellipsis,
+                      style: descStyle,
                     ),
-                  ),
-                ),
-              ),
-            ],
+                    if (overflows) ...[
+                      const SizedBox(height: 6),
+                      GestureDetector(
+                        onTap: () =>
+                            setState(() => _descExpanded = !_descExpanded),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            _descExpanded ? 'View less' : 'View more',
+                            style: TextStyle(
+                              color: AppColors.darkBrown.withValues(alpha: 0.6),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              },
+            ),
 
             const SizedBox(height: 18),
 
-            // Star rating
             Row(
               children: List.generate(5, (i) {
                 return Padding(
@@ -533,7 +573,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
             const SizedBox(height: 18),
 
-            // Quantity selector
             Row(
               children: [
                 _QuantityButton(
@@ -571,7 +610,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
             const SizedBox(height: 18),
 
-            // Reviews
             _isLoadingReviews
                 ? Center(
                     child: CircularProgressIndicator(
@@ -580,6 +618,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     reviews: _reviews,
                     hasMyReview: _hasMyReview,
                     eventPassed: widget.event.eventDate.isBefore(DateTime.now()),
+                    hasConfirmedReservation: _hasReservation,
                     onAddReview: _showAddReviewDialog,
                     onUpdateReview: _showUpdateReviewDialog,
                     onDeleteReview: _showDeleteReviewDialog,
@@ -715,6 +754,7 @@ class _ReviewsSection extends StatelessWidget {
   final List<BookReview> reviews;
   final bool hasMyReview;
   final bool eventPassed;
+  final bool hasConfirmedReservation;
   final VoidCallback onAddReview;
   final Function(BookReview) onUpdateReview;
   final Function(BookReview) onDeleteReview;
@@ -723,6 +763,7 @@ class _ReviewsSection extends StatelessWidget {
     required this.reviews,
     required this.hasMyReview,
     required this.eventPassed,
+    required this.hasConfirmedReservation,
     required this.onAddReview,
     required this.onUpdateReview,
     required this.onDeleteReview,
@@ -787,7 +828,7 @@ class _ReviewsSection extends StatelessWidget {
               width: 250,
               height: 44,
               child: ElevatedButton(
-                onPressed: (hasMyReview || !eventPassed) ? null : onAddReview,
+                onPressed: (hasMyReview || !eventPassed || !hasConfirmedReservation) ? null : onAddReview,
                 style: ElevatedButton.styleFrom(
                   elevation: 0,
                   backgroundColor: AppColors.darkBrown,
@@ -800,7 +841,9 @@ class _ReviewsSection extends StatelessWidget {
                         ? 'Already reviewed'
                         : !eventPassed
                             ? 'Event not held yet'
-                            : 'Add a review',
+                            : !hasConfirmedReservation
+                                ? 'No confirmed reservation'
+                                : 'Add a review',
                     style: const TextStyle(
                         color: Colors.white,
                         fontSize: 13.5,

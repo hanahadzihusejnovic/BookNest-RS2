@@ -49,18 +49,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   static const _orderTransitions = {
-    'Pending':    [('Processing', 1), ('Cancelled', 4)],
-    'Processing': [('Shipped', 2),    ('Cancelled', 4)],
-    'Shipped':    [('Delivered', 3),  ('Cancelled', 4)],
+    'Pending': [('Shipped', 1),   ('Cancelled', 3)],
+    'Shipped': [('Delivered', 2), ('Cancelled', 3)],
   };
 
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'delivered':  return const Color(0xFF4CAF50);
-      case 'cancelled':  return const Color(0xFFE53935);
-      case 'processing': return const Color(0xFFFF9800);
-      case 'shipped':    return const Color(0xFF2196F3);
-      default:           return AppColors.mediumBrown;
+      case 'delivered': return const Color(0xFF4CAF50);
+      case 'cancelled': return const Color(0xFFE53935);
+      case 'shipped':   return const Color(0xFF2196F3);
+      default:          return AppColors.mediumBrown;
     }
   }
 
@@ -94,8 +92,44 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       ),
     );
     if (chosen == null || !mounted) return;
+
+    String? cancellationReason;
+    if (chosen == 3) {
+      final reasonController = TextEditingController();
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.darkBrown,
+          title: const Text('Cancellation Reason',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          content: TextField(
+            controller: reasonController,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Enter reason...',
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.lightBrown)),
+              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.lightBrown)),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel', style: TextStyle(color: AppColors.lightBrown))),
+            TextButton(onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Confirm', style: TextStyle(color: Colors.white))),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+      cancellationReason = reasonController.text.trim();
+      if (cancellationReason.isEmpty) {
+        AppSnackBar.show(context, 'Cancellation reason is required', isError: true);
+        return;
+      }
+    }
+
     try {
-      await _orderService.updateStatus(order.id, chosen);
+      await _orderService.updateStatus(order.id, chosen, cancellationReason: cancellationReason);
       if (mounted) {
         AppSnackBar.show(context, 'Status updated');
         _loadData();
@@ -167,12 +201,24 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           fontSize: 16)),
                   const SizedBox(height: 10),
                   DetailRow('User:', order.userFullName),
+                  if (order.userEmail != null) ...[
+                    const SizedBox(height: 10),
+                    DetailRow('Email:', order.userEmail!),
+                  ],
+                  if (order.userPhoneNumber != null) ...[
+                    const SizedBox(height: 10),
+                    DetailRow('Phone:', order.userPhoneNumber!),
+                  ],
                   const SizedBox(height: 10),
                   DetailRow('Order Date:', _fmt(order.orderDate)),
                   const SizedBox(height: 10),
                   DetailRow('Shipped Date:', _fmt(order.shippedDate)),
                   const SizedBox(height: 10),
                   DetailRow('Total:', '${order.totalPrice.toStringAsFixed(2)} BAM'),
+                  if (order.cancellationReason != null) ...[
+                    const SizedBox(height: 10),
+                    DetailRow('Cancellation Reason:', order.cancellationReason!),
+                  ],
                 ],
               ),
             ),

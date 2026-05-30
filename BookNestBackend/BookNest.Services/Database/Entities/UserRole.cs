@@ -20,6 +20,6 @@ namespace BookNest.Services.Database.Entities
         [ForeignKey(nameof(RoleId))]
         public Role Role { get; set; } = null!;
 
-        public DateTime DateAssigned { get; set; } = DateTime.Now;
+        public DateTime DateAssigned { get; set; } = DateTime.UtcNow;
     }
 }

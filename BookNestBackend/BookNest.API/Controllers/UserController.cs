@@ -47,7 +47,9 @@ namespace BookNest.API.Controllers
         public override async Task<UserResponse?> Update(int id, [FromBody] UserUpdateRequest request)
         {
             var currentUser = await _userService.GetByIdAsync(id);
-            if (currentUser?.ImageUrl != null && currentUser.ImageUrl != request.ImageUrl)
+            if (currentUser?.ImageUrl != null &&
+                currentUser.ImageUrl != request.ImageUrl &&
+                Uri.IsWellFormedUriString(currentUser.ImageUrl, UriKind.Absolute))
             {
                 await _imageService.DeleteImageAsync(currentUser.ImageUrl, "user-images");
             }
@@ -63,7 +65,7 @@ namespace BookNest.API.Controllers
         [HttpGet("current-user")]
         public async Task<ActionResult<UserResponse>> GetCurrentUser()
         {
-            var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
             if (userId == 0)
                 return Unauthorized();
 
@@ -75,12 +77,14 @@ namespace BookNest.API.Controllers
         [HttpPut("update-self")]
         public async Task<ActionResult<UserResponse>> UpdateSelf([FromBody] UserSelfUpdateRequest request)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
             if (userId == 0)
                 return Unauthorized();
 
             var currentUser = await _userService.GetByIdAsync(userId);
-            if (currentUser?.ImageUrl != null && currentUser.ImageUrl != request.ImageUrl)
+            if (currentUser?.ImageUrl != null &&
+                currentUser.ImageUrl != request.ImageUrl &&
+                Uri.IsWellFormedUriString(currentUser.ImageUrl, UriKind.Absolute))
             {
                 await _imageService.DeleteImageAsync(currentUser.ImageUrl, "user-images");
             }
@@ -93,7 +97,7 @@ namespace BookNest.API.Controllers
         [HttpDelete("delete-self")]
         public async Task<ActionResult> DeleteSelf()
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
             if (userId == 0) return Unauthorized();
 
             await _userService.DeactivateSelfAsync(userId);

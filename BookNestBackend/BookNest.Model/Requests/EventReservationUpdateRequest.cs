@@ -7,5 +7,8 @@ namespace BookNest.Model.Requests
     {
         [Required]
         public ReservationStatus ReservationStatus { get; set; }
+
+        [MaxLength(500)]
+        public string? CancellationReason { get; set; }
     }
 }

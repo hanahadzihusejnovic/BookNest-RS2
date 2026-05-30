@@ -11,10 +11,18 @@ namespace BookNest.Services.MessageQueue
         private IConnection? _connection;
         private IChannel? _channel;
         private readonly SemaphoreSlim _semaphore = new(1, 1);
+        private readonly ConnectionFactory _connectionFactory;
 
         public RabbitMqPublisher(ILogger<RabbitMqPublisher> logger)
         {
             _logger = logger;
+            _connectionFactory = new ConnectionFactory
+            {
+                HostName = Environment.GetEnvironmentVariable("RABBITMQ_HOST"),
+                Port = int.Parse(Environment.GetEnvironmentVariable("RABBITMQ_PORT") ?? "5672"),
+                UserName = Environment.GetEnvironmentVariable("RABBITMQ_USERNAME"),
+                Password = Environment.GetEnvironmentVariable("RABBITMQ_PASSWORD")
+            };
         }
 
         private async Task EnsureConnectedAsync()
@@ -28,13 +36,7 @@ namespace BookNest.Services.MessageQueue
                 if (_connection != null && _connection.IsOpen && _channel != null && _channel.IsOpen)
                     return;
 
-                var factory = new ConnectionFactory
-                {
-                    HostName = Environment.GetEnvironmentVariable("RABBITMQ_HOST"),
-                    Port = int.Parse(Environment.GetEnvironmentVariable("RABBITMQ_PORT") ?? "5672"),
-                    UserName = Environment.GetEnvironmentVariable("RABBITMQ_USERNAME"),
-                    Password = Environment.GetEnvironmentVariable("RABBITMQ_PASSWORD")
-                };
+                var factory = _connectionFactory;
 
                 _connection = await factory.CreateConnectionAsync();
                 _channel = await _connection.CreateChannelAsync();

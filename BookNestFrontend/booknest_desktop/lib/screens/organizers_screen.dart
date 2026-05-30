@@ -84,7 +84,7 @@ class _OrganizersScreenState extends State<OrganizersScreen> {
   void _openAddDialog() {
     showDialog(
       context: context,
-      builder: (_) => _OrganizerFormDialog(
+      builder: (_) => OrganizerFormDialog(
         organizerService: _organizerService,
         onSaved: _loadData,
       ),
@@ -246,20 +246,22 @@ class _OrganizersScreenState extends State<OrganizersScreen> {
   }
 }
 
-// ─── Add Organizer Dialog ─────────────────────────────────────────────────────
 
-class _OrganizerFormDialog extends StatefulWidget {
+class OrganizerFormDialog extends StatefulWidget {
   final OrganizerService organizerService;
   final VoidCallback onSaved;
 
-  const _OrganizerFormDialog(
-      {required this.organizerService, required this.onSaved});
+  const OrganizerFormDialog({
+    super.key,
+    required this.organizerService,
+    required this.onSaved,
+  });
 
   @override
-  State<_OrganizerFormDialog> createState() => _OrganizerFormDialogState();
+  State<OrganizerFormDialog> createState() => _OrganizerFormDialogState();
 }
 
-class _OrganizerFormDialogState extends State<_OrganizerFormDialog> {
+class _OrganizerFormDialogState extends State<OrganizerFormDialog> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -279,14 +281,23 @@ class _OrganizerFormDialogState extends State<_OrganizerFormDialog> {
     super.dispose();
   }
 
+  bool _isValidEmail(String email) {
+    final re = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    return re.hasMatch(email);
+  }
+
   Future<void> _submit() async {
+    final email = _emailController.text.trim();
     setState(() {
       _firstNameError =
-          _firstNameController.text.trim().isEmpty ? 'Required' : null;
+          _firstNameController.text.trim().isEmpty ? 'First name is required.' : null;
       _lastNameError =
-          _lastNameController.text.trim().isEmpty ? 'Required' : null;
-      _emailError =
-          _emailController.text.trim().isEmpty ? 'Required' : null;
+          _lastNameController.text.trim().isEmpty ? 'Last name is required.' : null;
+      _emailError = email.isEmpty
+          ? 'Contact email is required.'
+          : !_isValidEmail(email)
+              ? 'Enter a valid email address.'
+              : null;
     });
     if (_firstNameError != null ||
         _lastNameError != null ||
@@ -331,13 +342,27 @@ class _OrganizerFormDialogState extends State<_OrganizerFormDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'ADD ORGANIZER',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2),
+              Row(
+                children: [
+                  const SizedBox(width: 28),
+                  const Expanded(
+                    child: Text(
+                      'ADD ORGANIZER',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               Row(
@@ -380,21 +405,6 @@ class _OrganizerFormDialogState extends State<_OrganizerFormDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                          color: AppColors.lightBrown),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                    ),
-                    child: const Text('Cancel',
-                        style:
-                            TextStyle(color: AppColors.lightBrown)),
-                  ),
-                  const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _submit,
                     style: ElevatedButton.styleFrom(

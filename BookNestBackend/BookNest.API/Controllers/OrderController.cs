@@ -43,7 +43,7 @@ namespace BookNest.API.Controllers
         [HttpPost("checkout")]
         public async Task<ActionResult<OrderResponse>> Checkout([FromBody] OrderInsertRequest request)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
             if (userId == 0) 
                 return Unauthorized(new { message = "User not authenticated." });
 
@@ -61,17 +61,28 @@ namespace BookNest.API.Controllers
         [HttpGet("my-orders")]
         public async Task<ActionResult<List<OrderResponse>>> GetMyOrders()
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
             if (userId == 0) return Unauthorized(new { message = "User not authenticated." });
 
             var orders = await _orderService.GetUserOrdersAsync(userId);
             return Ok(orders);
         }
 
+        [HttpPost("{id}/cancel")]
+        public async Task<ActionResult<OrderResponse>> CancelOrder(int id, [FromBody] string cancellationReason)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0) return Unauthorized();
+
+            var result = await _orderService.CancelUserOrderAsync(id, userId, cancellationReason);
+            return Ok(result);
+        }
+
         [Authorize(Roles = Roles.Admin)]
         public override async Task<OrderResponse?> Update(int id, [FromBody] OrderUpdateRequest request)
         {
-            return await base.Update(id, request);
+            var adminId = GetCurrentUserId();
+            return await _orderService.UpdateStatusAsync(id, request, adminId);
         }
 
         [Authorize(Roles = Roles.Admin)]

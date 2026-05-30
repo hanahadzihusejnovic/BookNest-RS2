@@ -22,7 +22,7 @@ class _TBRScreenState extends State<TBRScreen> {
   List<TBRItemModel> _filteredItems = [];
   bool _isLoading = true;
   String? _error;
-  int? _selectedStatus; // null = sve
+  int? _selectedStatus;
 
   static const int _pageSize = 12;
   int _currentPage = 0;
@@ -157,7 +157,7 @@ class _TBRScreenState extends State<TBRScreen> {
         );
       }).toList(),
     ).then((selected) {
-      if (selected == null) return; // samo dismiss
+      if (selected == null) return;
       if (selected == 'all') {
         _applyFilter(null);
       } else {
@@ -203,7 +203,6 @@ class _TBRScreenState extends State<TBRScreen> {
                     )
                   : Column(
                       children: [
-                        // Filter dropdown
                         Padding(
                           padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
                           child: Align(

@@ -5,6 +5,7 @@ class ReservationDetail {
   final int userId;
   final String userFullName;
   final String userEmail;
+  final String? userPhoneNumber;
   final int eventId;
   final String eventName;
   final String eventLocation;
@@ -16,6 +17,7 @@ class ReservationDetail {
   final double totalPrice;
   final String reservationStatus;
   final String? ticketQRCodeLink;
+  final String? cancellationReason;
   final OrderPayment payment;
 
   static const _statusLabels = {
@@ -36,6 +38,7 @@ class ReservationDetail {
     required this.userId,
     required this.userFullName,
     required this.userEmail,
+    this.userPhoneNumber,
     required this.eventId,
     required this.eventName,
     required this.eventLocation,
@@ -47,6 +50,7 @@ class ReservationDetail {
     required this.totalPrice,
     required this.reservationStatus,
     this.ticketQRCodeLink,
+    this.cancellationReason,
     required this.payment,
   });
 
@@ -56,6 +60,7 @@ class ReservationDetail {
       userId: json['userId'] ?? 0,
       userFullName: json['userFullName'] ?? '',
       userEmail: json['userEmail'] ?? '',
+      userPhoneNumber: json['userPhoneNumber'],
       eventId: json['eventId'] ?? 0,
       eventName: json['eventName'] ?? '',
       eventLocation: json['eventLocation'] ?? '',
@@ -67,6 +72,7 @@ class ReservationDetail {
       totalPrice: (json['totalPrice'] as num?)?.toDouble() ?? 0,
       reservationStatus: _parseStatus(json['reservationStatus']),
       ticketQRCodeLink: json['ticketQRCodeLink'],
+      cancellationReason: json['cancellationReason'],
       payment: OrderPayment.fromJson(json['payment'] as Map<String, dynamic>? ?? {}),
     );
   }

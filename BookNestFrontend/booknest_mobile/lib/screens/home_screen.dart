@@ -36,9 +36,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadData() async {
     try {
-      final books = await _bookService.getRecommendedBooks();
-      final recommended = await _eventService.getRecommendedEvents();
-      final reservations = await _reservationService.getMyReservations();
+      final results = await Future.wait([
+        _bookService.getRecommendedBooks(),
+        _eventService.getRecommendedEvents(),
+        _reservationService.getMyReservations(),
+      ]);
+      final books = results[0] as List<BookRecommendation>;
+      final recommended = results[1] as List<EventRecommendation>;
+      final reservations = results[2] as List<ReservationModel>;
 
       final now = DateTime.now();
       final upcoming = reservations
@@ -92,7 +97,6 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top picks
             _SectionCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -158,7 +162,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 18),
 
-            // Maybe interested
             _SectionCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,7 +244,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 18),
 
-            // Upcoming events
             _SectionCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

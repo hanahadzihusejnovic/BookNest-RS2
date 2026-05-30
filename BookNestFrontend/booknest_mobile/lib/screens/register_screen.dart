@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/city.dart';
 import '../models/country.dart';
 import '../models/register_request.dart';
@@ -34,7 +35,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  DateTime _selectedDate = DateTime.now().subtract(const Duration(days: 365 * 18));
+  DateTime? _selectedDate;
   bool _isLoading = false;
 
   List<Country> _countries = [];
@@ -69,7 +70,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         });
       }
     } catch (e) {
-      print('❌ Failed to load countries/cities: $e');
     }
   }
 
@@ -173,11 +173,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (_phoneController.text.isNotEmpty) {
-      if (!RegExp(r'^[0-9+\-\s()]+$').hasMatch(_phoneController.text)) {
-        setState(() => _phoneError = 'Invalid phone format');
-        hasError = true;
-      } else if (_phoneController.text.replaceAll(RegExp(r'[^0-9]'), '').length < 9) {
-        setState(() => _phoneError = 'Min 9 digits');
+      if (!RegExp(r'^\+?[0-9\s\-\(\)]{7,20}$').hasMatch(_phoneController.text)) {
+        setState(() => _phoneError = 'Enter a valid phone number (e.g. +387 61 234 567)');
         hasError = true;
       }
     }
@@ -187,14 +184,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Korak 1: Registracija
       final request = RegisterRequest(
         firstName: _firstNameController.text,
         lastName: _lastNameController.text,
         emailAddress: _emailController.text,
         username: _usernameController.text,
         password: _passwordController.text,
-        dateOfBirth: _selectedDate,
+        dateOfBirth: _selectedDate ?? DateTime.now().subtract(const Duration(days: 365 * 18)),
         address: _addressController.text.isEmpty ? null : _addressController.text,
         cityId: _selectedCity?.id,
         countryId: _selectedCountry?.id,
@@ -203,10 +199,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       await _authService.register(request);
 
-      // Korak 2: Automatski login
       await _authService.login(_usernameController.text, _passwordController.text);
 
-      // Korak 3: Upload slike ako je odabrana
       if (_selectedImage != null) {
         try {
           final imageUrl = await _userService.uploadImage(_selectedImage!);
@@ -218,7 +212,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             imageUrl: imageUrl,
           );
         } catch (e) {
-          print('⚠️ Image upload failed: $e');
         }
       }
 
@@ -230,7 +223,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       }
     } catch (e) {
-      print('🔴 REGISTER ERROR: $e');
       if (mounted) {
         final message = e.toString().replaceFirst('Exception: ', '');
         AppSnackBar.show(context, message, isError: true);
@@ -243,7 +235,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: _selectedDate ?? DateTime.now().subtract(const Duration(days: 365 * 18)),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
@@ -312,7 +304,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             const SizedBox(height: 32),
 
-            // Profile image picker
             Center(
               child: GestureDetector(
                 onTap: _pickImage,
@@ -367,6 +358,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _buildTextField(
                     controller: _firstNameController,
                     hint: 'First Name',
+                    maxLength: 50,
                     errorText: _firstNameError,
                     onChanged: () { if (_firstNameError != null) setState(() => _firstNameError = null); },
                   ),
@@ -374,6 +366,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _buildTextField(
                     controller: _lastNameController,
                     hint: 'Last Name',
+                    maxLength: 50,
                     errorText: _lastNameError,
                     onChanged: () { if (_lastNameError != null) setState(() => _lastNameError = null); },
                   ),
@@ -381,6 +374,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _buildTextField(
                     controller: _emailController,
                     hint: 'Email',
+                    maxLength: 50,
                     keyboardType: TextInputType.emailAddress,
                     errorText: _emailError,
                     onChanged: () { if (_emailError != null) setState(() => _emailError = null); },
@@ -389,6 +383,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _buildTextField(
                     controller: _usernameController,
                     hint: 'Username',
+                    maxLength: 100,
                     errorText: _usernameError,
                     onChanged: () { if (_usernameError != null) setState(() => _usernameError = null); },
                   ),
@@ -396,6 +391,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _buildTextField(
                     controller: _passwordController,
                     hint: 'Password',
+                    maxLength: 100,
                     obscureText: true,
                     errorText: _passwordError,
                     onChanged: () { if (_passwordError != null) setState(() => _passwordError = null); },
@@ -404,13 +400,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _buildTextField(
                     controller: _confirmPasswordController,
                     hint: 'Confirm Password',
+                    maxLength: 100,
                     obscureText: true,
                     errorText: _confirmPasswordError,
                     onChanged: () { if (_confirmPasswordError != null) setState(() => _confirmPasswordError = null); },
                   ),
                   const SizedBox(height: 32),
 
-                  // Date of Birth
                   GestureDetector(
                     onTap: _selectDate,
                     child: Column(
@@ -420,7 +416,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Date of Birth: ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
+                              _selectedDate == null
+                                  ? 'Date of Birth'
+                                  : 'Date of Birth: ${_selectedDate!.day}/${_selectedDate!.month}/${_selectedDate!.year}',
                               style: const TextStyle(color: AppColors.darkBrown, fontSize: 16),
                             ),
                             const Icon(Icons.calendar_today, color: AppColors.darkBrown, size: 20),
@@ -439,10 +437,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 24),
 
-                  _buildTextField(controller: _addressController, hint: 'Address (optional)'),
+                  _buildTextField(controller: _addressController, hint: 'Address (optional)', maxLength: 255),
                   const SizedBox(height: 32),
 
-                  // Country dropdown
                   _buildDropdown<Country>(
                     hint: 'Country (optional)',
                     value: _selectedCountry,
@@ -452,7 +449,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                   const SizedBox(height: 32),
 
-                  // City dropdown
                   _buildDropdown<City>(
                     hint: _selectedCountry == null ? 'Select country first' : 'City (optional)',
                     value: _selectedCity,
@@ -467,6 +463,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   _buildTextField(
                     controller: _phoneController,
                     hint: 'Phone Number (optional)',
+                    maxLength: 20,
                     keyboardType: TextInputType.phone,
                     errorText: _phoneError,
                     onChanged: () { if (_phoneError != null) setState(() => _phoneError = null); },
@@ -534,6 +531,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     TextInputType? keyboardType,
     String? errorText,
     VoidCallback? onChanged,
+    int? maxLength,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -544,6 +542,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: controller,
             obscureText: obscureText,
             keyboardType: keyboardType,
+            maxLength: maxLength,
+            maxLengthEnforcement: MaxLengthEnforcement.enforced,
             onChanged: (value) { if (onChanged != null) onChanged(); },
             style: const TextStyle(color: AppColors.darkBrown, fontSize: 16),
             decoration: InputDecoration(
@@ -552,6 +552,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               border: InputBorder.none,
               isDense: true,
               contentPadding: EdgeInsets.zero,
+              counterText: '',
             ),
           ),
         ),

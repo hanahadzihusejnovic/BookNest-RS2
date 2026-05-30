@@ -26,6 +26,7 @@ namespace BookNest.Model.Requests
 
         [Required]
         public EventType EventType { get; set; }
+        [MaxLength(255)]
         public string? Address { get; set; }
         public int? CityId { get; set; }
         public int? CountryId { get; set; }
@@ -39,6 +40,7 @@ namespace BookNest.Model.Requests
         [Required]
         public bool IsActive { get; set; } = true;
 
+        [MaxLength(500)]
         public string? ImageUrl { get; set; }
 
         [Required]

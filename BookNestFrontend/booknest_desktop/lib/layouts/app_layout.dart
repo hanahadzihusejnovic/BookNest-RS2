@@ -36,7 +36,6 @@ class AppLayout extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header: BookNest logo + hamburger
                   Row(
                     children: [
                       Expanded(
@@ -77,7 +76,6 @@ class AppLayout extends StatelessWidget {
 
                   const SizedBox(height: 12),
 
-                  // Page title + bell
                   Row(
                     children: [
                       if (onBack != null) ...[
@@ -242,7 +240,6 @@ class _AdminDrawer extends StatelessWidget {
 
             const Spacer(),
 
-            // LOGOUT
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               child: InkWell(

@@ -6,7 +6,6 @@ import '../models/login_response.dart';
 
 class ApiService {
 
-  // Login
   Future<LoginResponse> login(LoginRequest request) async {
     try {
       final response = await http.post(
@@ -27,7 +26,6 @@ class ApiService {
     }
   }
 
-  // GET request
   Future<http.Response> get(String endpoint, String token) async {
     final response = await http.get(
       Uri.parse('${AppConstants.baseUrl}/$endpoint'),
@@ -39,7 +37,6 @@ class ApiService {
     return response;
   }
 
-  // POST request
   Future<http.Response> post(String endpoint, Map<String, dynamic> data, String token) async {
     final response = await http.post(
       Uri.parse('${AppConstants.baseUrl}/$endpoint'),
@@ -52,7 +49,6 @@ class ApiService {
     return response;
   }
 
-  // PUT request
   Future<http.Response> put(String endpoint, Map<String, dynamic> data, String token) async {
     final response = await http.put(
       Uri.parse('${AppConstants.baseUrl}/$endpoint'),
@@ -65,7 +61,6 @@ class ApiService {
     return response;
   }
 
-  // DELETE request
   Future<http.Response> delete(String endpoint, String token) async {
     final response = await http.delete(
       Uri.parse('${AppConstants.baseUrl}/$endpoint'),

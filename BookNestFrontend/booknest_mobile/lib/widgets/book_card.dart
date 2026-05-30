@@ -228,7 +228,6 @@ class BookCard extends StatelessWidget {
             ),
           ),
 
-          // Info ikonica — prikazuje se samo kad postoji reason
           if (reason != null && reason!.isNotEmpty)
             Positioned(
               top: 4,

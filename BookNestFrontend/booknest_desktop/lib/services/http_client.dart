@@ -6,6 +6,7 @@ import '../main.dart';
 import '../screens/login_screen.dart';
 
 class HttpClient {
+  static const _tokenKey = 'auth_token';
   static const _rememberMeKey = 'remember_me';
   static const _savedUsernameKey = 'saved_username';
   static const _savedPasswordKey = 'saved_password';
@@ -31,26 +32,36 @@ class HttpClient {
     );
   }
 
+  static Future<Map<String, String>> _authHeaders([Map<String, String>? extra]) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(_tokenKey);
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+      if (extra != null) ...extra,
+    };
+  }
+
   static Future<http.Response> get(Uri url, {Map<String, String>? headers}) async {
-    final response = await http.get(url, headers: headers);
+    final response = await http.get(url, headers: await _authHeaders(headers));
     if (response.statusCode == 401) await _handleUnauthorized();
     return response;
   }
 
   static Future<http.Response> post(Uri url, {Map<String, String>? headers, Object? body, Encoding? encoding}) async {
-    final response = await http.post(url, headers: headers, body: body, encoding: encoding);
+    final response = await http.post(url, headers: await _authHeaders(headers), body: body, encoding: encoding);
     if (response.statusCode == 401) await _handleUnauthorized();
     return response;
   }
 
   static Future<http.Response> put(Uri url, {Map<String, String>? headers, Object? body, Encoding? encoding}) async {
-    final response = await http.put(url, headers: headers, body: body, encoding: encoding);
+    final response = await http.put(url, headers: await _authHeaders(headers), body: body, encoding: encoding);
     if (response.statusCode == 401) await _handleUnauthorized();
     return response;
   }
 
   static Future<http.Response> delete(Uri url, {Map<String, String>? headers, Object? body, Encoding? encoding}) async {
-    final response = await http.delete(url, headers: headers, body: body, encoding: encoding);
+    final response = await http.delete(url, headers: await _authHeaders(headers), body: body, encoding: encoding);
     if (response.statusCode == 401) await _handleUnauthorized();
     return response;
   }

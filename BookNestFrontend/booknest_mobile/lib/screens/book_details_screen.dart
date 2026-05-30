@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/book.dart';
+import '../models/order.dart';
 import '../layouts/constants.dart';
 import '../layouts/app_layout.dart';
 import '../services/review_service.dart';
+import '../services/order_service.dart';
 import '../services/cart_service.dart';
 import '../services/favorite_service.dart';
 import '../services/tbr_service.dart';
@@ -36,6 +38,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   bool _isLoadingTBR = false;
   int? _currentUserId;
   bool _hasMyReview = false;
+  bool _canReviewBook = false;
 
   @override
   void initState() {
@@ -52,20 +55,28 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     setState(() => _currentUserId = userId);
 
     try {
-      final reviews = await _reviewService.getBookReviews(widget.book.id);
+      final results = await Future.wait([
+        _reviewService.getBookReviews(widget.book.id),
+        OrderService().getMyOrders(),
+      ]);
+      final reviews = results[0] as List<BookReview>;
+      final orders = results[1] as List<OrderModel>;
       final avg = reviews.isEmpty
           ? 0.0
           : reviews.map((r) => r.rating).reduce((a, b) => a + b) /
               reviews.length;
+      final canReview = orders.any((o) =>
+          o.status == 'Delivered' &&
+          o.orderItems.any((i) => i.bookId == widget.book.id));
       if (mounted) {
         setState(() {
           _reviews = reviews;
           _averageRating = avg;
           _hasMyReview = reviews.any((r) => r.userId == userId);
+          _canReviewBook = canReview;
         });
       }
     } catch (_) {
-      // Ako API padne, koristimo reviews iz widget.book
       if (mounted) {
         setState(() {
           _hasMyReview = _reviews.any((r) => r.userId == userId);
@@ -262,12 +273,24 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: AppColors.pageBg,
-              title: Text(
-                'Add a review',
-                style: TextStyle(
-                  color: AppColors.darkBrown,
-                  fontWeight: FontWeight.w800,
-                ),
+              title: Row(
+                children: [
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Text(
+                      'Add a review',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.darkBrown,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Icon(Icons.close, color: AppColors.darkBrown, size: 20),
+                  ),
+                ],
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -331,13 +354,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 ],
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text(
-                    'Cancel',
-                    style: TextStyle(color: AppColors.darkBrown),
-                  ),
-                ),
                 ElevatedButton(
                   onPressed: isSubmitting
                       ? null
@@ -417,12 +433,24 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           builder: (context, setDialogState) {
             return AlertDialog(
               backgroundColor: AppColors.pageBg,
-              title: Text(
-                'Update your review',
-                style: TextStyle(
-                  color: AppColors.darkBrown,
-                  fontWeight: FontWeight.w800,
-                ),
+              title: Row(
+                children: [
+                  const SizedBox(width: 20),
+                  Expanded(
+                    child: Text(
+                      'Update your review',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.darkBrown,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Icon(Icons.close, color: AppColors.darkBrown, size: 20),
+                  ),
+                ],
               ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -484,11 +512,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
                 ],
               ),
               actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel',
-                      style: TextStyle(color: AppColors.darkBrown)),
-                ),
                 ElevatedButton(
                   onPressed: isSubmitting
                       ? null
@@ -650,36 +673,55 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              book.description ?? 'Description not available.',
-              maxLines: _descExpanded ? null : 3,
-              overflow: _descExpanded
-                  ? TextOverflow.visible
-                  : TextOverflow.ellipsis,
-              style: TextStyle(
-                color: AppColors.darkBrown.withValues(alpha: 0.72),
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                height: 1.35,
-              ),
-            ),
-            if ((book.description?.length ?? 0) > 150) ...[
-              const SizedBox(height: 6),
-              GestureDetector(
-                onTap: () => setState(() => _descExpanded = !_descExpanded),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    _descExpanded ? 'View less' : 'View more',
-                    style: TextStyle(
-                      color: AppColors.darkBrown.withValues(alpha: 0.6),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const descStyle = TextStyle(
+                  color: AppColors.darkBrown,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  height: 1.35,
+                );
+                final text = book.description ?? 'Description not available.';
+                final tp = TextPainter(
+                  text: TextSpan(text: text, style: descStyle),
+                  maxLines: 3,
+                  textDirection: TextDirection.ltr,
+                )..layout(maxWidth: constraints.maxWidth);
+                final overflows = tp.didExceedMaxLines;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      text,
+                      maxLines: _descExpanded ? null : 3,
+                      overflow: _descExpanded
+                          ? TextOverflow.visible
+                          : TextOverflow.ellipsis,
+                      style: descStyle,
                     ),
-                  ),
-                ),
-              ),
-            ],
+                    if (overflows) ...[
+                      const SizedBox(height: 6),
+                      GestureDetector(
+                        onTap: () =>
+                            setState(() => _descExpanded = !_descExpanded),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            _descExpanded ? 'View less' : 'View more',
+                            style: TextStyle(
+                              color: AppColors.darkBrown.withValues(alpha: 0.6),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              },
+            ),
 
             const SizedBox(height: 18),
 
@@ -704,6 +746,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
             _ReviewsSection(
               reviews: _reviews,
               hasMyReview: _hasMyReview,
+              canReviewBook: _canReviewBook,
               onAddReview: _showAddReviewDialog,
               onUpdateReview: _showUpdateReviewDialog,
               onDeleteReview: _showDeleteReviewDialog,
@@ -711,7 +754,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
             const SizedBox(height: 18),
 
-            // Red 1: Add to cart + Add to favorites
             Row(
               children: [
                 Expanded(
@@ -752,7 +794,6 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
             const SizedBox(height: 10),
 
-            // Red 2: Add to TBR List
             Center(
               child: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.6,
@@ -795,36 +836,55 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
               ),
             ),
             const SizedBox(height: 8),
-            Text(
-              book.authorBiography ?? 'Biography not available.',
-              maxLines: _authorExpanded ? null : 3,
-              overflow: _authorExpanded
-                  ? TextOverflow.visible
-                  : TextOverflow.ellipsis,
-              style: TextStyle(
-                color: AppColors.darkBrown.withValues(alpha: 0.72),
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                height: 1.35,
-              ),
-            ),
-            if ((book.authorBiography?.length ?? 0) > 150) ...[
-              const SizedBox(height: 6),
-              GestureDetector(
-                onTap: () => setState(() => _authorExpanded = !_authorExpanded),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(
-                    _authorExpanded ? 'View less' : 'View more',
-                    style: TextStyle(
-                      color: AppColors.darkBrown.withValues(alpha: 0.6),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                const bioStyle = TextStyle(
+                  color: AppColors.darkBrown,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  height: 1.35,
+                );
+                final text = book.authorBiography ?? 'Biography not available.';
+                final tp = TextPainter(
+                  text: TextSpan(text: text, style: bioStyle),
+                  maxLines: 3,
+                  textDirection: TextDirection.ltr,
+                )..layout(maxWidth: constraints.maxWidth);
+                final overflows = tp.didExceedMaxLines;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      text,
+                      maxLines: _authorExpanded ? null : 3,
+                      overflow: _authorExpanded
+                          ? TextOverflow.visible
+                          : TextOverflow.ellipsis,
+                      style: bioStyle,
                     ),
-                  ),
-                ),
-              ),
-            ],
+                    if (overflows) ...[
+                      const SizedBox(height: 6),
+                      GestureDetector(
+                        onTap: () =>
+                            setState(() => _authorExpanded = !_authorExpanded),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            _authorExpanded ? 'View less' : 'View more',
+                            style: TextStyle(
+                              color: AppColors.darkBrown.withValues(alpha: 0.6),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              },
+            ),
 
             const SizedBox(height: 30),
           ],
@@ -1034,6 +1094,7 @@ class _QuantityButton extends StatelessWidget {
 class _ReviewsSection extends StatelessWidget {
   final List<BookReview> reviews;
   final bool hasMyReview;
+  final bool canReviewBook;
   final VoidCallback onAddReview;
   final Function(BookReview) onUpdateReview;
   final Function(BookReview) onDeleteReview;
@@ -1041,6 +1102,7 @@ class _ReviewsSection extends StatelessWidget {
   const _ReviewsSection({
     required this.reviews,
     required this.hasMyReview,
+    required this.canReviewBook,
     required this.onAddReview,
     required this.onUpdateReview,
     required this.onDeleteReview,
@@ -1111,7 +1173,7 @@ class _ReviewsSection extends StatelessWidget {
               width: 250,
               height: 44,
               child: ElevatedButton(
-                onPressed: hasMyReview ? null : onAddReview,
+                onPressed: (hasMyReview || !canReviewBook) ? null : onAddReview,
                 style: ElevatedButton.styleFrom(
                   elevation: 0,
                   backgroundColor: AppColors.darkBrown,
@@ -1121,7 +1183,9 @@ class _ReviewsSection extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  hasMyReview ? 'Already reviewed' : 'Add a review',
+                  hasMyReview
+                      ? 'Already reviewed'
+                      : (canReviewBook ? 'Add a review' : 'Book not bought'),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 13.5,

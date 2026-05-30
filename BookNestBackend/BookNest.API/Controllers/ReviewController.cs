@@ -59,7 +59,7 @@ namespace BookNest.API.Controllers
         [HttpGet("my-reviews")]
         public async Task<ActionResult<List<ReviewResponse>>> GetMyReviews()
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
             if (userId == 0) return Unauthorized();
 
             var reviews = await _reviewService.GetUserReviewsAsync(userId);
@@ -69,7 +69,7 @@ namespace BookNest.API.Controllers
         [HttpPost]
         public override async Task<ReviewResponse> Create([FromBody] ReviewInsertRequest request)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
             if (userId == 0) 
                 throw new UnauthorizedAccessException();
 
@@ -79,7 +79,7 @@ namespace BookNest.API.Controllers
         [HttpPut("{id}")]
         public override async Task<ReviewResponse?> Update(int id, [FromBody] ReviewUpdateRequest request)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
             if (userId == 0) return null;
 
             return await _reviewService.UpdateReviewAsync(id, userId, request);
@@ -88,7 +88,7 @@ namespace BookNest.API.Controllers
         [HttpDelete("{id}")]
         public override async Task<bool> Delete(int id)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
             if (userId == 0) return false;
 
             var isAdmin = User.IsInRole(Roles.Admin);

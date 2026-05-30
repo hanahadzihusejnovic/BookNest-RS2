@@ -16,7 +16,7 @@ class AuthService {
   static const String _lastNameKey = 'last_name';
   static const String _emailKey = 'email';
   static const String _rolesKey = 'roles';
-  static const String _expiresAtKey = 'expires_at'; // ← NOVO
+  static const String _expiresAtKey = 'expires_at';
 
   static const String _rememberMeKey = 'remember_me';
   static const String _savedUsernameKey = 'saved_username';
@@ -46,7 +46,6 @@ class AuthService {
         );
       }
     } catch (e) {
-      print('⚠️ LOGOUT: Server logout failed: $e');
     }
 
     final prefs = await SharedPreferences.getInstance();
@@ -63,7 +62,6 @@ class AuthService {
       await prefs.setString(_savedPasswordKey, savedPassword);
     }
 
-    print('✅ LOGOUT: User data cleared');
   }
 
   Future<bool> isLoggedIn() async {
@@ -72,7 +70,6 @@ class AuthService {
 
     if (token == null || token.isEmpty) return false;
 
-    // Provjeri je li token istekao
     final expiresAtStr = prefs.getString(_expiresAtKey);
     if (expiresAtStr != null) {
       final expiresAt = DateTime.parse(expiresAtStr);
@@ -89,7 +86,6 @@ class AuthService {
           await prefs.setString(_savedPasswordKey, savedPassword);
         }
 
-        print('⚠️ AUTH: Token expired, clearing local data');
         return false;
       }
     }
@@ -137,19 +133,16 @@ class AuthService {
     await prefs.setString(_lastNameKey, response.lastName);
     await prefs.setString(_emailKey, response.emailAddress);
     await prefs.setStringList(_rolesKey, response.roles);
-    await prefs.setString(_expiresAtKey, response.expiresAt.toIso8601String()); // ← NOVO
+    await prefs.setString(_expiresAtKey, response.expiresAt.toIso8601String());
 
-    print('✅ AUTH SERVICE: Saved user data with roles: ${response.roles}');
   }
 
-  // ========== REMEMBER ME METODE ========== //
 
   Future<void> saveRememberMe(String username, String password) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_rememberMeKey, true);
     await prefs.setString(_savedUsernameKey, username);
     await prefs.setString(_savedPasswordKey, password);
-    print('✅ Remember Me: Credentials saved');
   }
 
   Future<void> clearRememberMe() async {
@@ -157,7 +150,6 @@ class AuthService {
     await prefs.setBool(_rememberMeKey, false);
     await prefs.remove(_savedUsernameKey);
     await prefs.remove(_savedPasswordKey);
-    print('✅ Remember Me: Credentials cleared');
   }
 
   Future<bool> isRememberMeEnabled() async {
@@ -174,11 +166,8 @@ class AuthService {
     final password = prefs.getString(_savedPasswordKey);
     if (username == null || password == null) return null;
 
-    print('✅ Remember Me: Credentials loaded (username: $username)');
     return {'username': username, 'password': password};
   }
-
-  // ========== ROLE METODE ========== //
 
   Future<List<String>> getRoles() async {
     final prefs = await SharedPreferences.getInstance();

@@ -33,7 +33,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     _loadData();
-    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) => _loadData());
+    _refreshTimer = Timer.periodic(const Duration(seconds: 10), (_) => _loadData());
   }
 
   @override
@@ -86,7 +86,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top row: Users, Books, Events
             Row(
               children: [
                 Expanded(
@@ -125,7 +124,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 14),
 
-            // Bottom row: Orders, Reservations
             Row(
               children: [
                 const Spacer(),
@@ -177,7 +175,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Bar chart
             if (_isLoading)
               const Center(
                 child: CircularProgressIndicator(color: AppColors.darkBrown),

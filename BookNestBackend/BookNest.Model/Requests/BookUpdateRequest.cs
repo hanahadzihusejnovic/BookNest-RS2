@@ -15,6 +15,7 @@ namespace BookNest.Model.Requests
         [MaxLength(1000)]
         public string Description { get; set; } = string.Empty;
 
+        [MaxLength(500)]
         public string? CoverImageUrl { get; set; }
 
         public DateTime? PublicationDate { get; set; }

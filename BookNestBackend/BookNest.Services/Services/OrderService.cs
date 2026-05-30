@@ -23,6 +23,7 @@ namespace BookNest.Services.Services
         {
             _dbContext = dbContext;
             _publisher = publisher;
+            Stripe.StripeConfiguration.ApiKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
         }
 
         protected override IQueryable<Order> ApplyFilter(IQueryable<Order> query, OrderSearchObject search)
@@ -121,7 +122,6 @@ namespace BookNest.Services.Services
             if (cart == null || !cart.CartItems.Any())
                 throw new BusinessException("Cart is empty or does not exist.");
 
-            // Spriječi višestruko plaćanje iste stavke
             var cartBookIds = cart.CartItems.Select(ci => ci.BookId).ToHashSet();
 
             var alreadyPaid = await _dbContext.OrderItems
@@ -138,9 +138,14 @@ namespace BookNest.Services.Services
             if (alreadyPaid)
                 throw new BusinessException("Some items in your cart have already been paid for.");
 
+            foreach (var cartItem in cart.CartItems)
+            {
+                if (cartItem.Book.Stock < cartItem.Quantity)
+                    throw new BusinessException($"Not enough stock for '{cartItem.Book.Title}'. Available: {cartItem.Book.Stock}.");
+            }
+
             decimal totalPrice = cart.CartItems.Sum(ci => ci.Price * ci.Quantity);
 
-            // Verificiraj plaćanje na serveru
             bool isSuccessful;
             string? transactionId = null;
 
@@ -149,7 +154,6 @@ namespace BookNest.Services.Services
                 if (string.IsNullOrEmpty(request.PaymentIntentId))
                     throw new BusinessException("PaymentIntentId is required for card payments.");
 
-                Stripe.StripeConfiguration.ApiKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
                 var service = new Stripe.PaymentIntentService();
                 var intent = await service.GetAsync(request.PaymentIntentId, cancellationToken: cancellationToken);
 
@@ -161,7 +165,6 @@ namespace BookNest.Services.Services
             }
             else
             {
-                // Cash on Delivery — server evidentira kao uspješno
                 isSuccessful = true;
                 transactionId = $"COD-{Guid.NewGuid()}";
             }
@@ -202,6 +205,7 @@ namespace BookNest.Services.Services
                         Price = cartItem.Price
                     };
                     _dbContext.OrderItems.Add(orderItem);
+                    cartItem.Book.Stock -= cartItem.Quantity;
                 }
 
                 var payment = new Payment
@@ -249,6 +253,14 @@ namespace BookNest.Services.Services
             return _mapper.Map<List<OrderResponse>>(orders);
         }
 
+        private static readonly Dictionary<OrderStatus, List<OrderStatus>> _allowedOrderTransitions = new()
+        {
+            { OrderStatus.Pending,   new List<OrderStatus> { OrderStatus.Shipped, OrderStatus.Cancelled } },
+            { OrderStatus.Shipped,   new List<OrderStatus> { OrderStatus.Delivered, OrderStatus.Cancelled } },
+            { OrderStatus.Delivered, new List<OrderStatus>() },
+            { OrderStatus.Cancelled, new List<OrderStatus>() },
+        };
+
         public override async Task<OrderResponse?> UpdateAsync(int id, OrderUpdateRequest request, CancellationToken cancellationToken = default)
         {
             var order = await _dbContext.Orders
@@ -258,35 +270,132 @@ namespace BookNest.Services.Services
             if (order == null)
                 throw new NotFoundException("Order not found.");
 
+            if (!_allowedOrderTransitions.TryGetValue(order.Status, out var allowed) || !allowed.Contains(request.Status))
+                throw new BusinessException($"Cannot transition order from '{order.Status}' to '{request.Status}'.");
+
+            if (request.Status == OrderStatus.Cancelled && string.IsNullOrWhiteSpace(request.CancellationReason))
+                throw new BusinessException("Cancellation reason is required when cancelling an order.");
+
             order.Status = request.Status;
             order.ShippedDate = request.ShippedDate;
+            order.StatusChangedAt = DateTime.UtcNow;
+            order.CancellationReason = request.CancellationReason;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             var (title, message) = request.Status switch
             {
-                OrderStatus.Processing => ("Order is being processed", $"Your order #{order.Id} is now being processed."),
                 OrderStatus.Shipped => ("Order has been shipped", $"Your order #{order.Id} is on its way!"),
                 OrderStatus.Delivered => ("Order delivered", $"Your order #{order.Id} has been delivered."),
-                OrderStatus.Cancelled => ("Order cancelled", $"Your order #{order.Id} has been cancelled."),
+                OrderStatus.Cancelled => ("Order cancelled", $"Your order #{order.Id} has been cancelled. Reason: {request.CancellationReason}"),
                 _ => ("Order updated", $"Your order #{order.Id} status has been updated.")
             };
 
-            await _publisher.PublishAsync("notifications-queue", new NotificationMessage
+            try
             {
-                UserId = order.UserId,
-                Title = title,
-                Message = message,
-                NotificationType = "OrderStatusChanged",
-                SendAt = DateTime.UtcNow
-            });
+                await _publisher.PublishAsync("notifications-queue", new NotificationMessage
+                {
+                    UserId = order.UserId,
+                    Title = title,
+                    Message = message,
+                    NotificationType = "OrderStatusChanged",
+                    SendAt = DateTime.UtcNow
+                });
+            }
+            catch { }
+
+            return await GetByIdAsync(id, cancellationToken);
+        }
+
+        public async Task<OrderResponse> CancelUserOrderAsync(int id, int userId, string cancellationReason, CancellationToken cancellationToken = default)
+        {
+            var order = await _dbContext.Orders
+                .Include(o => o.User)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Book)
+                .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
+
+            if (order == null || order.UserId != userId)
+                throw new NotFoundException("Order not found.");
+
+            if (order.Status != OrderStatus.Pending)
+                throw new BusinessException("Only pending orders can be cancelled.");
+
+            if (string.IsNullOrWhiteSpace(cancellationReason))
+                throw new BusinessException("Cancellation reason is required.");
+
+            foreach (var item in order.OrderItems)
+                item.Book.Stock += item.Quantity;
+
+            order.Status = OrderStatus.Cancelled;
+            order.StatusChangedAt = DateTime.UtcNow;
+            order.StatusChangedByUserId = userId;
+            order.CancellationReason = cancellationReason;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return await GetByIdAsync(id, cancellationToken)
+                   ?? throw new BusinessException("Failed to retrieve cancelled order.");
+        }
+
+        public async Task<OrderResponse?> UpdateStatusAsync(int id, OrderUpdateRequest request, int changedByUserId, CancellationToken cancellationToken = default)
+        {
+            var order = await _dbContext.Orders
+                .Include(o => o.User)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Book)
+                .FirstOrDefaultAsync(o => o.Id == id, cancellationToken);
+
+            if (order == null)
+                throw new NotFoundException("Order not found.");
+
+            if (!_allowedOrderTransitions.TryGetValue(order.Status, out var allowed) || !allowed.Contains(request.Status))
+                throw new BusinessException($"Cannot transition order from '{order.Status}' to '{request.Status}'.");
+
+            if (request.Status == OrderStatus.Cancelled && string.IsNullOrWhiteSpace(request.CancellationReason))
+                throw new BusinessException("Cancellation reason is required when cancelling an order.");
+
+            if (request.Status == OrderStatus.Cancelled)
+            {
+                foreach (var item in order.OrderItems)
+                    item.Book.Stock += item.Quantity;
+            }
+
+            order.Status = request.Status;
+            if (request.ShippedDate.HasValue)
+                order.ShippedDate = request.ShippedDate;
+            order.StatusChangedAt = DateTime.UtcNow;
+            order.StatusChangedByUserId = changedByUserId;
+            order.CancellationReason = request.CancellationReason;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            var (title, message) = request.Status switch
+            {
+                OrderStatus.Shipped => ("Order has been shipped", $"Your order #{order.Id} is on its way!"),
+                OrderStatus.Delivered => ("Order delivered", $"Your order #{order.Id} has been delivered."),
+                OrderStatus.Cancelled => ("Order cancelled", $"Your order #{order.Id} has been cancelled. Reason: {request.CancellationReason}"),
+                _ => ("Order updated", $"Your order #{order.Id} status has been updated.")
+            };
+
+            try
+            {
+                await _publisher.PublishAsync("notifications-queue", new NotificationMessage
+                {
+                    UserId = order.UserId,
+                    Title = title,
+                    Message = message,
+                    NotificationType = "OrderStatusChanged",
+                    SendAt = DateTime.UtcNow
+                });
+            }
+            catch { }
 
             return await GetByIdAsync(id, cancellationToken);
         }
 
         public async Task<PaymentIntentResponse> CreatePaymentIntentAsync(PaymentIntentRequest request)
         {
-            Stripe.StripeConfiguration.ApiKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
             var options = new Stripe.PaymentIntentCreateOptions
             {
                 Amount = (long)(request.Amount * 100),

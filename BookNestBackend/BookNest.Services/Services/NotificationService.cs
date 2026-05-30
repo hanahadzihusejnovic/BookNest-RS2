@@ -71,14 +71,9 @@ namespace BookNest.Services.Services
 
         public async Task MarkAllAsReadAsync(int userId)
         {
-            var notifications = await _dbContext.Notifications
+            await _dbContext.Notifications
                 .Where(n => n.UserId == userId && !n.IsRead)
-                .ToListAsync();
-
-            foreach (var n in notifications)
-                n.IsRead = true;
-
-            await _dbContext.SaveChangesAsync();
+                .ExecuteUpdateAsync(s => s.SetProperty(n => n.IsRead, true));
         }
     }
 }

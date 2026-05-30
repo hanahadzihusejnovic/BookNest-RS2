@@ -1,17 +1,17 @@
-﻿using BookNest.API.Hubs;
+﻿using BookNest.API.BaseControllers;
+using BookNest.API.Hubs;
+using BookNest.Model.Constants;
 using BookNest.Model.Messages;
 using BookNest.Model.Responses;
 using BookNest.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
-using System.Security.Claims;
 
 namespace BookNest.API.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class NotificationController : ControllerBase
+    [Authorize]
+    public class NotificationController : ApiController
     {
         private readonly IHubContext<NotificationHub> _hubContext;
         private readonly INotificationService _notificationService;
@@ -25,6 +25,7 @@ namespace BookNest.API.Controllers
         }
 
         [HttpPost("send")]
+        [AllowAnonymous]
         public async Task<IActionResult> Send([FromBody] NotificationMessage message)
         {
             await _notificationService.SaveAsync(message);
@@ -43,10 +44,9 @@ namespace BookNest.API.Controllers
         }
 
         [HttpGet("my-notifications")]
-        [Authorize]
         public async Task<ActionResult<List<NotificationResponse>>> GetMyNotifications()
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
             if (userId == 0)
                 return Unauthorized();
 
@@ -55,10 +55,9 @@ namespace BookNest.API.Controllers
         }
 
         [HttpPut("{id}/mark-read")]
-        [Authorize]
         public async Task<IActionResult> MarkAsRead(int id)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
             if (userId == 0)
                 return Unauthorized();
 
@@ -67,10 +66,9 @@ namespace BookNest.API.Controllers
         }
 
         [HttpPut("mark-all-read")]
-        [Authorize]
         public async Task<IActionResult> MarkAllAsRead()
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
             if (userId == 0)
                 return Unauthorized();
 

@@ -9,5 +9,8 @@ namespace BookNest.Model.Requests
         public OrderStatus Status { get; set; }
 
         public DateTime? ShippedDate { get; set; }
+
+        [MaxLength(500)]
+        public string? CancellationReason { get; set; }
     }
 }

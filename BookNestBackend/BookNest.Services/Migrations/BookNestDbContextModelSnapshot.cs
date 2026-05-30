@@ -336,6 +336,10 @@ namespace BookNest.Services.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<DateTime>("EventDateTime")
                         .HasColumnType("datetime2");
 
@@ -352,6 +356,12 @@ namespace BookNest.Services.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<DateTime?>("StatusChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("StatusChangedByUserId")
+                        .HasColumnType("int");
+
                     b.Property<string>("TicketQRCodeLink")
                         .HasColumnType("nvarchar(max)");
 
@@ -364,6 +374,8 @@ namespace BookNest.Services.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EventId");
+
+                    b.HasIndex("StatusChangedByUserId");
 
                     b.HasIndex("UserId");
 
@@ -448,6 +460,10 @@ namespace BookNest.Services.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
 
@@ -461,6 +477,12 @@ namespace BookNest.Services.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<DateTime?>("StatusChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("StatusChangedByUserId")
+                        .HasColumnType("int");
+
                     b.Property<decimal>("TotalPrice")
                         .HasColumnType("decimal(18,2)");
 
@@ -470,6 +492,8 @@ namespace BookNest.Services.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ShippingId");
+
+                    b.HasIndex("StatusChangedByUserId");
 
                     b.HasIndex("UserId");
 
@@ -969,6 +993,10 @@ namespace BookNest.Services.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("BookNest.Services.Database.Entities.User", "StatusChangedByUser")
+                        .WithMany()
+                        .HasForeignKey("StatusChangedByUserId");
+
                     b.HasOne("BookNest.Services.Database.Entities.User", "User")
                         .WithMany("EventReservations")
                         .HasForeignKey("UserId")
@@ -976,6 +1004,8 @@ namespace BookNest.Services.Migrations
                         .IsRequired();
 
                     b.Navigation("Event");
+
+                    b.Navigation("StatusChangedByUser");
 
                     b.Navigation("User");
                 });
@@ -1032,6 +1062,10 @@ namespace BookNest.Services.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("BookNest.Services.Database.Entities.User", "StatusChangedByUser")
+                        .WithMany()
+                        .HasForeignKey("StatusChangedByUserId");
+
                     b.HasOne("BookNest.Services.Database.Entities.User", "User")
                         .WithMany("Orders")
                         .HasForeignKey("UserId")
@@ -1039,6 +1073,8 @@ namespace BookNest.Services.Migrations
                         .IsRequired();
 
                     b.Navigation("Shipping");
+
+                    b.Navigation("StatusChangedByUser");
 
                     b.Navigation("User");
                 });

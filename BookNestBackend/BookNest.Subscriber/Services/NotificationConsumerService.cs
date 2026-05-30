@@ -15,6 +15,7 @@ namespace BookNest.Subscriber.Services
         private IChannel? _channel;
         private const string QueueName = "notifications-queue";
         private const int MaxRetries = 5;
+        private readonly string _apiUrl;
 
         public NotificationConsumerService(
             ILogger<NotificationConsumerService> logger,
@@ -22,6 +23,7 @@ namespace BookNest.Subscriber.Services
         {
             _logger = logger;
             _httpClientFactory = httpClientFactory;
+            _apiUrl = Environment.GetEnvironmentVariable("API_URL") ?? "http://localhost:7110";
         }
 
         public async Task StartConsumingAsync()
@@ -62,9 +64,8 @@ namespace BookNest.Subscriber.Services
                         if (message != null)
                         {
                             var httpClient = _httpClientFactory.CreateClient();
-                            var content = new StringContent(json, Encoding.UTF8, "application/json");
-                            var apiUrl = Environment.GetEnvironmentVariable("API_URL") ?? "http://localhost:7110";
-                            var response = await httpClient.PostAsync($"{apiUrl}/api/Notification/send", content);
+                            using var content = new StringContent(json, Encoding.UTF8, "application/json");
+                            using var response = await httpClient.PostAsync($"{_apiUrl}/api/Notification/send", content);
 
                             if (response.IsSuccessStatusCode)
                             {

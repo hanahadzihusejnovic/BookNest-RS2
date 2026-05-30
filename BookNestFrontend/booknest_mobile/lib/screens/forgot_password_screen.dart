@@ -21,17 +21,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       _emailError = null;
     });
 
-    if (_emailController.text.isEmpty) {
-      setState(() {
-        _emailError = 'Email is required';
-      });
+    final email = _emailController.text.trim();
+    final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    if (email.isEmpty) {
+      setState(() => _emailError = 'Email is required');
+      return;
+    }
+    if (!emailRegex.hasMatch(email)) {
+      setState(() => _emailError = 'Invalid email format');
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
-      await _authService.forgotPassword(_emailController.text);
+      await _authService.forgotPassword(email);
 
       if (mounted) {
         AppSnackBar.show(context, 'If the email exists, a reset token will be sent.');
@@ -92,7 +96,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Email field
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

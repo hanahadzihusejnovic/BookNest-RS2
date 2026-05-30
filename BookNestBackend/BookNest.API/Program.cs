@@ -1,3 +1,4 @@
+using BookNest.API.Data;
 using BookNest.API.Hubs;
 using BookNest.API.Middleware;
 using BookNest.Infrastructure.Services;
@@ -7,12 +8,12 @@ using BookNest.Services.Mapping;
 using BookNest.Services.MessageQueue;
 using BookNest.Services.Security;
 using BookNest.Services.Services;
+using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using DotNetEnv;
 
 namespace BookNest.API
 {
@@ -24,13 +25,8 @@ namespace BookNest.API
 
             var builder = WebApplication.CreateBuilder(args);
 
-            //Omoguci HTTP za development (Flutter)
-            if (builder.Environment.IsDevelopment())
-            {
-                builder.WebHost.UseUrls("http://localhost:7110", "https://localhost:7111");
-            }
+            builder.WebHost.UseUrls("http://localhost:7110");
 
-            // ----- CORS CONFIGURATION (za Flutter) -----
             builder.Services.AddCors(options =>
             {
                 options.AddPolicy("AllowFlutter", policy =>
@@ -44,7 +40,6 @@ namespace BookNest.API
                 });
             });
 
-            // ===== JWT SETTINGS CONFIGURATION =====
             builder.Services.Configure<JwtSettings>(options =>
             {
                 options.SecretKey = Environment.GetEnvironmentVariable("JWT_SECRET")!;
@@ -61,7 +56,6 @@ namespace BookNest.API
                 ExpirationMinutes = int.Parse(Environment.GetEnvironmentVariable("JWT_EXPIRATION_MINUTES")!)
             };
 
-            // ===== JWT AUTHENTICATION =====
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -80,11 +74,22 @@ namespace BookNest.API
                     IssuerSigningKey = new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(jwtSettings.SecretKey))
                 };
+                options.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                        {
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
             builder.Services.AddAuthorization();
-
-            // Add services to the container.
 
             builder.Services.AddScoped<IAuthService, AuthService>();
             builder.Services.AddScoped<IBookService, BookService>();
@@ -133,15 +138,11 @@ namespace BookNest.API
 
             builder.Services.AddSignalR();
 
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-
-            // ===== SWAGGER WITH JWT SUPPORT =====
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "BookNest API", Version = "v1" });
-
-                // Define JWT security scheme
+                
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
@@ -169,21 +170,14 @@ namespace BookNest.API
 
             var app = builder.Build();
 
-            // CORS
             app.UseCors("AllowFlutter");
 
-            // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
             
-            // DEVELOPMENT (ne HTTPS)
-            if (!app.Environment.IsDevelopment())
-            {
-                app.UseHttpsRedirection();
-            }
 
             app.UseMiddleware<ExceptionMiddleware>();
 
@@ -196,6 +190,14 @@ namespace BookNest.API
             app.MapControllers();
 
             app.MapHub<NotificationHub>("/hubs/notifications");
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<BookNestDbContext>();
+                db.Database.Migrate();
+            }
+
+            // await DatabaseSeeder.SeedAsync(app.Services);
 
             app.Run();
         }

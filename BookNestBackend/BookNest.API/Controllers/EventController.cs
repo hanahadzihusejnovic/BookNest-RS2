@@ -46,7 +46,7 @@ namespace BookNest.API.Controllers
         [HttpGet("recommended")]
         public async Task<ActionResult<List<EventRecommendationResponse>>> GetRecommended([FromQuery] int count = 6)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
             if (userId == 0)
                 return Unauthorized();
 
@@ -57,7 +57,7 @@ namespace BookNest.API.Controllers
         [HttpGet("recommended-content")]
         public async Task<ActionResult<List<EventRecommendationResponse>>> GetContentRecommended([FromQuery] int count = 6)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
             if (userId == 0)
                 return Unauthorized();
 
@@ -79,3 +79,4 @@ namespace BookNest.API.Controllers
         }
     }
 }
+

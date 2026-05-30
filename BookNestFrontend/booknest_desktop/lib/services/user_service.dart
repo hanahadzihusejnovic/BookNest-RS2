@@ -12,15 +12,6 @@ import 'http_client.dart';
 class UserService {
   final AuthService _authService = AuthService();
 
-  Future<Map<String, String>> _headers() async {
-    final token = await _authService.getToken();
-    if (token == null) throw Exception('Not authenticated');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   Future<List<User>> getUsers({String? search, int pageSize = 50}) async {
     final params = <String, String>{'PageSize': pageSize.toString()};
     if (search != null && search.isNotEmpty) params['Text'] = search;
@@ -28,7 +19,7 @@ class UserService {
     final uri = Uri.parse('${AppConstants.baseUrl}/User')
         .replace(queryParameters: params);
 
-    final response = await HttpClient.get(uri, headers: await _headers());
+    final response = await HttpClient.get(uri);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -41,7 +32,6 @@ class UserService {
   Future<User> getUser(int id) async {
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/User/$id'),
-      headers: await _headers(),
     );
     if (response.statusCode == 200) return User.fromJson(jsonDecode(response.body));
     throw Exception('Failed to load user');
@@ -50,18 +40,21 @@ class UserService {
   Future<void> updateUser(int id, Map<String, dynamic> data) async {
     final response = await HttpClient.put(
       Uri.parse('${AppConstants.baseUrl}/User/$id'),
-      headers: await _headers(),
       body: jsonEncode(data),
     );
     if (response.statusCode != 200 && response.statusCode != 204) {
-      throw Exception('Failed to update user');
+      String message = 'Failed to update user';
+      try {
+        final body = jsonDecode(response.body);
+        message = body['message'] ?? body['title'] ?? message;
+      } catch (_) {}
+      throw Exception(message);
     }
   }
 
   Future<void> deleteUser(int id) async {
     final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/User/$id'),
-      headers: await _headers(),
     );
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception('Failed to delete user');
@@ -71,7 +64,7 @@ class UserService {
   Future<List<Review>> getUserReviews(int userId) async {
     final uri = Uri.parse('${AppConstants.baseUrl}/Review')
         .replace(queryParameters: {'PageSize': '500'});
-    final response = await HttpClient.get(uri, headers: await _headers());
+    final response = await HttpClient.get(uri);
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final List<dynamic> items = data['items'] ?? data;
@@ -86,7 +79,7 @@ class UserService {
   Future<List<Reservation>> getUserReservations(int userId) async {
     final uri = Uri.parse('${AppConstants.baseUrl}/EventReservation')
         .replace(queryParameters: {'PageSize': '500'});
-    final response = await HttpClient.get(uri, headers: await _headers());
+    final response = await HttpClient.get(uri);
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final List<dynamic> items = data['items'] ?? data;
@@ -101,7 +94,6 @@ class UserService {
   Future<void> deleteReview(int reviewId) async {
     final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/Review/$reviewId'),
-      headers: await _headers(),
     );
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception('Failed to delete review');
@@ -111,7 +103,7 @@ class UserService {
   Future<List<Order>> getUserOrders(int userId) async {
     final uri = Uri.parse('${AppConstants.baseUrl}/Order')
         .replace(queryParameters: {'PageSize': '500'});
-    final response = await HttpClient.get(uri, headers: await _headers());
+    final response = await HttpClient.get(uri);
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
       final List<dynamic> items = data['items'] ?? data;
@@ -139,6 +131,11 @@ class UserService {
       final data = jsonDecode(body);
       return data['imageUrl'] as String;
     }
-    throw Exception('Failed to upload image');
+    String message = 'Failed to upload image';
+    try {
+      final data = jsonDecode(body);
+      message = data['message'] ?? data['title'] ?? message;
+    } catch (_) {}
+    throw Exception(message);
   }
 }
