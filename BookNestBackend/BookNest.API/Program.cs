@@ -1,5 +1,5 @@
-using BookNest.API.Data;
 using BookNest.API.Hubs;
+using BookNest.Services.Seeder;
 using BookNest.API.Middleware;
 using BookNest.Infrastructure.Services;
 using BookNest.Services.Database;
@@ -19,7 +19,7 @@ namespace BookNest.API
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             Env.Load();
 
@@ -197,7 +197,10 @@ namespace BookNest.API
                 db.Database.Migrate();
             }
 
-            // await DatabaseSeeder.SeedAsync(app.Services);
+            using var seedScope = app.Services.CreateScope();
+            var seedDb = seedScope.ServiceProvider.GetRequiredService<BookNestDbContext>();
+            var seedHasher = seedScope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+            await DatabaseSeeder.SeedAsync(seedDb, seedHasher);
 
             app.Run();
         }

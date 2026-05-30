@@ -142,13 +142,13 @@ class _EventsScreenState extends State<EventsScreen> {
                 color: Colors.transparent,
                 child: Container(
                   width: 180,
-                  constraints: const BoxConstraints(maxHeight: 260),
                   decoration: BoxDecoration(
                     color: AppColors.darkBrown,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: ListView.separated(
                     padding: const EdgeInsets.symmetric(vertical: 6),
+                    shrinkWrap: true,
                     itemCount: _categories.length,
                     separatorBuilder: (_, __) => Divider(
                       color: AppColors.pageBg,
