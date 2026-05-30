@@ -140,7 +140,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 48),
 
-                // Username field
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -188,7 +187,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
-                // Password field
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -251,7 +249,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                // Remember me & Forgot password
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -286,7 +283,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 40),
 
-                // Login button
                 SizedBox(
                   width: double.infinity,
                   height: 54,

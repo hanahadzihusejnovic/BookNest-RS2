@@ -27,36 +27,27 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _checkRememberMe(); // ← DODANO: Učitaj sačuvane credentials
+    _checkRememberMe();
   }
 
-  // ← DODANO: Provjeri i učitaj Remember Me podatke
   Future<void> _checkRememberMe() async {
-    print('🔵 LOGIN: Checking Remember Me...');
-    
     final credentials = await _authService.getSavedCredentials();
-    
-    if (credentials != null && mounted) {
-      print('✅ LOGIN: Found saved credentials for: ${credentials['username']}');
 
+    if (credentials != null && mounted) {
       setState(() {
         _usernameController.text = credentials['username']!;
         _passwordController.text = credentials['password']!;
         _rememberMe = true;
       });
-    } else {
-      print('⚠️ LOGIN: No saved credentials found');
     }
   }
 
   Future<void> _login() async {
-  // Reset errors
   setState(() {
     _usernameError = null;
     _passwordError = null;
   });
 
-  // Validacija
   bool hasError = false;
   
   if (_usernameController.text.isEmpty) {
@@ -82,24 +73,14 @@ class _LoginScreenState extends State<LoginScreen> {
   });
 
   try {
-    print('🟢 LOGIN SCREEN: Starting login...');
-    print('🟢 LOGIN SCREEN: Username: ${_usernameController.text}');
-    
     final response = await _authService.login(
       _usernameController.text,
       _passwordController.text,
     );
-    
-    print('🟢 LOGIN SCREEN: Login successful!');
-    print('🟢 LOGIN SCREEN: User roles: ${response.roles}');
 
-    // ← PROVJERI ROLU - BLOKIRAJ ADMIN:
     if (response.roles.contains('Admin')) {
-      print('❌ LOGIN SCREEN: Admin account detected - Access denied!');
-      
-      // Logout immediately
       await _authService.logout();
-      
+
       setState(() {
         _usernameController.clear();
         _passwordController.clear();
@@ -109,17 +90,14 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         AppSnackBar.show(context, 'Admin accounts cannot access the mobile app.\nPlease use the admin web portal.', isError: true);
       }
-      
+
       setState(() => _isLoading = false);
-      return; // ZAUSTAVI login proces
+      return;
     }
 
-    // PROVJERI DA LI IMA USER ROLU:
     if (!response.roles.contains('User')) {
-      print('❌ LOGIN SCREEN: Invalid account type');
-      
       await _authService.logout();
-      
+
       setState(() {
         _usernameController.clear();
         _passwordController.clear();
@@ -129,22 +107,17 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         AppSnackBar.show(context, 'Invalid account type. Please contact support.', isError: true);
       }
-      
+
       setState(() => _isLoading = false);
       return;
     }
 
-    print('✅ LOGIN SCREEN: User role validated - Access granted!');
-
-    // Remember Me logic
     if (_rememberMe) {
-      print('💾 LOGIN: Saving Remember Me credentials...');
       await _authService.saveRememberMe(
         _usernameController.text,
         _passwordController.text,
       );
     } else {
-      print('🗑️ LOGIN: Clearing Remember Me credentials...');
       await _authService.clearRememberMe();
     }
 
@@ -160,7 +133,6 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     }
   } catch (e) {
-    print('🔴 LOGIN SCREEN ERROR: $e');
     _showError('Invalid username or password');
   } finally {
     if (mounted) {
@@ -187,7 +159,6 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const SizedBox(height: 60),
 
-              // Welcome back!
               const Text(
                 'Welcome back!',
                 style: TextStyle(
@@ -209,7 +180,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 180),
 
-              // Username field
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -262,7 +232,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Password field
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -330,11 +299,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Remember me & Forgot password
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Remember me
                   Row(
                     children: [
                       GestureDetector(
@@ -342,7 +309,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           setState(() {
                             _rememberMe = !_rememberMe;
                           });
-                          print('🔘 Remember Me: $_rememberMe'); // ← DODANO: Debug log
                         },
                         child: Container(
                           width: 18,
@@ -367,7 +333,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           setState(() {
                             _rememberMe = !_rememberMe;
                           });
-                          print('🔘 Remember Me: $_rememberMe'); // ← DODANO: Debug log
                         },
                         child: const Text(
                           'Remember me',
@@ -379,7 +344,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
-                  // Forgot password
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -402,7 +366,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 40),
 
-              // Login button
               SizedBox(
                 width: double.infinity,
                 height: 54,
@@ -436,7 +399,6 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Sign up link
               Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,

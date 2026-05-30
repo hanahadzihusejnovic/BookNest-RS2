@@ -1,24 +1,11 @@
 import 'dart:convert';
 import '../layouts/constants.dart';
-import 'auth_service.dart';
 import 'http_client.dart';
 
 class DashboardService {
-  final AuthService _authService = AuthService();
-
-  Future<Map<String, String>> _headers() async {
-    final token = await _authService.getToken();
-    if (token == null) throw Exception('Not authenticated');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   Future<int> getTotalUsers() async {
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/User?PageSize=1'),
-      headers: await _headers(),
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -30,7 +17,6 @@ class DashboardService {
   Future<int> getTotalBooks() async {
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Book?PageSize=1'),
-      headers: await _headers(),
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -42,7 +28,6 @@ class DashboardService {
   Future<int> getPendingOrdersCount() async {
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Order?Status=Pending&PageSize=1'),
-      headers: await _headers(),
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -54,7 +39,6 @@ class DashboardService {
   Future<int> getPendingReservationsCount() async {
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/EventReservation?ReservationStatus=0&PageSize=1'),
-      headers: await _headers(),
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -66,7 +50,6 @@ class DashboardService {
   Future<int> getUpcomingEventsCount() async {
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Event?IsActive=true&PageSize=1000'),
-      headers: await _headers(),
     );
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -82,7 +65,6 @@ class DashboardService {
   Future<List<Map<String, dynamic>>> getCategoryStats() async {
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Dashboard/category-stats'),
-      headers: await _headers(),
     );
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);

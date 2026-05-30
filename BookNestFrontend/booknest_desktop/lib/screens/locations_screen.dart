@@ -410,7 +410,6 @@ class _LocationsScreenState extends State<LocationsScreen> {
   }
 }
 
-// ─── Reusable Widgets ────────────────────────────────────────────────────────
 
 class _SearchBar extends StatelessWidget {
   final TextEditingController controller;
@@ -507,7 +506,6 @@ class _LocationRow extends StatelessWidget {
   }
 }
 
-// ─── Country Dialog ──────────────────────────────────────────────────────────
 
 class _CountryDialog extends StatefulWidget {
   final Country? country;
@@ -572,8 +570,24 @@ class _CountryDialogState extends State<_CountryDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(isEdit ? 'EDIT COUNTRY' : 'ADD COUNTRY',
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+              Row(
+                children: [
+                  const SizedBox(width: 28),
+                  Expanded(
+                    child: Text(
+                      isEdit ? 'EDIT COUNTRY' : 'ADD COUNTRY',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
+              ),
               const SizedBox(height: 24),
               BookFormField(
                 controller: _nameController,
@@ -585,16 +599,6 @@ class _CountryDialogState extends State<_CountryDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.lightBrown),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    ),
-                    child: const Text('Cancel', style: TextStyle(color: AppColors.lightBrown)),
-                  ),
-                  const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _submit,
                     style: ElevatedButton.styleFrom(
@@ -615,8 +619,6 @@ class _CountryDialogState extends State<_CountryDialog> {
     );
   }
 }
-
-// ─── City Dialog ─────────────────────────────────────────────────────────────
 
 class _CityDialog extends StatefulWidget {
   final City? city;
@@ -751,8 +753,24 @@ class _CityDialogState extends State<_CityDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(isEdit ? 'EDIT CITY' : 'ADD CITY',
-                  style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+              Row(
+                children: [
+                  const SizedBox(width: 28),
+                  Expanded(
+                    child: Text(
+                      isEdit ? 'EDIT CITY' : 'ADD CITY',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
+              ),
               const SizedBox(height: 24),
               BookFormField(
                 controller: _nameController,
@@ -773,16 +791,6 @@ class _CityDialogState extends State<_CityDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.lightBrown),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    ),
-                    child: const Text('Cancel', style: TextStyle(color: AppColors.lightBrown)),
-                  ),
-                  const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _submit,
                     style: ElevatedButton.styleFrom(

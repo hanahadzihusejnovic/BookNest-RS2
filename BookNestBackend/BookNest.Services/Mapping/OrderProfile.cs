@@ -11,6 +11,8 @@ namespace BookNest.Services.Mapping
         {
             CreateMap<Order, OrderResponse>()
                 .ForMember(dest => dest.UserFullName, opt => opt.MapFrom(src => src.User.FirstName + " " + src.User.LastName))
+                .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User.EmailAddress))
+                .ForMember(dest => dest.UserPhoneNumber, opt => opt.MapFrom(src => src.User.PhoneNumber))
                 .ForMember(dest => dest.Shipping, opt => opt.MapFrom(src => src.Shipping))
                 .ForMember(dest => dest.Payment, opt => opt.MapFrom(src => src.Payment))
                 .ForMember(dest => dest.OrderItems, opt => opt.MapFrom(src => src.OrderItems));

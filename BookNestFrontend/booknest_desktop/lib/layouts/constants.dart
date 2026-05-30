@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 class AppConstants {
-  static const String baseUrl = 'http://localhost:7110/api';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://localhost:7110/api',
+  );
 }
 
 class AppColors {

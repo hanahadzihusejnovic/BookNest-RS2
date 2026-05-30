@@ -8,10 +8,22 @@ namespace BookNest.Subscriber.Services
     public class EmailService : IEmailService
     {
         private readonly ILogger<EmailService> _logger;
+        private readonly string _fromName;
+        private readonly string _fromEmail;
+        private readonly string _smtpHost;
+        private readonly int _smtpPort;
+        private readonly string _smtpUsername;
+        private readonly string _smtpPassword;
 
         public EmailService(ILogger<EmailService> logger)
         {
             _logger = logger;
+            _fromName = Environment.GetEnvironmentVariable("SMTP_FROM_NAME") ?? "";
+            _fromEmail = Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? "";
+            _smtpHost = Environment.GetEnvironmentVariable("SMTP_HOST") ?? "";
+            _smtpPort = int.Parse(Environment.GetEnvironmentVariable("SMTP_PORT") ?? "587");
+            _smtpUsername = Environment.GetEnvironmentVariable("SMTP_USERNAME") ?? "";
+            _smtpPassword = Environment.GetEnvironmentVariable("SMTP_PASSWORD") ?? "";
         }
 
         public async Task SendPasswordResetEmailAsync(PasswordResetEmailMessage message)
@@ -22,10 +34,7 @@ namespace BookNest.Subscriber.Services
 
                 var emailMessage = new MimeMessage();
 
-                emailMessage.From.Add(new MailboxAddress(
-                    Environment.GetEnvironmentVariable("SMTP_FROM_NAME"),
-                    Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL")
-                ));
+                emailMessage.From.Add(new MailboxAddress(_fromName, _fromEmail));
 
                 emailMessage.To.Add(new MailboxAddress(message.UserName, message.Email));
 
@@ -53,16 +62,9 @@ namespace BookNest.Subscriber.Services
 
                 using var client = new SmtpClient();
 
-                await client.ConnectAsync(
-                    Environment.GetEnvironmentVariable("SMTP_HOST"),
-                    int.Parse(Environment.GetEnvironmentVariable("SMTP_PORT") ?? "587"),
-                    MailKit.Security.SecureSocketOptions.StartTls
-                );
+                await client.ConnectAsync(_smtpHost, _smtpPort, MailKit.Security.SecureSocketOptions.StartTls);
 
-                await client.AuthenticateAsync(
-                    Environment.GetEnvironmentVariable("SMTP_USERNAME"),
-                    Environment.GetEnvironmentVariable("SMTP_PASSWORD")
-                );
+                await client.AuthenticateAsync(_smtpUsername, _smtpPassword);
 
                 await client.SendAsync(emailMessage);
                 await client.DisconnectAsync(true);

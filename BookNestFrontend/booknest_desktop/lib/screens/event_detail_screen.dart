@@ -189,7 +189,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Image
         ClipRRect(
           borderRadius: BorderRadius.circular(12),
           child: SizedBox(
@@ -203,7 +202,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         ),
         const SizedBox(width: 32),
 
-        // Details — two columns
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -230,7 +228,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Left column
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,7 +246,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                     ),
                   ),
                   const SizedBox(width: 24),
-                  // Right column
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -291,7 +287,6 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
         ),
         const SizedBox(width: 28),
 
-        // Action buttons
         Column(
           children: [
             DetailActionButton(icon: Icons.edit_outlined, label: 'EDIT EVENT', onTap: _openEditDialog),
@@ -417,7 +412,6 @@ class _Badge extends StatelessWidget {
   }
 }
 
-// ─── Edit Dialog ─────────────────────────────────────────────────────────────
 
 class _EditEventDialog extends StatefulWidget {
   final Event event;
@@ -851,13 +845,28 @@ class _EditEventDialogState extends State<_EditEventDialog> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text('EDIT EVENT',
-                        style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                    Row(
+                      children: [
+                        const SizedBox(width: 28),
+                        const Expanded(
+                          child: Text(
+                            'EDIT EVENT',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                          onPressed: () => Navigator.pop(context),
+                          constraints: const BoxConstraints(),
+                          padding: EdgeInsets.zero,
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: 28),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Left column
                         Expanded(
                           child: Column(
                             children: [
@@ -869,7 +878,7 @@ class _EditEventDialogState extends State<_EditEventDialog> {
                               const SizedBox(height: 14),
                               BookFormDropdownTrigger(link: _eventTypeLink, hint: 'Event Type', selectedLabel: _selectedEventType != null ? _eventTypeLabels[_selectedEventType!] : null, isOpen: _eventTypeOpen, error: _eventTypeError, onTap: _toggleEventType),
                               const SizedBox(height: 14),
-                              // Image picker
+
                               Builder(builder: (_) {
                                 final hasAny = _newImage != null || (!_imageDeleted && widget.event.imageUrl != null);
                                 return Column(
@@ -920,7 +929,6 @@ class _EditEventDialogState extends State<_EditEventDialog> {
                           ),
                         ),
                         const SizedBox(width: 20),
-                        // Right column
                         Expanded(
                           child: Column(
                             children: [
@@ -960,19 +968,6 @@ class _EditEventDialogState extends State<_EditEventDialog> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        SizedBox(
-                          height: 42,
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.lightBrown),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              padding: const EdgeInsets.symmetric(horizontal: 24),
-                            ),
-                            child: const Text('Cancel', style: TextStyle(color: AppColors.lightBrown)),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
                         SizedBox(
                           height: 42,
                           child: ElevatedButton(

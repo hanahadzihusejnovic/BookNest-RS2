@@ -115,7 +115,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Notifications
                   _SectionLabel('Preferences'),
                   const SizedBox(height: 10),
                   _SettingsCard(
@@ -158,7 +157,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   const SizedBox(height: 20),
 
-                  // Account
                   _SectionLabel('Account'),
                   const SizedBox(height: 10),
                   _SettingsCard(

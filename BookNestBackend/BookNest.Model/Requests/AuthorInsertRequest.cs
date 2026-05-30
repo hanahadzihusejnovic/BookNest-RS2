@@ -21,6 +21,7 @@ namespace BookNest.Model.Requests
         [MaxLength(500)]
         public string Biography { get; set; } = string.Empty;
 
+        [MaxLength(500)]
         public string? ImageUrl {  get; set; }
     }
 }

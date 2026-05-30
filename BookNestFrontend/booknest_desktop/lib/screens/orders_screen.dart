@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
@@ -21,6 +22,7 @@ class OrdersScreen extends StatefulWidget {
 class _OrdersScreenState extends State<OrdersScreen> {
   final _orderService = OrderService();
   final _searchController = TextEditingController();
+  Timer? _refreshTimer;
 
   List<Order> _allOrders = [];
   List<Order> _filteredOrders = [];
@@ -41,6 +43,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
   void initState() {
     super.initState();
     _loadOrders();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) _loadOrders();
+    });
   }
 
   Future<void> _loadOrders() async {
@@ -182,8 +187,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
         return const Color(0xFF4CAF50);
       case 'cancelled':
         return const Color(0xFFE53935);
-      case 'processing':
-        return const Color(0xFFFF9800);
+      case 'shipped':
+        return const Color(0xFF2196F3);
       default:
         return AppColors.darkBrown;
     }
@@ -312,7 +317,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                           MaterialPageRoute(
                                             builder: (_) => OrderDetailScreen(orderId: order.id),
                                           ),
-                                        ),
+                                        ).then((_) { if (mounted) _loadOrders(); }),
                                       ),
                                     ],
                                   );
@@ -336,6 +341,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   @override
   void dispose() {
+    _refreshTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }

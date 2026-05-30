@@ -374,7 +374,6 @@ class _ExpandableDetailState extends State<_ExpandableDetail> {
       return _DetailRow(widget.label, '-');
     }
 
-    // ~60 chars/line × 3 lines = 180; label takes some first-line space
     final isLong = text.length > 150;
 
     return Column(
@@ -778,10 +777,24 @@ class _EditBookDialogState extends State<_EditBookDialog> {
               : Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'EDIT BOOK',
-                      style: TextStyle(
-                          color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+                    Row(
+                      children: [
+                        const SizedBox(width: 28),
+                        const Expanded(
+                          child: Text(
+                            'EDIT BOOK',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                                color: Colors.white, fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 1.2),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                          onPressed: () => Navigator.pop(context),
+                          constraints: const BoxConstraints(),
+                          padding: EdgeInsets.zero,
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 28),
                     Row(
@@ -923,19 +936,6 @@ class _EditBookDialogState extends State<_EditBookDialog> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        SizedBox(
-                          height: 42,
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: AppColors.lightBrown),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                              padding: const EdgeInsets.symmetric(horizontal: 24),
-                            ),
-                            child: const Text('Cancel', style: TextStyle(color: AppColors.lightBrown)),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
                         SizedBox(
                           height: 42,
                           child: ElevatedButton(

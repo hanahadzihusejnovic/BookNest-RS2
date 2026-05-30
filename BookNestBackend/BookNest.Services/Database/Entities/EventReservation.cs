@@ -41,5 +41,15 @@ namespace BookNest.Services.Database.Entities
         [Required]
         [Column(TypeName = "nvarchar(20)")]
         public ReservationStatus ReservationStatus { get; set; }
+
+        public DateTime? StatusChangedAt { get; set; }
+
+        public int? StatusChangedByUserId { get; set; }
+
+        [ForeignKey(nameof(StatusChangedByUserId))]
+        public User? StatusChangedByUser { get; set; }
+
+        [MaxLength(500)]
+        public string? CancellationReason { get; set; }
     }
 }

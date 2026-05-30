@@ -7,9 +7,13 @@ namespace BookNest.Model.Responses
         public int Id { get; set; }
         public int UserId { get; set; }
         public string UserFullName { get; set; } = string.Empty;
+        public string? UserEmail { get; set; }
+        public string? UserPhoneNumber { get; set; }
         public DateTime OrderDate { get; set; }
         public DateTime? ShippedDate { get; set; }
         public OrderStatus Status { get; set; }
+        public DateTime? StatusChangedAt { get; set; }
+        public string? CancellationReason { get; set; }
         public decimal TotalPrice { get; set; }
         public ShippingResponse Shipping { get; set; } = null!;
         public PaymentResponse Payment { get; set; } = null!;

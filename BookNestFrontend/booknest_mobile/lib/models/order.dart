@@ -50,10 +50,9 @@ class OrderModel {
 
   static const _statusLabels = {
     0: 'Pending',
-    1: 'Processing',
-    2: 'Shipped',
-    3: 'Delivered',
-    4: 'Cancelled',
+    1: 'Shipped',
+    2: 'Delivered',
+    3: 'Cancelled',
   };
 
   static String _parseStatus(dynamic raw) {

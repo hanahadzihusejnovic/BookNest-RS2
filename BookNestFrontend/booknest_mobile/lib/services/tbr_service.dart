@@ -1,7 +1,6 @@
 import 'dart:convert';
 import '../layouts/constants.dart';
 import 'http_client.dart';
-import 'auth_service.dart';
 import '../models/tbr.dart';
 
 enum ReadingStatus { toBeRead, reading, read }
@@ -25,13 +24,9 @@ extension ReadingStatusExtension on ReadingStatus {
 }
 
 class TBRService {
-  final AuthService _authService = AuthService();
-
   Future<bool> isBookInTBR(int bookId) async {
-    final token = await _authService.getToken();
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/TBRList/check/$bookId'),
-      headers: {'Authorization': 'Bearer $token'},
     );
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as bool;
@@ -40,13 +35,8 @@ class TBRService {
   }
 
   Future<void> addToTBR(int bookId, ReadingStatus status) async {
-    final token = await _authService.getToken();
     final response = await HttpClient.post(
       Uri.parse('${AppConstants.baseUrl}/TBRList/add'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
       body: jsonEncode({
         'bookId': bookId,
         'readingStatus': status.value,
@@ -59,13 +49,8 @@ class TBRService {
   }
 
   Future<void> updateTBRStatus(int bookId, ReadingStatus status) async {
-    final token = await _authService.getToken();
     final response = await HttpClient.put(
       Uri.parse('${AppConstants.baseUrl}/TBRList/update-status/$bookId'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
       body: jsonEncode(status.value),
     );
     if (response.statusCode != 200) {
@@ -75,10 +60,8 @@ class TBRService {
   }
 
   Future<void> removeFromTBR(int bookId) async {
-    final token = await _authService.getToken();
     final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/TBRList/remove/$bookId'),
-      headers: {'Authorization': 'Bearer $token'},
     );
     if (response.statusCode != 200) {
       throw Exception('Failed to remove from TBR list');
@@ -86,10 +69,8 @@ class TBRService {
   }
 
   Future<ReadingStatus?> getTBRStatus(int bookId) async {
-    final token = await _authService.getToken();
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/TBRList/my-tbr-list'),
-      headers: {'Authorization': 'Bearer $token'},
     );
     if (response.statusCode == 200) {
       final List<dynamic> list = jsonDecode(response.body);
@@ -105,17 +86,10 @@ class TBRService {
   }
 
   Future<List<TBRItemModel>> getMyTBRList({int? statusFilter}) async {
-    final token = await _authService.getToken();
     final url = statusFilter != null
         ? '${AppConstants.baseUrl}/TBRList/my-tbr-list?status=$statusFilter'
         : '${AppConstants.baseUrl}/TBRList/my-tbr-list';
-    final response = await HttpClient.get(
-      Uri.parse(url),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
+    final response = await HttpClient.get(Uri.parse(url));
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((e) => TBRItemModel.fromJson(e)).toList();
@@ -124,10 +98,8 @@ class TBRService {
   }
 
   Future<void> removeFromTBRById(int bookId) async {
-    final token = await _authService.getToken();
     final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/TBRList/remove/$bookId'),
-      headers: {'Authorization': 'Bearer $token'},
     );
     if (response.statusCode != 200) {
       throw Exception('Failed to remove from TBR list');

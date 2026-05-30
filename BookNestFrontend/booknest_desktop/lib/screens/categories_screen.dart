@@ -98,7 +98,7 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   void _openDialog({Category? category}) {
     showDialog(
       context: context,
-      builder: (_) => _CategoryDialog(
+      builder: (_) => CategoryDialog(
         category: category,
         categoryService: _categoryService,
         onSaved: _loadData,
@@ -158,7 +158,6 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Add button
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -183,7 +182,6 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Search bar
             Container(
               height: 42,
               decoration: BoxDecoration(
@@ -214,7 +212,6 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Column headers
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
@@ -230,7 +227,6 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
                 thickness: 1,
                 height: 12),
 
-            // List
             Expanded(
               child: _isLoading
                   ? const Center(
@@ -324,23 +320,24 @@ class _CategoriesScreenState extends State<CategoriesScreen> {
   }
 }
 
-// ─── Category Dialog ──────────────────────────────────────────────────────────
 
-class _CategoryDialog extends StatefulWidget {
+class CategoryDialog extends StatefulWidget {
   final Category? category;
   final CategoryService categoryService;
   final VoidCallback onSaved;
 
-  const _CategoryDialog(
-      {this.category,
-      required this.categoryService,
-      required this.onSaved});
+  const CategoryDialog({
+    super.key,
+    this.category,
+    required this.categoryService,
+    required this.onSaved,
+  });
 
   @override
-  State<_CategoryDialog> createState() => _CategoryDialogState();
+  State<CategoryDialog> createState() => _CategoryDialogState();
 }
 
-class _CategoryDialogState extends State<_CategoryDialog> {
+class _CategoryDialogState extends State<CategoryDialog> {
   late final TextEditingController _nameController;
   String? _nameError;
   bool _isLoading = false;
@@ -408,13 +405,27 @@ class _CategoryDialogState extends State<_CategoryDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                isEdit ? 'EDIT CATEGORY' : 'ADD CATEGORY',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2),
+              Row(
+                children: [
+                  const SizedBox(width: 28),
+                  Expanded(
+                    child: Text(
+                      isEdit ? 'EDIT CATEGORY' : 'ADD CATEGORY',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               BookFormField(
@@ -428,21 +439,6 @@ class _CategoryDialogState extends State<_CategoryDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                          color: AppColors.lightBrown),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                    ),
-                    child: const Text('Cancel',
-                        style: TextStyle(
-                            color: AppColors.lightBrown)),
-                  ),
-                  const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _submit,
                     style: ElevatedButton.styleFrom(

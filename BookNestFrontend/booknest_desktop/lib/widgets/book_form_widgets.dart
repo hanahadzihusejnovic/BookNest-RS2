@@ -8,6 +8,7 @@ class BookFormField extends StatelessWidget {
   final int maxLines;
   final TextInputType? keyboardType;
   final ValueChanged<String> onChanged;
+  final bool obscureText;
 
   const BookFormField({
     super.key,
@@ -17,6 +18,7 @@ class BookFormField extends StatelessWidget {
     this.error,
     this.maxLines = 1,
     this.keyboardType,
+    this.obscureText = false,
   });
 
   @override
@@ -26,6 +28,7 @@ class BookFormField extends StatelessWidget {
       onChanged: onChanged,
       maxLines: maxLines,
       keyboardType: keyboardType,
+      obscureText: obscureText,
       style: const TextStyle(color: Colors.white, fontSize: 14),
       decoration: InputDecoration(
         hintText: hint,

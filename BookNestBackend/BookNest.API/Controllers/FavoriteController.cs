@@ -37,7 +37,7 @@ namespace BookNest.API.Controllers
         [HttpGet("my-favorites")]
         public async Task<ActionResult<List<FavoriteResponse>>> GetMyFavorites()
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {
@@ -51,7 +51,7 @@ namespace BookNest.API.Controllers
         [HttpPost("add")]
         public async Task<ActionResult<FavoriteResponse>> AddToFavorites([FromBody] FavoriteInsertRequest request)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {
@@ -65,7 +65,7 @@ namespace BookNest.API.Controllers
         [HttpDelete("remove/{bookId}")]
         public async Task<ActionResult<bool>> RemoveFromFavorites(int bookId)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {
@@ -80,7 +80,7 @@ namespace BookNest.API.Controllers
         [HttpGet("check/{bookId}")]
         public async Task<ActionResult<bool>> IsBookInFavorites(int bookId)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {
@@ -92,3 +92,4 @@ namespace BookNest.API.Controllers
         }
     }
 }
+

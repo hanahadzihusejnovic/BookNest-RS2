@@ -26,6 +26,7 @@ class _EventsScreenState extends State<EventsScreen> {
   List<EventModel> _allEvents = [];
   List<EventModel> _filteredEvents = [];
   List<EventRecommendation> _basedOnReservations = [];
+  List<EventRecommendation> _filteredBasedOnReservations = [];
   List<EventCategory> _categories = [];
 
   bool _isLoading = true;
@@ -52,16 +53,21 @@ class _EventsScreenState extends State<EventsScreen> {
 
   Future<void> _loadData() async {
     try {
-      final categories = await _categoryService.getCategories();
       final now = DateTime.now();
       final nextMonth = now.add(const Duration(days: 30));
-      final events = await _eventService.getEvents(
-        isActive: true,
-        dateFrom: now,
-        dateTo: nextMonth,
-        pageSize: 50,
-      );
-      final basedOnReservations = await _eventService.getContentBasedRecommendations();
+      final results = await Future.wait([
+        _categoryService.getCategories(),
+        _eventService.getEvents(
+          isActive: true,
+          dateFrom: now,
+          dateTo: nextMonth,
+          pageSize: 50,
+        ),
+        _eventService.getContentBasedRecommendations(),
+      ]);
+      final categories = results[0] as List<EventCategory>;
+      final events = results[1] as List<EventModel>;
+      final basedOnReservations = results[2] as List<EventRecommendation>;
 
       if (!mounted) return;
       setState(() {
@@ -69,6 +75,7 @@ class _EventsScreenState extends State<EventsScreen> {
         _allEvents = events;
         _filteredEvents = events;
         _basedOnReservations = basedOnReservations;
+        _filteredBasedOnReservations = basedOnReservations;
         _isLoading = false;
       });
     } catch (e) {
@@ -83,11 +90,19 @@ class _EventsScreenState extends State<EventsScreen> {
   void _applySearch() {
     final q = _query.trim().toLowerCase();
     setState(() {
-      _filteredEvents = _allEvents.where((e) {
-        return q.isEmpty ||
-            e.name.toLowerCase().contains(q) ||
-            e.organizerName.toLowerCase().contains(q);
-      }).toList();
+      _filteredEvents = q.isEmpty
+          ? _allEvents
+          : _allEvents.where((e) {
+              return e.name.toLowerCase().contains(q) ||
+                  e.organizerName.toLowerCase().contains(q);
+            }).toList();
+
+      _filteredBasedOnReservations = q.isEmpty
+          ? _basedOnReservations
+          : _basedOnReservations.where((r) {
+              return r.event.name.toLowerCase().contains(q) ||
+                  r.event.organizerName.toLowerCase().contains(q);
+            }).toList();
     });
   }
 
@@ -244,7 +259,6 @@ class _EventsScreenState extends State<EventsScreen> {
                         ),
                         const SizedBox(height: 14),
 
-                        // Available this month
                         _SectionCard(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,7 +309,6 @@ class _EventsScreenState extends State<EventsScreen> {
 
                         const SizedBox(height: 14),
 
-                        // Based on your reservations
                         _SectionCard(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,7 +322,7 @@ class _EventsScreenState extends State<EventsScreen> {
                                 ),
                               ),
                               const SizedBox(height: 12),
-                              _basedOnReservations.isEmpty
+                              _filteredBasedOnReservations.isEmpty
                                   ? Center(
                                       child: Padding(
                                         padding: const EdgeInsets.all(16),
@@ -325,10 +338,10 @@ class _EventsScreenState extends State<EventsScreen> {
                                   : SizedBox(
                                       height: 280,
                                       child: ListView.separated(
-                                        itemCount: _basedOnReservations.length,
+                                        itemCount: _filteredBasedOnReservations.length,
                                         separatorBuilder: (_, __) => const SizedBox(height: 10),
                                         itemBuilder: (context, i) {
-                                          final recommendation = _basedOnReservations[i];
+                                          final recommendation = _filteredBasedOnReservations[i];
                                           return _EventTile(
                                             event: recommendation.event,
                                             reason: recommendation.reason,
@@ -438,6 +451,21 @@ class _EventTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: 60,
+              height: 80,
+              child: event.imageUrl != null && event.imageUrl!.isNotEmpty
+                  ? Image.network(
+                      event.imageUrl!,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => _imageFallback(),
+                    )
+                  : _imageFallback(),
+            ),
+          ),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -481,20 +509,6 @@ class _EventTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (event.description != null && event.description!.isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    event.description!.length > 80
-                        ? '${event.description!.substring(0, 80)}...'
-                        : event.description!,
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.75),
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.w400,
-                      height: 1.35,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -547,6 +561,17 @@ class _EventTile extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _imageFallback() {
+    return Container(
+      color: Colors.white.withValues(alpha: 0.22),
+      child: Icon(
+        Icons.event,
+        color: Colors.white.withValues(alpha: 0.8),
+        size: 28,
       ),
     );
   }

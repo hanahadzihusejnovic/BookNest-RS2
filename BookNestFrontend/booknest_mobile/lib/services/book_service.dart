@@ -2,197 +2,75 @@ import 'dart:convert';
 import '../layouts/constants.dart';
 import 'http_client.dart';
 import '../models/book.dart';
-import 'auth_service.dart';
 import '../models/book_recommendation.dart';
 
 class BookService {
-  final AuthService _authService = AuthService();
-
   Future<List<Book>> getBooks() async {
-    try {
-      print('🔵 BOOK SERVICE: Fetching books from: ${AppConstants.baseUrl}/Book');
-      
-      final token = await _authService.getToken();
-      
-      if (token == null) {
-        throw Exception('No authentication token found');
-      }
-      
-      final response = await HttpClient.get(
-        Uri.parse('${AppConstants.baseUrl}/Book'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      print('🔵 BOOK SERVICE: Response status: ${response.statusCode}');
-      print('🔵 BOOK SERVICE: Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        print('✅ BOOK SERVICE: Fetched ${data.length} books');
-        
-        return data.map((json) => Book.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load books: ${response.body}');
-      }
-    } catch (e) {
-      print('❌ BOOK SERVICE: Error: $e');
-      rethrow;
+    final response = await HttpClient.get(
+      Uri.parse('${AppConstants.baseUrl}/Book'),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => Book.fromJson(json)).toList();
     }
+    throw Exception('Failed to load books');
   }
 
   Future<List<Book>> getFeaturedBooks() async {
-    try {
-      print('🔵 BOOK SERVICE: Fetching books');
-      
-      final token = await _authService.getToken();
-      
-      if (token == null) {
-        throw Exception('No authentication token found');
-      }
-      
-      final response = await HttpClient.get(
-        Uri.parse('${AppConstants.baseUrl}/Book?PageSize=5'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      print('🔵 BOOK SERVICE: Response status: ${response.statusCode}');
-      print('🔵 BOOK SERVICE: Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
-        
-        // ← PROMJENA: Provjeri da li 'items' postoji i nije null
-        if (responseData['items'] == null) {
-          print('⚠️ BOOK SERVICE: No items in response');
-          return [];
-        }
-        
-        final List<dynamic> data = responseData['items']; // ← Uzmi 'items' umjesto 'result'
-        print('✅ BOOK SERVICE: Fetched ${data.length} books');
-        
-        return data.map((json) => Book.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load books: ${response.body}');
-      }
-    } catch (e) {
-      print('❌ BOOK SERVICE: Error: $e');
-      rethrow;
+    final response = await HttpClient.get(
+      Uri.parse('${AppConstants.baseUrl}/Book?PageSize=5'),
+    );
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+      if (responseData['items'] == null) return [];
+      final List<dynamic> data = responseData['items'];
+      return data.map((json) => Book.fromJson(json)).toList();
     }
+    throw Exception('Failed to load books');
   }
 
   Future<List<Book>> getBooksByCategory(int categoryId, {int pageSize = 10}) async {
-    try {
-      print('🔵 BOOK SERVICE: Fetching books for category $categoryId');
-      
-      final token = await _authService.getToken();
-      
-      if (token == null) {
-        throw Exception('No authentication token found');
-      }
-      
-      final response = await HttpClient.get(
-        Uri.parse('${AppConstants.baseUrl}/Book?CategoryId=$categoryId&PageSize=$pageSize'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      print('🔵 BOOK SERVICE: Response status: ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = jsonDecode(response.body);
-        
-        if (responseData['items'] == null) {
-          print('⚠️ BOOK SERVICE: No items in response');
-          return [];
-        }
-        
-        final List<dynamic> data = responseData['items'];
-        print('✅ BOOK SERVICE: Fetched ${data.length} books');
-        
-        return data.map((json) => Book.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load books: ${response.body}');
-      }
-    } catch (e) {
-      print('❌ BOOK SERVICE: Error: $e');
-      rethrow;
+    final response = await HttpClient.get(
+      Uri.parse('${AppConstants.baseUrl}/Book?CategoryId=$categoryId&PageSize=$pageSize'),
+    );
+    if (response.statusCode == 200) {
+      final Map<String, dynamic> responseData = jsonDecode(response.body);
+      if (responseData['items'] == null) return [];
+      final List<dynamic> data = responseData['items'];
+      return data.map((json) => Book.fromJson(json)).toList();
     }
+    throw Exception('Failed to load books');
   }
 
   Future<List<BookRecommendation>> getRecommendedBooks() async {
-    try {
-      final token = await _authService.getToken();
-      if (token == null) throw Exception('No authentication token found');
-
-      final response = await HttpClient.get(
-        Uri.parse('${AppConstants.baseUrl}/Book/recommended?count=6'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((json) => BookRecommendation.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load recommended books');
-      }
-    } catch (e) {
-      print('❌ BOOK SERVICE: Error: $e');
-      rethrow;
+    final response = await HttpClient.get(
+      Uri.parse('${AppConstants.baseUrl}/Book/recommended?count=6'),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => BookRecommendation.fromJson(json)).toList();
     }
+    throw Exception('Failed to load recommended books');
   }
 
   Future<List<BookRecommendation>> getContentBasedRecommendations() async {
-    try {
-      final token = await _authService.getToken();
-      if (token == null) throw Exception('No authentication token found');
-
-      final response = await HttpClient.get(
-        Uri.parse('${AppConstants.baseUrl}/Book/recommended-content?count=6'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((json) => BookRecommendation.fromJson(json)).toList();
-      } else {
-        throw Exception('Failed to load recommendations');
-      }
-    } catch (e) {
-      print('❌ BOOK SERVICE: Error: $e');
-      rethrow;
+    final response = await HttpClient.get(
+      Uri.parse('${AppConstants.baseUrl}/Book/recommended-content?count=6'),
+    );
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((json) => BookRecommendation.fromJson(json)).toList();
     }
+    throw Exception('Failed to load recommendations');
   }
 
   Future<Book> getBookById(int id) async {
-    final token = await _authService.getToken();
-    if (token == null) throw Exception('No authentication token found');
-
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Book/$id'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
     );
-
     if (response.statusCode == 200) {
       return Book.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception('Failed to load book details');
     }
+    throw Exception('Failed to load book details');
   }
 }

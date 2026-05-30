@@ -8,6 +8,7 @@ namespace BookNest.Model.Responses
         public int UserId { get; set; }
         public string UserFullName { get; set; } = string.Empty;
         public string UserEmail { get; set; } = string.Empty;
+        public string? UserPhoneNumber { get; set; }
         public int EventId { get; set; }
         public string EventName { get; set; } = string.Empty;
         public string EventLocation { get; set; } = string.Empty;
@@ -16,6 +17,8 @@ namespace BookNest.Model.Responses
         public int Quantity { get; set; }
         public decimal TotalPrice { get; set; }
         public ReservationStatus ReservationStatus { get; set; }
+        public DateTime? StatusChangedAt { get; set; }
+        public string? CancellationReason { get; set; }
         public string? TicketQRCodeLink { get; set; }
         public PaymentResponse Payment { get; set; } = null!;
         public string? EventImageUrl { get; set; }

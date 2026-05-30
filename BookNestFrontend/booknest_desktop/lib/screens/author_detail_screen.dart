@@ -323,7 +323,6 @@ class _AuthorDetailScreenState extends State<AuthorDetailScreen> {
   }
 }
 
-// ─── Edit Dialog ─────────────────────────────────────────────────────────────
 
 class _EditAuthorDialog extends StatefulWidget {
   final Author author;
@@ -523,12 +522,28 @@ class _EditAuthorDialogState extends State<_EditAuthorDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('EDIT AUTHOR',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2)),
+              Row(
+                children: [
+                  const SizedBox(width: 28),
+                  const Expanded(
+                    child: Text(
+                      'EDIT AUTHOR',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
+              ),
               const SizedBox(height: 20),
               Column(
                 children: [
@@ -632,19 +647,6 @@ class _EditAuthorDialogState extends State<_EditAuthorDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.lightBrown),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                    ),
-                    child: const Text('Cancel',
-                        style: TextStyle(color: AppColors.lightBrown)),
-                  ),
-                  const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _submit,
                     style: ElevatedButton.styleFrom(

@@ -4,11 +4,9 @@ import 'http_client.dart';
 import '../models/country.dart';
 
 class CountryService {
-
   Future<List<Country>> getCountries() async {
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Country?RetrieveAll=true'),
-      headers: {'Content-Type': 'application/json'},
     );
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = jsonDecode(response.body);

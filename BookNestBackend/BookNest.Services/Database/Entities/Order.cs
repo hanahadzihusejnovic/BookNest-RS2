@@ -24,6 +24,16 @@ namespace BookNest.Services.Database.Entities
         [Column(TypeName = "nvarchar(20)")]
         public OrderStatus Status { get; set; } = OrderStatus.Pending;
 
+        public DateTime? StatusChangedAt { get; set; }
+
+        public int? StatusChangedByUserId { get; set; }
+
+        [ForeignKey(nameof(StatusChangedByUserId))]
+        public User? StatusChangedByUser { get; set; }
+
+        [MaxLength(500)]
+        public string? CancellationReason { get; set; }
+
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal TotalPrice { get; set; }

@@ -77,7 +77,10 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
         if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        AppSnackBar.show(context, 'Failed to load user info', isError: true);
+      }
     }
   }
 
@@ -88,6 +91,29 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
       return;
     }
 
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.pageBg,
+        title: Text('Confirm reservation',
+            style: TextStyle(color: AppColors.darkBrown, fontWeight: FontWeight.w800)),
+        content: Text('Are you sure you want to confirm this reservation?',
+            style: TextStyle(color: AppColors.darkBrown)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: TextStyle(color: AppColors.darkBrown)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.darkBrown),
+            child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     setState(() => _isSubmitting = true);
 
     try {
@@ -96,9 +122,7 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
 
       String? paymentIntentId;
 
-      // Ako je plaćanje karticom — kreiraj PaymentIntent i potvrdi ga putem Stripea
       if (_paymentMethod == 'Card') {
-        // 1. Kreiraj PaymentIntent na backendu
         final intentResponse = await HttpClient.post(
           Uri.parse('${AppConstants.baseUrl}/Order/create-payment-intent'),
           headers: {
@@ -116,7 +140,6 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
         final clientSecret = intentData['clientSecret'] as String;
         paymentIntentId = intentData['paymentIntentId'] as String;
 
-        // 2. Potvrdi plaćanje putem Stripe SDK-a
         await Stripe.instance.confirmPayment(
           paymentIntentClientSecret: clientSecret,
           data: const PaymentMethodParams.card(
@@ -125,7 +148,6 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
         );
       }
 
-      // 3. Kreiraj rezervaciju na backendu
       final reservation = await _reservationService.reserveEvent(
         eventId: widget.event.id,
         quantity: widget.quantity,
@@ -213,7 +235,6 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Event information
                   _SectionCard(
                     title: 'Event information',
                     child: Row(
@@ -259,7 +280,6 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
 
                   const SizedBox(height: 16),
 
-                  // User information
                   _SectionCard(
                     title: 'User information',
                     child: Column(
@@ -275,7 +295,6 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Payment method
                   if (event.ticketPrice > 0)
                     _SectionCard(
                       title: 'Payment method',
@@ -340,7 +359,6 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Total
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
@@ -362,7 +380,6 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
 
                   const SizedBox(height: 14),
 
-                  // Buttons
                   Row(
                     children: [
                       Expanded(

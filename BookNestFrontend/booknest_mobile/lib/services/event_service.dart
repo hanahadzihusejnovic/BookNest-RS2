@@ -2,21 +2,9 @@ import 'dart:convert';
 import '../layouts/constants.dart';
 import 'http_client.dart';
 import '../models/event.dart';
-import 'auth_service.dart';
 import '../models/event_recommendation.dart';
 
 class EventService {
-  final AuthService _authService = AuthService();
-
-  Future<Map<String, String>> _headers() async {
-    final token = await _authService.getToken();
-    if (token == null) throw Exception('Not authenticated');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   Future<List<EventModel>> getEvents({
     String? text,
     int? eventCategoryId,
@@ -35,8 +23,7 @@ class EventService {
     if (dateTo != null) params['DateTo'] = dateTo.toUtc().toIso8601String();
 
     final uri = Uri.parse('${AppConstants.baseUrl}/Event').replace(queryParameters: params);
-
-    final response = await HttpClient.get(uri, headers: await _headers());
+    final response = await HttpClient.get(uri);
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = jsonDecode(response.body);
@@ -57,7 +44,7 @@ class EventService {
 
   Future<List<EventRecommendation>> getRecommendedEvents({int count = 6}) async {
     final uri = Uri.parse('${AppConstants.baseUrl}/Event/recommended?count=$count');
-    final response = await HttpClient.get(uri, headers: await _headers());
+    final response = await HttpClient.get(uri);
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((e) => EventRecommendation.fromJson(e)).toList();
@@ -67,7 +54,7 @@ class EventService {
 
   Future<List<EventRecommendation>> getContentBasedRecommendations({int count = 6}) async {
     final uri = Uri.parse('${AppConstants.baseUrl}/Event/recommended-content?count=$count');
-    final response = await HttpClient.get(uri, headers: await _headers());
+    final response = await HttpClient.get(uri);
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((e) => EventRecommendation.fromJson(e)).toList();

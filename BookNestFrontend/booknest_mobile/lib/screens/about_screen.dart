@@ -19,7 +19,6 @@ class AboutScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Logo / naziv
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 32),
@@ -87,7 +86,6 @@ class AboutScreen extends StatelessWidget {
             ),
           ),
 
-          // Copyright — uvijek na dnu
           Padding(
             padding: const EdgeInsets.only(bottom: 24),
             child: Text(

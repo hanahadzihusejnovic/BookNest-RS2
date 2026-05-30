@@ -9,19 +9,9 @@ import 'dart:io';
 class UserService {
   final AuthService _authService = AuthService();
 
-  Future<Map<String, String>> _headers() async {
-    final token = await _authService.getToken();
-    if (token == null) throw Exception('Not authenticated');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   Future<User> getCurrentUser() async {
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/User/current-user'),
-      headers: await _headers(),
     );
     if (response.statusCode == 200) {
       return User.fromJson(jsonDecode(response.body));
@@ -42,7 +32,6 @@ class UserService {
   }) async {
     final response = await HttpClient.put(
       Uri.parse('${AppConstants.baseUrl}/User/update-self'),
-      headers: await _headers(),
       body: jsonEncode({
         'firstName': firstName,
         'lastName': lastName,
@@ -70,7 +59,6 @@ class UserService {
   Future<void> deleteSelf() async {
     final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/User/delete-self'),
-      headers: await _headers(),
     );
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception('Failed to delete account');

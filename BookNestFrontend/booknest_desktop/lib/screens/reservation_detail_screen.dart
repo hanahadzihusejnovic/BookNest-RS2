@@ -55,14 +55,13 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
 
   static const _reservationTransitions = {
     'Pending':   [('Confirmed', 1), ('Cancelled', 2)],
-    'Confirmed': [('Attended', 3),  ('Cancelled', 2)],
+    'Confirmed': [('Cancelled', 2)],
   };
 
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
       case 'confirmed': return const Color(0xFF4CAF50);
       case 'cancelled': return const Color(0xFFE53935);
-      case 'attended':  return const Color(0xFF2196F3);
       default:          return AppColors.mediumBrown;
     }
   }
@@ -97,8 +96,44 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
       ),
     );
     if (chosen == null || !mounted) return;
+
+    String? cancellationReason;
+    if (chosen == 2) {
+      final reasonController = TextEditingController();
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.darkBrown,
+          title: const Text('Cancellation Reason',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          content: TextField(
+            controller: reasonController,
+            style: const TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              hintText: 'Enter reason...',
+              hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.lightBrown)),
+              focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: AppColors.lightBrown)),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel', style: TextStyle(color: AppColors.lightBrown))),
+            TextButton(onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Confirm', style: TextStyle(color: Colors.white))),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+      cancellationReason = reasonController.text.trim();
+      if (cancellationReason.isEmpty) {
+        AppSnackBar.show(context, 'Cancellation reason is required', isError: true);
+        return;
+      }
+    }
+
     try {
-      await _reservationService.updateStatus(r.id, chosen);
+      await _reservationService.updateStatus(r.id, chosen, cancellationReason: cancellationReason);
       if (mounted) {
         AppSnackBar.show(context, 'Status updated');
         _loadData();
@@ -159,7 +194,6 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Reservation info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -173,18 +207,25 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
                         DetailRow('User:', r.userFullName),
                         const SizedBox(height: 10),
                         DetailRow('Email:', r.userEmail),
+                        if (r.userPhoneNumber != null) ...[
+                          const SizedBox(height: 10),
+                          DetailRow('Phone:', r.userPhoneNumber!),
+                        ],
                         const SizedBox(height: 10),
                         DetailRow('Reservation Date:', _fmt(r.reservationDate)),
                         const SizedBox(height: 10),
                         DetailRow('Quantity:', '${r.quantity} ticket${r.quantity != 1 ? 's' : ''}'),
                         const SizedBox(height: 10),
                         DetailRow('Total:', r.totalPrice == 0 ? 'Free' : '${r.totalPrice.toStringAsFixed(2)} BAM'),
+                        if (r.cancellationReason != null) ...[
+                          const SizedBox(height: 10),
+                          DetailRow('Cancellation Reason:', r.cancellationReason!),
+                        ],
                       ],
                     ),
                   ),
                   const SizedBox(width: 24),
 
-                  // Payment info
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -211,7 +252,6 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
                   ),
                   const SizedBox(width: 24),
 
-                  // Empty third column to keep alignment with order detail screen
                   const Expanded(child: SizedBox()),
                 ],
               ),
@@ -220,7 +260,6 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
         ),
         const SizedBox(width: 28),
 
-        // Right side: button + QR code
         Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [

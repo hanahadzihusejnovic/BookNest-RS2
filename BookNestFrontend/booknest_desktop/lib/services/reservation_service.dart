@@ -2,23 +2,14 @@ import 'dart:convert';
 import '../layouts/constants.dart';
 import '../models/reservation.dart';
 import '../models/reservation_detail.dart';
-import 'auth_service.dart';
 import 'http_client.dart';
 
 class ReservationService {
-  final AuthService _authService = AuthService();
-
   Future<List<Reservation>> getReservations({int pageSize = 200}) async {
-    final token = await _authService.getToken();
-    if (token == null) throw Exception('Not authenticated');
-
     final uri = Uri.parse('${AppConstants.baseUrl}/EventReservation')
         .replace(queryParameters: {'PageSize': pageSize.toString()});
 
-    final response = await HttpClient.get(uri, headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    });
+    final response = await HttpClient.get(uri);
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
@@ -29,11 +20,8 @@ class ReservationService {
   }
 
   Future<ReservationDetail> getReservation(int id) async {
-    final token = await _authService.getToken();
-    if (token == null) throw Exception('Not authenticated');
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/EventReservation/$id'),
-      headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
     );
     if (response.statusCode == 200) {
       return ReservationDetail.fromJson(jsonDecode(response.body));
@@ -41,16 +29,12 @@ class ReservationService {
     throw Exception('Failed to load reservation');
   }
 
-  Future<void> updateStatus(int id, int status) async {
-    final token = await _authService.getToken();
-    if (token == null) throw Exception('Not authenticated');
+  Future<void> updateStatus(int id, int status, {String? cancellationReason}) async {
+    final body = <String, dynamic>{'reservationStatus': status};
+    if (cancellationReason != null) body['cancellationReason'] = cancellationReason;
     final response = await HttpClient.put(
       Uri.parse('${AppConstants.baseUrl}/EventReservation/$id'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({'reservationStatus': status}),
+      body: jsonEncode(body),
     );
     if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception('Failed to update reservation status: ${response.statusCode} ${response.body}');
@@ -58,14 +42,8 @@ class ReservationService {
   }
 
   Future<void> sendReminder(int id) async {
-    final token = await _authService.getToken();
-    if (token == null) throw Exception('Not authenticated');
     final response = await HttpClient.post(
       Uri.parse('${AppConstants.baseUrl}/EventReservation/$id/send-reminder'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
     );
     if (response.statusCode != 200) {
       throw Exception('Failed to send reminder: ${response.statusCode}');

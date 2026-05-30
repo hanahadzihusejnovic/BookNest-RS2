@@ -65,12 +65,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _loadLocationData() async {
     try {
-      final countries = await _countryService.getCountries();
-      final cities = await _cityService.getCities();
+      final results = await Future.wait([
+        _countryService.getCountries(),
+        _cityService.getCities(),
+      ]);
       if (mounted) {
         setState(() {
-          _countries = countries;
-          _cities = cities;
+          _countries = results[0] as List<Country>;
+          _cities = results[1] as List<City>;
         });
       }
     } catch (_) {}
@@ -118,7 +120,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         if (mounted) setState(() => _isLoading = false);
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        AppSnackBar.show(context, 'Failed to load user info', isError: true);
+      }
     }
   }
 
@@ -143,6 +148,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (_postalCode.isEmpty) {
       setState(() => _postalCodeError = 'Postal code is required');
       hasError = true;
+    } else if (!RegExp(r'^[0-9]{4,10}$').hasMatch(_postalCode.trim())) {
+      setState(() => _postalCodeError = 'Invalid postal code (e.g. 75000)');
+      hasError = true;
     }
     if (_selectedCountry == null) {
       setState(() => _countryError = 'Country is required');
@@ -157,6 +165,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return;
     }
 
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.pageBg,
+        title: Text('Confirm order',
+            style: TextStyle(color: AppColors.darkBrown, fontWeight: FontWeight.w800)),
+        content: Text('Are you sure you want to place this order?',
+            style: TextStyle(color: AppColors.darkBrown)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: TextStyle(color: AppColors.darkBrown)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.darkBrown),
+            child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
     setState(() => _isSubmitting = true);
 
     try {
@@ -167,9 +198,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       String? paymentIntentId;
 
-      // Ako je plaćanje karticom — kreiraj PaymentIntent i potvrdi ga putem Stripea
       if (_paymentMethod == 'Card') {
-        // 1. Kreiraj PaymentIntent na backendu
         final intentResponse = await HttpClient.post(
           Uri.parse('${AppConstants.baseUrl}/Order/create-payment-intent'),
           headers: {
@@ -187,7 +216,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         final clientSecret = intentData['clientSecret'] as String;
         paymentIntentId = intentData['paymentIntentId'] as String;
 
-        // 2. Potvrdi plaćanje putem Stripe SDK-a
         await Stripe.instance.confirmPayment(
           paymentIntentClientSecret: clientSecret,
           data: const PaymentMethodParams.card(
@@ -196,7 +224,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
       }
 
-      // 3. Kreiraj order na backendu
       final body = {
         'userId': userId ?? 0,
         'shipping': {
@@ -223,7 +250,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           final cartService = CartService();
           await cartService.clearCart();
         } catch (_) {
-          // clearCart greška ne blokira order success flow
         }
 
         if (!mounted) return;
@@ -281,7 +307,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Book information
                   _SectionCard(
                     title: 'Book information',
                     child: ConstrainedBox(
@@ -343,7 +368,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                   const SizedBox(height: 16),
 
-                  // User information
                   _SectionCard(
                     title: 'User information',
                     child: Column(
@@ -359,7 +383,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Shipping information
                   _SectionCard(
                     title: 'Shipping information',
                     child: Column(
@@ -424,7 +447,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Payment method
                   _SectionCard(
                     title: 'Payment method',
                     child: Column(
@@ -469,7 +491,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                   const SizedBox(height: 20),
 
-                  // Total
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.all(14),
@@ -489,7 +510,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                   const SizedBox(height: 14),
 
-                  // Buttons
                   Row(
                     children: [
                       Expanded(

@@ -2,24 +2,11 @@ import 'dart:convert';
 import '../layouts/constants.dart';
 import 'http_client.dart';
 import '../models/event_category.dart';
-import 'auth_service.dart';
 
 class EventCategoryService {
-  final AuthService _authService = AuthService();
-
-  Future<Map<String, String>> _headers() async {
-    final token = await _authService.getToken();
-    if (token == null) throw Exception('Not authenticated');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   Future<List<EventCategory>> getCategories() async {
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/EventCategory?RetrieveAll=true'),
-      headers: await _headers(),
     );
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = jsonDecode(response.body);

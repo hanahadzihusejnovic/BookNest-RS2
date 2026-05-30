@@ -218,8 +218,8 @@ namespace BookNest.Services.Services
             var user = await _dbContext.Users
                 .FirstOrDefaultAsync(u => u.EmailAddress == email);
 
-            if (user == null) 
-                 throw new NotFoundException("User not found."); ;
+            if (user == null)
+                return;
 
             var token = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
             var expiresAt = DateTime.UtcNow.AddHours(1);

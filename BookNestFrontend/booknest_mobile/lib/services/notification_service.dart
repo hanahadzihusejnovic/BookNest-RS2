@@ -33,8 +33,12 @@ class NotificationService {
       listener({});
     }
 
+    final token = await _authService.getToken();
+    if (token == null) return;
+
+    final hubBaseUrl = AppConstants.baseUrl.replaceAll('/api', '');
     _hubConnection = HubConnectionBuilder()
-      .withUrl('http://10.0.2.2:7110/hubs/notifications?userId=$userId')
+      .withUrl('$hubBaseUrl/hubs/notifications?access_token=$token')
       .withAutomaticReconnect()
       .build();
 
@@ -63,9 +67,7 @@ class NotificationService {
 
     try {
       await _hubConnection!.start();
-      print('✅ Connected to NotificationHub as user $userId');
     } catch (e) {
-      print('❌ Failed to connect to NotificationHub: $e');
     }
   }
 
@@ -81,17 +83,9 @@ class NotificationService {
 
   Future<void> _loadFromServer() async {
     try {
-      final token = await _authService.getToken();
-      if (token == null) return;
-
       final response = await HttpClient.get(
         Uri.parse('${AppConstants.baseUrl}/Notification/my-notifications'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
       );
-
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         _notifications.clear();
@@ -103,10 +97,8 @@ class NotificationService {
           'sendAt': n['sendAt'],
           'isRead': n['isRead'] ?? false,
         }));
-        print('✅ Loaded ${_notifications.length} notifications from server');
       }
     } catch (e) {
-      print('❌ Failed to load notifications: $e');
     }
   }
 
@@ -122,20 +114,11 @@ class NotificationService {
     for (final n in _notifications) {
       n['isRead'] = true;
     }
-
     try {
-      final token = await _authService.getToken();
-      if (token == null) return;
-
       await HttpClient.put(
         Uri.parse('${AppConstants.baseUrl}/Notification/mark-all-read'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
       );
     } catch (e) {
-      print('❌ Failed to mark all notifications as read: $e');
     }
   }
 

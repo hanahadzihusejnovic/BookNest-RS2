@@ -7,7 +7,10 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Stripe.publishableKey = 'pk_test_51TMA9zBzufS6quu6NAkgt4pkEnR7TMe2VfvAiep4fzxZ8cAmBt1I6iDREcXHi1DJ1iG7yu4u0DU8e8rZAdgY1o3p00I3obeviS';
+  Stripe.publishableKey = const String.fromEnvironment(
+    'STRIPE_PUBLISHABLE_KEY',
+    defaultValue: 'pk_test_51TMA9zBzufS6quu6NAkgt4pkEnR7TMe2VfvAiep4fzxZ8cAmBt1I6iDREcXHi1DJ1iG7yu4u0DU8e8rZAdgY1o3p00I3obeviS',
+  );
   await Stripe.instance.applySettings();
   runApp(const MyApp());
 }

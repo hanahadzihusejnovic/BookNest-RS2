@@ -12,5 +12,7 @@ namespace BookNest.Services.Interfaces
         Task<List<EventReservationResponse>> GetEventReservationsAsync(int eventId, CancellationToken cancellationToken = default);
         Task<int> GetAvailableSeatsAsync(int eventId, CancellationToken cancellationToken = default);
         Task SendReminderAsync(int reservationId, CancellationToken cancellationToken = default);
+        Task<EventReservationResponse> CancelUserReservationAsync(int id, int userId, string cancellationReason, CancellationToken cancellationToken = default);
+        Task<EventReservationResponse?> UpdateStatusAsync(int id, EventReservationUpdateRequest request, int changedByUserId, CancellationToken cancellationToken = default);
     }
 }

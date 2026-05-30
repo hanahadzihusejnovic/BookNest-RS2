@@ -143,10 +143,9 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     }
   }
 
-  // Reservation: Pending(0)→Confirmed(1)/Cancelled(2), Confirmed(1)→Attended(3)/Cancelled(2)
   static const _reservationTransitions = {
     'Pending':   [('Confirmed', 1), ('Cancelled', 2)],
-    'Confirmed': [('Attended', 3), ('Cancelled', 2)],
+    'Confirmed': [('Cancelled', 2)],
   };
 
   Future<void> _changeReservationStatus(Reservation r) async {
@@ -181,11 +180,9 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     }
   }
 
-  // Order: Pending(0)→Processing(1), Processing(1)→Shipped(2), Shipped(2)→Delivered(3), any→Cancelled(4)
   static const _orderTransitions = {
-    'Pending':    [('Processing', 1), ('Cancelled', 4)],
-    'Processing': [('Shipped', 2),    ('Cancelled', 4)],
-    'Shipped':    [('Delivered', 3),  ('Cancelled', 4)],
+    'Pending': [('Shipped', 1), ('Cancelled', 3)],
+    'Shipped': [('Delivered', 2), ('Cancelled', 3)],
   };
 
   Future<void> _changeOrderStatus(Order o) async {
@@ -578,7 +575,6 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   }
 }
 
-// ─── Edit Dialog ─────────────────────────────────────────────────────────────
 
 class _EditUserDialog extends StatefulWidget {
   final User user;
@@ -623,6 +619,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
   String? _lastNameError;
   String? _usernameError;
   String? _emailError;
+  String? _phoneError;
   bool _isLoading = false;
 
   @override
@@ -712,14 +709,68 @@ class _EditUserDialogState extends State<_EditUserDialog> {
   }
 
   bool _validate() {
+    final fn = _firstNameController.text.trim();
+    final ln = _lastNameController.text.trim();
+    final un = _usernameController.text.trim();
+    final em = _emailController.text.trim();
+    final ph = _phoneController.text.trim();
+    final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+
     setState(() {
-      _firstNameError = _firstNameController.text.trim().isEmpty ? 'Required' : null;
-      _lastNameError = _lastNameController.text.trim().isEmpty ? 'Required' : null;
-      _usernameError = _usernameController.text.trim().isEmpty ? 'Required' : null;
-      _emailError = _emailController.text.trim().isEmpty ? 'Required' : null;
+      if (fn.isEmpty) {
+        _firstNameError = 'First name is required';
+      } else if (fn.length < 2) {
+        _firstNameError = 'Min 2 characters';
+      } else {
+        _firstNameError = null;
+      }
+
+      if (ln.isEmpty) {
+        _lastNameError = 'Last name is required';
+      } else if (ln.length < 2) {
+        _lastNameError = 'Min 2 characters';
+      } else {
+        _lastNameError = null;
+      }
+
+      if (un.isEmpty) {
+        _usernameError = 'Username is required';
+      } else if (un.length < 4) {
+        _usernameError = 'Min 4 characters';
+      } else if (un.length > 20) {
+        _usernameError = 'Max 20 characters';
+      } else if (!RegExp(r'^[a-zA-Z0-9_]+$').hasMatch(un)) {
+        _usernameError = 'Only letters, numbers and _';
+      } else {
+        _usernameError = null;
+      }
+
+      if (em.isEmpty) {
+        _emailError = 'Email is required';
+      } else if (!emailRegex.hasMatch(em)) {
+        _emailError = 'Invalid email format (e.g. user@example.com)';
+      } else {
+        _emailError = null;
+      }
+
+      if (ph.isNotEmpty) {
+        if (!RegExp(r'^[0-9+\-\s()]+$').hasMatch(ph)) {
+          _phoneError = 'Format: +387 XX XXX-XXX';
+        } else if (ph.replaceAll(RegExp(r'[^0-9]'), '').length < 9) {
+          _phoneError = 'Min 9 digits';
+        } else {
+          _phoneError = null;
+        }
+      } else {
+        _phoneError = null;
+      }
     });
-    return _firstNameError == null && _lastNameError == null &&
-        _usernameError == null && _emailError == null;
+
+    return _firstNameError == null &&
+        _lastNameError == null &&
+        _usernameError == null &&
+        _emailError == null &&
+        _phoneError == null;
   }
 
   Future<void> _submit() async {
@@ -895,21 +946,37 @@ class _EditUserDialogState extends State<_EditUserDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'EDIT USER',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2),
+              Row(
+                children: [
+                  const SizedBox(width: 28),
+                  const Expanded(
+                    child: Text(
+                      'EDIT USER',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
               ),
               const SizedBox(height: 28),
-              // Avatar picker
               Builder(builder: (_) {
                 ImageProvider? imgProvider;
                 if (_selectedImage != null) {
                   imgProvider = FileImage(_selectedImage!);
-                } else if (!_imageDeleted && widget.user.imageUrl != null) {
+                } else if (!_imageDeleted &&
+                    widget.user.imageUrl != null &&
+                    (widget.user.imageUrl!.startsWith('http://') ||
+                        widget.user.imageUrl!.startsWith('https://'))) {
                   imgProvider = NetworkImage(widget.user.imageUrl!);
                 }
                 final hasImage = imgProvider != null;
@@ -969,7 +1036,7 @@ class _EditUserDialogState extends State<_EditUserDialog> {
                   Expanded(
                     child: Column(
                       children: [
-                        BookFormField(controller: _phoneController, hint: 'Phone (optional)', keyboardType: TextInputType.phone, onChanged: (_) {}),
+                        BookFormField(controller: _phoneController, hint: 'Phone (optional)', keyboardType: TextInputType.phone, error: _phoneError, onChanged: (_) => setState(() => _phoneError = null)),
                         const SizedBox(height: 16),
                         BookFormField(controller: _addressController, hint: 'Address (optional)', onChanged: (_) {}),
                         const SizedBox(height: 16),
@@ -997,19 +1064,6 @@ class _EditUserDialogState extends State<_EditUserDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  SizedBox(
-                    height: 42,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.lightBrown),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(horizontal: 24),
-                      ),
-                      child: const Text('Cancel', style: TextStyle(color: AppColors.lightBrown)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   SizedBox(
                     height: 42,
                     child: ElevatedButton(

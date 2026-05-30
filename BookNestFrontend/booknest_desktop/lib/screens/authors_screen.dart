@@ -84,7 +84,7 @@ class _AuthorsScreenState extends State<AuthorsScreen> {
   void _openAddDialog() {
     showDialog(
       context: context,
-      builder: (_) => _AuthorFormDialog(
+      builder: (_) => AuthorFormDialog(
         authorService: _authorService,
         onSaved: _loadData,
       ),
@@ -245,22 +245,21 @@ class _AuthorsScreenState extends State<AuthorsScreen> {
   }
 }
 
-// ─── Add/Edit Dialog ──────────────────────────────────────────────────────────
-
-class _AuthorFormDialog extends StatefulWidget {
+class AuthorFormDialog extends StatefulWidget {
   final AuthorService authorService;
   final VoidCallback onSaved;
 
-  const _AuthorFormDialog({
+  const AuthorFormDialog({
+    super.key,
     required this.authorService,
     required this.onSaved,
   });
 
   @override
-  State<_AuthorFormDialog> createState() => _AuthorFormDialogState();
+  State<AuthorFormDialog> createState() => _AuthorFormDialogState();
 }
 
-class _AuthorFormDialogState extends State<_AuthorFormDialog> {
+class _AuthorFormDialogState extends State<AuthorFormDialog> {
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _biographyController;
@@ -367,10 +366,10 @@ class _AuthorFormDialogState extends State<_AuthorFormDialog> {
     final lastName = _lastNameController.text.trim();
     final biography = _biographyController.text.trim();
     setState(() {
-      _firstNameError = firstName.isEmpty ? 'Required' : null;
-      _lastNameError = lastName.isEmpty ? 'Required' : null;
-      _biographyError = biography.isEmpty ? 'Required' : null;
-      _dateOfBirthError = _dateOfBirth == null ? 'Required' : null;
+      _firstNameError = firstName.isEmpty ? 'First name is required.' : null;
+      _lastNameError = lastName.isEmpty ? 'Last name is required.' : null;
+      _biographyError = biography.isEmpty ? 'Biography is required.' : null;
+      _dateOfBirthError = _dateOfBirth == null ? 'Date of birth is required.' : null;
     });
     if (_firstNameError != null ||
         _lastNameError != null ||
@@ -427,15 +426,28 @@ class _AuthorFormDialogState extends State<_AuthorFormDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('ADD AUTHOR',
-                  style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.2)),
+              Row(
+                children: [
+                  const SizedBox(width: 28),
+                  const Expanded(
+                    child: Text('ADD AUTHOR',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2)),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
+              ),
               const SizedBox(height: 20),
 
-              // Avatar picker
               Column(
                 children: [
                   GestureDetector(
@@ -551,19 +563,6 @@ class _AuthorFormDialogState extends State<_AuthorFormDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.lightBrown),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                    ),
-                    child: const Text('Cancel',
-                        style: TextStyle(color: AppColors.lightBrown)),
-                  ),
-                  const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _submit,
                     style: ElevatedButton.styleFrom(
@@ -579,8 +578,8 @@ class _AuthorFormDialogState extends State<_AuthorFormDialog> {
                             height: 16,
                             child: CircularProgressIndicator(
                                 color: AppColors.darkBrown, strokeWidth: 2))
-                        : Text('Add',
-                            style: const TextStyle(
+                        : const Text('Add',
+                            style: TextStyle(
                                 color: AppColors.darkBrown,
                                 fontWeight: FontWeight.w700)),
                   ),
@@ -594,7 +593,6 @@ class _AuthorFormDialogState extends State<_AuthorFormDialog> {
   }
 }
 
-// ─── Date Picker Field ────────────────────────────────────────────────────────
 
 class _DatePickerField extends StatelessWidget {
   final String label;

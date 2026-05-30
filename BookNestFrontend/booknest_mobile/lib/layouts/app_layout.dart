@@ -332,6 +332,18 @@ class _NotificationBellState extends State<NotificationBell> {
   final LayerLink _layerLink = LayerLink();
   Timer? _refreshTimer;
 
+  String _formatNotificationDate(dynamic raw) {
+    if (raw == null) return '';
+    try {
+      final dt = DateTime.parse(raw.toString()).toLocal();
+      final h = dt.hour.toString().padLeft(2, '0');
+      final m = dt.minute.toString().padLeft(2, '0');
+      return '${dt.day}.${dt.month}.${dt.year}  $h:$m';
+    } catch (_) {
+      return '';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -467,6 +479,16 @@ class _NotificationBellState extends State<NotificationBell> {
                                         fontSize: 12,
                                       ),
                                     ),
+                                    if (n['sendAt'] != null) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _formatNotificationDate(n['sendAt']),
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(alpha: 0.5),
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               );

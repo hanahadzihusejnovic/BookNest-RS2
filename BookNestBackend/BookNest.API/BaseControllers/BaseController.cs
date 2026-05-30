@@ -5,9 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookNest.API.BaseControllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class BaseController<T, TSearch> : ControllerBase 
+    public class BaseController<T, TSearch> : ApiController
         where T : class
         where TSearch : BaseSearchObject
     {

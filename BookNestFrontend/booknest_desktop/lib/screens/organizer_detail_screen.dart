@@ -285,7 +285,6 @@ class _OrganizerDetailScreenState extends State<OrganizerDetailScreen> {
   }
 }
 
-// ─── Edit Dialog ──────────────────────────────────────────────────────────────
 
 class _EditOrganizerDialog extends StatefulWidget {
   final Organizer organizer;
@@ -335,14 +334,23 @@ class _EditOrganizerDialogState extends State<_EditOrganizerDialog> {
     super.dispose();
   }
 
+  bool _isValidEmail(String email) {
+    final re = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    return re.hasMatch(email);
+  }
+
   Future<void> _submit() async {
+    final email = _emailController.text.trim();
     setState(() {
       _firstNameError =
-          _firstNameController.text.trim().isEmpty ? 'Required' : null;
+          _firstNameController.text.trim().isEmpty ? 'First name is required.' : null;
       _lastNameError =
-          _lastNameController.text.trim().isEmpty ? 'Required' : null;
-      _emailError =
-          _emailController.text.trim().isEmpty ? 'Required' : null;
+          _lastNameController.text.trim().isEmpty ? 'Last name is required.' : null;
+      _emailError = email.isEmpty
+          ? 'Contact email is required.'
+          : !_isValidEmail(email)
+              ? 'Enter a valid email address.'
+              : null;
     });
     if (_firstNameError != null ||
         _lastNameError != null ||
@@ -388,13 +396,27 @@ class _EditOrganizerDialogState extends State<_EditOrganizerDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'EDIT ORGANIZER',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2),
+              Row(
+                children: [
+                  const SizedBox(width: 28),
+                  const Expanded(
+                    child: Text(
+                      'EDIT ORGANIZER',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               Row(
@@ -438,21 +460,6 @@ class _EditOrganizerDialogState extends State<_EditOrganizerDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                          color: AppColors.lightBrown),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                    ),
-                    child: const Text('Cancel',
-                        style: TextStyle(
-                            color: AppColors.lightBrown)),
-                  ),
-                  const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _submit,
                     style: ElevatedButton.styleFrom(

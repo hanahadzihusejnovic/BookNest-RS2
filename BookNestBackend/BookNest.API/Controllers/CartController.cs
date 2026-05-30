@@ -31,7 +31,7 @@ namespace BookNest.API.Controllers
         [HttpGet("my-cart")]
         public async Task<ActionResult<CartResponse>> GetMyCart()
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {
@@ -46,7 +46,7 @@ namespace BookNest.API.Controllers
         public async Task<ActionResult<CartResponse>> AddItem([FromBody] CartItemInsertRequest request)
         {
             
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
              if (userId == 0)
              {
@@ -60,7 +60,7 @@ namespace BookNest.API.Controllers
         [HttpPut("update-item/{cartItemId}")]
         public async Task<ActionResult<CartResponse>> UpdateItem(int cartItemId, [FromBody] int quantity)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {
@@ -74,7 +74,7 @@ namespace BookNest.API.Controllers
         [HttpDelete("remove-item/{cartItemId}")]
         public async Task<ActionResult<CartResponse>> RemoveItem(int cartItemId)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {
@@ -88,7 +88,7 @@ namespace BookNest.API.Controllers
         [HttpDelete("clear")]
         public async Task<ActionResult<bool>> ClearCart()
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {

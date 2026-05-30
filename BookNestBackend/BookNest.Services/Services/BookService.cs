@@ -140,18 +140,14 @@ namespace BookNest.Services.Services
 
                 if (request.CategoryIds != null && request.CategoryIds.Count > 0)
                 {
-                    foreach (var categoryId in request.CategoryIds)
-                    {
-                        if (await _dbContext.Categories.AnyAsync(c => c.Id == categoryId, cancellationToken))
-                        {
-                            var bookCategory = new BookCategory
-                            {
-                                BookId = book.Id,
-                                CategoryId = categoryId
-                            };
-                            _dbContext.BookCategories.Add(bookCategory);
-                        }
-                    }
+                    var validIds = await _dbContext.Categories
+                        .Where(c => request.CategoryIds.Contains(c.Id))
+                        .Select(c => c.Id)
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var categoryId in validIds)
+                        _dbContext.BookCategories.Add(new BookCategory { BookId = book.Id, CategoryId = categoryId });
+
                     await _dbContext.SaveChangesAsync(cancellationToken);
                 }
 
@@ -184,18 +180,13 @@ namespace BookNest.Services.Services
 
             if (request.CategoryIds != null && request.CategoryIds.Count > 0)
             {
-                foreach (var categoryId in request.CategoryIds)
-                {
-                    if (await _dbContext.Categories.AnyAsync(c => c.Id == categoryId))
-                    {
-                        var bookCategory = new BookCategory
-                        {
-                            BookId = book.Id,
-                            CategoryId = categoryId
-                        };
-                        _dbContext.BookCategories.Add(bookCategory);
-                    }
-                }
+                var validIds = await _dbContext.Categories
+                    .Where(c => request.CategoryIds.Contains(c.Id))
+                    .Select(c => c.Id)
+                    .ToListAsync();
+
+                foreach (var categoryId in validIds)
+                    _dbContext.BookCategories.Add(new BookCategory { BookId = book.Id, CategoryId = categoryId });
             }
 
             await _dbContext.SaveChangesAsync();

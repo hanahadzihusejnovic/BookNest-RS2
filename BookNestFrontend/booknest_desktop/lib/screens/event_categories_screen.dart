@@ -99,7 +99,7 @@ class _EventCategoriesScreenState extends State<EventCategoriesScreen> {
   void _openDialog({EventCategory? category}) {
     showDialog(
       context: context,
-      builder: (_) => _EventCategoryDialog(
+      builder: (_) => EventCategoryDialog(
         category: category,
         categoryService: _categoryService,
         onSaved: _loadData,
@@ -321,23 +321,24 @@ class _EventCategoriesScreenState extends State<EventCategoriesScreen> {
   }
 }
 
-// ─── Dialog ───────────────────────────────────────────────────────────────────
 
-class _EventCategoryDialog extends StatefulWidget {
+class EventCategoryDialog extends StatefulWidget {
   final EventCategory? category;
   final EventCategoryService categoryService;
   final VoidCallback onSaved;
 
-  const _EventCategoryDialog(
-      {this.category,
-      required this.categoryService,
-      required this.onSaved});
+  const EventCategoryDialog({
+    super.key,
+    this.category,
+    required this.categoryService,
+    required this.onSaved,
+  });
 
   @override
-  State<_EventCategoryDialog> createState() => _EventCategoryDialogState();
+  State<EventCategoryDialog> createState() => _EventCategoryDialogState();
 }
 
-class _EventCategoryDialogState extends State<_EventCategoryDialog> {
+class _EventCategoryDialogState extends State<EventCategoryDialog> {
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
   String? _nameError;
@@ -410,13 +411,27 @@ class _EventCategoryDialogState extends State<_EventCategoryDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                isEdit ? 'EDIT CATEGORY' : 'ADD CATEGORY',
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.2),
+              Row(
+                children: [
+                  const SizedBox(width: 28),
+                  Expanded(
+                    child: Text(
+                      isEdit ? 'EDIT CATEGORY' : 'ADD CATEGORY',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
               ),
               const SizedBox(height: 24),
               BookFormField(
@@ -439,21 +454,6 @@ class _EventCategoryDialogState extends State<_EventCategoryDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(
-                          color: AppColors.lightBrown),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 20, vertical: 12),
-                    ),
-                    child: const Text('Cancel',
-                        style:
-                            TextStyle(color: AppColors.lightBrown)),
-                  ),
-                  const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _submit,
                     style: ElevatedButton.styleFrom(

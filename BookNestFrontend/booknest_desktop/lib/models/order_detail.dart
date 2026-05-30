@@ -2,9 +2,12 @@ class OrderDetail {
   final int id;
   final int userId;
   final String userFullName;
+  final String? userEmail;
+  final String? userPhoneNumber;
   final DateTime orderDate;
   final DateTime? shippedDate;
   final String status;
+  final String? cancellationReason;
   final double totalPrice;
   final OrderShipping shipping;
   final OrderPayment payment;
@@ -12,10 +15,9 @@ class OrderDetail {
 
   static const _statusLabels = {
     0: 'Pending',
-    1: 'Processing',
-    2: 'Shipped',
-    3: 'Delivered',
-    4: 'Cancelled',
+    1: 'Shipped',
+    2: 'Delivered',
+    3: 'Cancelled',
   };
 
   static String _parseStatus(dynamic raw) {
@@ -28,9 +30,12 @@ class OrderDetail {
     required this.id,
     required this.userId,
     required this.userFullName,
+    this.userEmail,
+    this.userPhoneNumber,
     required this.orderDate,
     this.shippedDate,
     required this.status,
+    this.cancellationReason,
     required this.totalPrice,
     required this.shipping,
     required this.payment,
@@ -42,11 +47,14 @@ class OrderDetail {
       id: json['id'],
       userId: json['userId'] ?? 0,
       userFullName: json['userFullName'] ?? '',
+      userEmail: json['userEmail'],
+      userPhoneNumber: json['userPhoneNumber'],
       orderDate: DateTime.tryParse(json['orderDate']?.toString() ?? '') ?? DateTime.now(),
       shippedDate: json['shippedDate'] != null
           ? DateTime.tryParse(json['shippedDate'].toString())
           : null,
       status: _parseStatus(json['status']),
+      cancellationReason: json['cancellationReason'],
       totalPrice: (json['totalPrice'] as num?)?.toDouble() ?? 0,
       shipping: OrderShipping.fromJson(json['shipping'] as Map<String, dynamic>? ?? {}),
       payment: OrderPayment.fromJson(json['payment'] as Map<String, dynamic>? ?? {}),

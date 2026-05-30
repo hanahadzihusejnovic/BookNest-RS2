@@ -43,7 +43,7 @@ namespace BookNest.API.Controllers
         [HttpPost("reserve")]
         public async Task<ActionResult<EventReservationResponse>> ReserveEvent([FromBody] EventReservationInsertRequest request)
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {
@@ -57,7 +57,7 @@ namespace BookNest.API.Controllers
         [HttpGet("my-reservations")]
         public async Task<ActionResult<List<EventReservationResponse>>> GetMyReservations()
         {
-            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+            var userId = GetCurrentUserId();
 
             if (userId == 0)
             {
@@ -86,13 +86,24 @@ namespace BookNest.API.Controllers
         [Authorize(Roles = Roles.Admin)]
         public override async Task<EventReservationResponse?> Update(int id, [FromBody] EventReservationUpdateRequest request)
         {
-            return await base.Update(id, request);
+            var adminId = GetCurrentUserId();
+            return await _eventReservationService.UpdateStatusAsync(id, request, adminId);
         }
 
         [Authorize(Roles = Roles.Admin)]
         public override async Task<bool> Delete(int id)
         {
             return await base.Delete(id);
+        }
+
+        [HttpPost("{id}/cancel")]
+        public async Task<ActionResult<EventReservationResponse>> CancelReservation(int id, [FromBody] string cancellationReason)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0) return Unauthorized();
+
+            var result = await _eventReservationService.CancelUserReservationAsync(id, userId, cancellationReason);
+            return Ok(result);
         }
 
         [Authorize(Roles = Roles.Admin)]
@@ -104,3 +115,4 @@ namespace BookNest.API.Controllers
         }
     }
 }
+

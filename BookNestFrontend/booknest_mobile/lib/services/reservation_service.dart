@@ -1,7 +1,6 @@
 import 'dart:convert';
 import '../layouts/constants.dart';
 import 'http_client.dart';
-import 'auth_service.dart';
 
 class ReservationModel {
   final int id;
@@ -52,17 +51,6 @@ class ReservationModel {
 }
 
 class ReservationService {
-  final AuthService _authService = AuthService();
-
-  Future<Map<String, String>> _headers() async {
-    final token = await _authService.getToken();
-    if (token == null) throw Exception('Not authenticated');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   Future<ReservationModel> reserveEvent({
     required int eventId,
     required int quantity,
@@ -71,7 +59,6 @@ class ReservationService {
   }) async {
     final response = await HttpClient.post(
       Uri.parse('${AppConstants.baseUrl}/EventReservation/reserve'),
-      headers: await _headers(),
       body: jsonEncode({
         'eventId': eventId,
         'quantity': quantity,
@@ -79,7 +66,6 @@ class ReservationService {
         if (transactionId != null) 'transactionId': transactionId,
       }),
     );
-
     if (response.statusCode == 200) {
       return ReservationModel.fromJson(jsonDecode(response.body));
     }
@@ -90,12 +76,22 @@ class ReservationService {
   Future<List<ReservationModel>> getMyReservations() async {
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/EventReservation/my-reservations'),
-      headers: await _headers(),
     );
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       return data.map((e) => ReservationModel.fromJson(e)).toList();
     }
     throw Exception('Failed to load reservations');
+  }
+
+  Future<void> cancelReservation(int id, String cancellationReason) async {
+    final response = await HttpClient.post(
+      Uri.parse('${AppConstants.baseUrl}/EventReservation/$id/cancel'),
+      body: jsonEncode(cancellationReason),
+    );
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+      throw Exception(body['message'] ?? 'Failed to cancel reservation');
+    }
   }
 }

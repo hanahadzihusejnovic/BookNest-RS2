@@ -16,20 +16,18 @@ namespace BookNest.Services.Services
 
         public async Task<List<CategoryStatResponse>> GetCategoryOrderStatsAsync(CancellationToken cancellationToken = default)
         {
-            var stats = await _dbContext.Categories
-                .Select(c => new CategoryStatResponse
+            return await _dbContext.OrderItems
+                .SelectMany(oi => oi.Book.BookCategories)
+                .GroupBy(bc => bc.Category.Name)
+                .Select(g => new CategoryStatResponse
                 {
-                    CategoryName = c.Name,
-                    OrderCount = _dbContext.OrderItems
-                        .Count(oi => oi.Book.BookCategories
-                            .Any(bc => bc.CategoryId == c.Id))
+                    CategoryName = g.Key,
+                    OrderCount = g.Count()
                 })
                 .Where(c => c.OrderCount > 0)
                 .OrderByDescending(c => c.OrderCount)
                 .Take(6)
                 .ToListAsync(cancellationToken);
-
-            return stats;
         }
     }
 }

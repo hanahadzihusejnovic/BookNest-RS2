@@ -24,6 +24,7 @@ namespace BookNest.Services.Services
         {
             _dbContext = dbContext;
             _publisher = publisher;
+            Stripe.StripeConfiguration.ApiKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
         }
 
         protected override IQueryable<EventReservation> ApplyFilter(IQueryable<EventReservation> query, EventReservationSearchObject search)
@@ -115,34 +116,9 @@ namespace BookNest.Services.Services
             return _mapper.Map<EventReservationResponse>(reservation);
         }
 
-        public override async Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
+        public override Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default)
         {
-            var reservation = await _dbContext.EventReservations
-                .Include(r => r.Payment)
-                .Include(r => r.Event)
-                .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
-
-            if (reservation == null)
-            {
-                throw new NotFoundException("Reservation not found.");
-            }
-
-            if (reservation.Payment != null)
-            {
-                _dbContext.Payments.Remove(reservation.Payment);
-            }
-
-            var eventEntity = reservation.Event;
-            if (eventEntity != null)
-            {
-                eventEntity.ReservedSeats -= reservation.Quantity;
-            }
-
-            _dbContext.EventReservations.Remove(reservation);
-
-            await _dbContext.SaveChangesAsync(cancellationToken);
-
-            return true;
+            throw new BusinessException("Reservations cannot be deleted. Change the status to Cancelled instead.");
         }
 
         public async Task<EventReservationResponse> CreateReservationAsync(int userId, EventReservationInsertRequest request, CancellationToken cancellationToken = default)
@@ -176,7 +152,6 @@ namespace BookNest.Services.Services
 
             decimal totalPrice = eventEntity.TicketPrice * request.Quantity;
 
-            // Verificiraj plaćanje na serveru
             bool isSuccessful;
             string? transactionId;
 
@@ -185,7 +160,6 @@ namespace BookNest.Services.Services
                 if (string.IsNullOrEmpty(request.TransactionId))
                     throw new BusinessException("PaymentIntentId is required for card payments.");
 
-                Stripe.StripeConfiguration.ApiKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
                 var stripeService = new Stripe.PaymentIntentService();
                 var intent = await stripeService.GetAsync(request.TransactionId, cancellationToken: cancellationToken);
 
@@ -197,7 +171,6 @@ namespace BookNest.Services.Services
             }
             else
             {
-                // Cash on Arrival — server evidentira kao uspješno
                 isSuccessful = true;
                 transactionId = $"COA-{Guid.NewGuid()}";
             }
@@ -291,6 +264,13 @@ namespace BookNest.Services.Services
             return eventEntity.Capacity - eventEntity.ReservedSeats;
         }
 
+        private static readonly Dictionary<ReservationStatus, List<ReservationStatus>> _allowedReservationTransitions = new()
+        {
+            { ReservationStatus.Pending,   new List<ReservationStatus> { ReservationStatus.Confirmed, ReservationStatus.Cancelled } },
+            { ReservationStatus.Confirmed, new List<ReservationStatus> { ReservationStatus.Cancelled } },
+            { ReservationStatus.Cancelled, new List<ReservationStatus>() },
+        };
+
         public override async Task<EventReservationResponse?> UpdateAsync(int id, EventReservationUpdateRequest request, CancellationToken cancellationToken = default)
         {
             var reservation = await _dbContext.EventReservations
@@ -300,33 +280,41 @@ namespace BookNest.Services.Services
             if (reservation == null)
                 throw new NotFoundException("Reservation not found.");
 
-            if (request.ReservationStatus == ReservationStatus.Cancelled &&
-                reservation.ReservationStatus != ReservationStatus.Cancelled)
-            {
+            if (!_allowedReservationTransitions.TryGetValue(reservation.ReservationStatus, out var allowed) || !allowed.Contains(request.ReservationStatus))
+                throw new BusinessException($"Cannot transition reservation from '{reservation.ReservationStatus}' to '{request.ReservationStatus}'.");
+
+            if (request.ReservationStatus == ReservationStatus.Cancelled && string.IsNullOrWhiteSpace(request.CancellationReason))
+                throw new BusinessException("Cancellation reason is required when cancelling a reservation.");
+
+            if (request.ReservationStatus == ReservationStatus.Cancelled)
                 reservation.Event.ReservedSeats = Math.Max(0, reservation.Event.ReservedSeats - reservation.Quantity);
-            }
 
             reservation.ReservationStatus = request.ReservationStatus;
+            reservation.StatusChangedAt = DateTime.UtcNow;
+            reservation.CancellationReason = request.CancellationReason;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             var (title, message) = request.ReservationStatus switch
             {
                 ReservationStatus.Confirmed => ("Reservation confirmed", $"Your reservation for '{reservation.Event.Name}' has been confirmed."),
-                ReservationStatus.Cancelled => ("Reservation cancelled", $"Your reservation for '{reservation.Event.Name}' has been cancelled."),
-                ReservationStatus.Attended => ("Thank you for attending", $"We hope you enjoyed '{reservation.Event.Name}'!"),
+                ReservationStatus.Cancelled => ("Reservation cancelled", $"Your reservation for '{reservation.Event.Name}' has been cancelled. Reason: {request.CancellationReason}"),
                 _ => ("Reservation updated", $"Your reservation for '{reservation.Event.Name}' has been updated.")
             };
 
-            await _publisher.PublishAsync("notifications-queue", new NotificationMessage
+            try
             {
-                UserId = reservation.UserId,
-                EventId = reservation.EventId,
-                Title = title,
-                Message = message,
-                NotificationType = "ReservationStatusChanged",
-                SendAt = DateTime.UtcNow
-            });
+                await _publisher.PublishAsync("notifications-queue", new NotificationMessage
+                {
+                    UserId = reservation.UserId,
+                    EventId = reservation.EventId,
+                    Title = title,
+                    Message = message,
+                    NotificationType = "ReservationStatusChanged",
+                    SendAt = DateTime.UtcNow
+                });
+            }
+            catch { }
 
             return await GetByIdAsync(id, cancellationToken);
         }
@@ -334,6 +322,83 @@ namespace BookNest.Services.Services
         private string GenerateQRCodeLink()
         {
             return $"https://booknest.com/tickets/{Guid.NewGuid()}";
+        }
+
+        public async Task<EventReservationResponse> CancelUserReservationAsync(int id, int userId, string cancellationReason, CancellationToken cancellationToken = default)
+        {
+            var reservation = await _dbContext.EventReservations
+                .Include(r => r.Event)
+                .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+            if (reservation == null || reservation.UserId != userId)
+                throw new NotFoundException("Reservation not found.");
+
+            if (!_allowedReservationTransitions.TryGetValue(reservation.ReservationStatus, out var allowed)
+                || !allowed.Contains(ReservationStatus.Cancelled))
+                throw new BusinessException($"Cannot cancel a reservation with status '{reservation.ReservationStatus}'.");
+
+            if (string.IsNullOrWhiteSpace(cancellationReason))
+                throw new BusinessException("Cancellation reason is required.");
+
+            reservation.Event.ReservedSeats = Math.Max(0, reservation.Event.ReservedSeats - reservation.Quantity);
+            reservation.ReservationStatus = ReservationStatus.Cancelled;
+            reservation.StatusChangedAt = DateTime.UtcNow;
+            reservation.StatusChangedByUserId = userId;
+            reservation.CancellationReason = cancellationReason;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            return await GetByIdAsync(id, cancellationToken)
+                   ?? throw new BusinessException("Failed to retrieve cancelled reservation.");
+        }
+
+        public async Task<EventReservationResponse?> UpdateStatusAsync(int id, EventReservationUpdateRequest request, int changedByUserId, CancellationToken cancellationToken = default)
+        {
+            var reservation = await _dbContext.EventReservations
+                .Include(r => r.Event)
+                .FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+            if (reservation == null)
+                throw new NotFoundException("Reservation not found.");
+
+            if (!_allowedReservationTransitions.TryGetValue(reservation.ReservationStatus, out var allowed) || !allowed.Contains(request.ReservationStatus))
+                throw new BusinessException($"Cannot transition reservation from '{reservation.ReservationStatus}' to '{request.ReservationStatus}'.");
+
+            if (request.ReservationStatus == ReservationStatus.Cancelled && string.IsNullOrWhiteSpace(request.CancellationReason))
+                throw new BusinessException("Cancellation reason is required when cancelling a reservation.");
+
+            if (request.ReservationStatus == ReservationStatus.Cancelled)
+                reservation.Event.ReservedSeats = Math.Max(0, reservation.Event.ReservedSeats - reservation.Quantity);
+
+            reservation.ReservationStatus = request.ReservationStatus;
+            reservation.StatusChangedAt = DateTime.UtcNow;
+            reservation.StatusChangedByUserId = changedByUserId;
+            reservation.CancellationReason = request.CancellationReason;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            var (title, message) = request.ReservationStatus switch
+            {
+                ReservationStatus.Confirmed => ("Reservation confirmed", $"Your reservation for '{reservation.Event.Name}' has been confirmed."),
+                ReservationStatus.Cancelled => ("Reservation cancelled", $"Your reservation for '{reservation.Event.Name}' has been cancelled. Reason: {request.CancellationReason}"),
+                _ => ("Reservation updated", $"Your reservation for '{reservation.Event.Name}' has been updated.")
+            };
+
+            try
+            {
+                await _publisher.PublishAsync("notifications-queue", new NotificationMessage
+                {
+                    UserId = reservation.UserId,
+                    EventId = reservation.EventId,
+                    Title = title,
+                    Message = message,
+                    NotificationType = "ReservationStatusChanged",
+                    SendAt = DateTime.UtcNow
+                });
+            }
+            catch { }
+
+            return await GetByIdAsync(id, cancellationToken);
         }
 
         public async Task SendReminderAsync(int reservationId, CancellationToken cancellationToken = default)

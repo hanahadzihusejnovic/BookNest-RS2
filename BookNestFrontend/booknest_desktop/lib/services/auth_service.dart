@@ -21,7 +21,6 @@ class AuthService {
   static const String _savedUsernameKey = 'saved_username';
   static const String _savedPasswordKey = 'saved_password';
 
-  // Login
   Future<LoginResponse> login(String username, String password) async {
     final request = LoginRequest(username: username, password: password);
     final response = await _apiService.login(request);
@@ -29,7 +28,6 @@ class AuthService {
     return response;
   }
 
-  // Logout
   Future<void> logout() async {
     try {
       final token = await getToken();
@@ -131,8 +129,6 @@ class AuthService {
     await prefs.setString(_expiresAtKey, response.expiresAt.toIso8601String());
   }
 
-  // ========== REMEMBER ME ========== //
-
   Future<void> saveRememberMe(String username, String password) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_rememberMeKey, true);
@@ -158,8 +154,6 @@ class AuthService {
 
     return {'username': username, 'password': password};
   }
-
-  // ========== ROLE METODE ========== //
 
   Future<List<String>> getRoles() async {
     final prefs = await SharedPreferences.getInstance();

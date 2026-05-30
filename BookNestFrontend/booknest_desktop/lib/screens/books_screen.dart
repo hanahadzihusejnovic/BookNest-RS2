@@ -125,7 +125,6 @@ class _BooksScreenState extends State<BooksScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top row: category dropdown + add button
             Row(
               children: [
                 CompositedTransformTarget(
@@ -224,7 +223,6 @@ class _BooksScreenState extends State<BooksScreen> {
             ),
             const SizedBox(height: 12),
 
-            // Search bar
             Container(
               height: 42,
               decoration: BoxDecoration(
@@ -255,7 +253,6 @@ class _BooksScreenState extends State<BooksScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Column headers
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8),
               child: Row(
@@ -274,7 +271,6 @@ class _BooksScreenState extends State<BooksScreen> {
                 thickness: 1,
                 height: 12),
 
-            // Books list
             Expanded(
               child: _isLoading
                   ? const Center(
@@ -471,6 +467,7 @@ class _AddBookDialog extends StatefulWidget {
 class _AddBookDialogState extends State<_AddBookDialog> {
   final _bookService = BookService();
   final _authorService = AuthorService();
+  final _categoryService = CategoryService();
 
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -479,6 +476,7 @@ class _AddBookDialogState extends State<_AddBookDialog> {
   final _pageCountController = TextEditingController();
 
   List<Author> _authors = [];
+  List<Category> _localCategories = [];
   Author? _selectedAuthor;
   Category? _selectedCategory;
   File? _selectedImage;
@@ -504,6 +502,7 @@ class _AddBookDialogState extends State<_AddBookDialog> {
   @override
   void initState() {
     super.initState();
+    _localCategories = List.of(widget.categories);
     _loadAuthors();
   }
 
@@ -519,6 +518,13 @@ class _AddBookDialogState extends State<_AddBookDialog> {
     } catch (_) {
       if (mounted) setState(() => _authorsLoading = false);
     }
+  }
+
+  Future<void> _reloadCategories() async {
+    try {
+      final cats = await _categoryService.getCategories();
+      if (mounted) setState(() => _localCategories = cats);
+    } catch (_) {}
   }
 
   void _closeAuthorDropdown() {
@@ -560,7 +566,7 @@ class _AddBookDialogState extends State<_AddBookDialog> {
       _closeAuthorDropdown();
       _categoryOverlay = _showOverlayDropdown<Category>(
         link: _categoryLink,
-        items: widget.categories,
+        items: _localCategories,
         selected: _selectedCategory,
         labelFn: (c) => c.name,
         onSelect: (c) => setState(() {
@@ -686,13 +692,13 @@ class _AddBookDialogState extends State<_AddBookDialog> {
 
   Future<void> _submit() async {
     setState(() {
-      _titleError = _titleController.text.isEmpty ? 'Required' : null;
-      _authorError = _selectedAuthor == null ? 'Required' : null;
-      _categoryError = _selectedCategory == null ? 'Required' : null;
+      _titleError = _titleController.text.isEmpty ? 'Title is required.' : null;
+      _authorError = _selectedAuthor == null ? 'Please select an author.' : null;
+      _categoryError = _selectedCategory == null ? 'Please select a category.' : null;
       _descriptionError =
-          _descriptionController.text.isEmpty ? 'Required' : null;
-      _priceError = _priceController.text.isEmpty ? 'Required' : null;
-      _stockError = _stockController.text.isEmpty ? 'Required' : null;
+          _descriptionController.text.isEmpty ? 'Description is required.' : null;
+      _priceError = _priceController.text.isEmpty ? 'Price is required.' : null;
+      _stockError = _stockController.text.isEmpty ? 'Stock quantity is required.' : null;
     });
 
     if ([
@@ -775,21 +781,34 @@ class _AddBookDialogState extends State<_AddBookDialog> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const Text(
-                'ADD NEW BOOK',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
-                ),
+              Row(
+                children: [
+                  const SizedBox(width: 28),
+                  const Expanded(
+                    child: Text(
+                      'ADD NEW BOOK',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: Colors.white70, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    constraints: const BoxConstraints(),
+                    padding: EdgeInsets.zero,
+                  ),
+                ],
               ),
               const SizedBox(height: 28),
 
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Left column
                   Expanded(
                     child: Column(
                       children: [
@@ -801,27 +820,88 @@ class _AddBookDialogState extends State<_AddBookDialog> {
                               setState(() => _titleError = null),
                         ),
                         const SizedBox(height: 16),
-                        BookFormDropdownTrigger(
-                          link: _authorLink,
-                          hint: 'Author',
-                          selectedLabel: _selectedAuthor?.name,
-                          isOpen: _authorOpen,
-                          error: _authorError,
-                          loading: _authorsLoading,
-                          onTap: _toggleAuthorDropdown,
-                        ),
+                        if (!_authorsLoading && _authors.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+                            ),
+                            child: const Text(
+                              'No authors found. Please add an author first.',
+                              style: TextStyle(color: Colors.orange, fontSize: 12),
+                            ),
+                          )
+                        else
+                          Row(
+                            children: [
+                              Expanded(
+                                child: BookFormDropdownTrigger(
+                                  link: _authorLink,
+                                  hint: 'Author',
+                                  selectedLabel: _selectedAuthor?.name,
+                                  isOpen: _authorOpen,
+                                  error: _authorError,
+                                  loading: _authorsLoading,
+                                  onTap: _toggleAuthorDropdown,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _QuickAddIconButton(
+                                tooltip: 'Add new author',
+                                onPressed: () => showDialog(
+                                  context: context,
+                                  builder: (_) => AuthorFormDialog(
+                                    authorService: _authorService,
+                                    onSaved: _loadAuthors,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         const SizedBox(height: 16),
-                        BookFormDropdownTrigger(
-                          link: _categoryLink,
-                          hint: 'Category',
-                          selectedLabel: _selectedCategory?.name,
-                          isOpen: _categoryOpen,
-                          error: _categoryError,
-                          onTap: _toggleCategoryDialogDropdown,
-                        ),
+                        if (_localCategories.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.withValues(alpha: 0.4)),
+                            ),
+                            child: const Text(
+                              'No categories found. Please add a category first.',
+                              style: TextStyle(color: Colors.orange, fontSize: 12),
+                            ),
+                          )
+                        else
+                          Row(
+                            children: [
+                              Expanded(
+                                child: BookFormDropdownTrigger(
+                                  link: _categoryLink,
+                                  hint: 'Category',
+                                  selectedLabel: _selectedCategory?.name,
+                                  isOpen: _categoryOpen,
+                                  error: _categoryError,
+                                  onTap: _toggleCategoryDialogDropdown,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              _QuickAddIconButton(
+                                tooltip: 'Add new category',
+                                onPressed: () => showDialog(
+                                  context: context,
+                                  builder: (_) => CategoryDialog(
+                                    categoryService: _categoryService,
+                                    onSaved: _reloadCategories,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         const SizedBox(height: 16),
 
-                        // Image picker
                         Column(
                           children: [
                             GestureDetector(
@@ -876,7 +956,6 @@ class _AddBookDialogState extends State<_AddBookDialog> {
                   ),
                   const SizedBox(width: 20),
 
-                  // Right column
                   Expanded(
                     child: Column(
                       children: [
@@ -930,22 +1009,6 @@ class _AddBookDialogState extends State<_AddBookDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  SizedBox(
-                    height: 42,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.lightBrown),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8)),
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 24),
-                      ),
-                      child: const Text('Cancel',
-                          style: TextStyle(color: AppColors.lightBrown)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
                   SizedBox(
                     height: 42,
                     child: ElevatedButton(
@@ -1044,3 +1107,30 @@ class _BookDatePickerField extends StatelessWidget {
   }
 }
 
+class _QuickAddIconButton extends StatelessWidget {
+  final String tooltip;
+  final VoidCallback onPressed;
+
+  const _QuickAddIconButton({required this.tooltip, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 42,
+          width: 38,
+          decoration: BoxDecoration(
+            color: AppColors.lightBrown.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.lightBrown.withValues(alpha: 0.4)),
+          ),
+          child: const Icon(Icons.add, color: Colors.white, size: 18),
+        ),
+      ),
+    );
+  }
+}

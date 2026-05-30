@@ -2,24 +2,11 @@ import 'dart:convert';
 import '../layouts/constants.dart';
 import 'http_client.dart';
 import '../models/cart.dart';
-import 'auth_service.dart';
 
 class CartService {
-  final AuthService _authService = AuthService();
-
-  Future<Map<String, String>> _headers() async {
-    final token = await _authService.getToken();
-    if (token == null) throw Exception('Not authenticated');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   Future<CartModel> getMyCart() async {
     final response = await HttpClient.get(
       Uri.parse('${AppConstants.baseUrl}/Cart/my-cart'),
-      headers: await _headers(),
     );
     if (response.statusCode == 200) {
       return CartModel.fromJson(jsonDecode(response.body));
@@ -30,7 +17,6 @@ class CartService {
   Future<CartModel> addItem(int bookId, int quantity) async {
     final response = await HttpClient.post(
       Uri.parse('${AppConstants.baseUrl}/Cart/add-item'),
-      headers: await _headers(),
       body: jsonEncode({'bookId': bookId, 'quantity': quantity}),
     );
     if (response.statusCode == 200) {
@@ -42,7 +28,6 @@ class CartService {
   Future<CartModel> updateItem(int cartItemId, int quantity) async {
     final response = await HttpClient.put(
       Uri.parse('${AppConstants.baseUrl}/Cart/update-item/$cartItemId'),
-      headers: await _headers(),
       body: jsonEncode(quantity),
     );
     if (response.statusCode == 200) {
@@ -54,7 +39,6 @@ class CartService {
   Future<CartModel> removeItem(int cartItemId) async {
     final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/Cart/remove-item/$cartItemId'),
-      headers: await _headers(),
     );
     if (response.statusCode == 200) {
       return CartModel.fromJson(jsonDecode(response.body));
@@ -65,7 +49,6 @@ class CartService {
   Future<void> clearCart() async {
     final response = await HttpClient.delete(
       Uri.parse('${AppConstants.baseUrl}/Cart/clear'),
-      headers: await _headers(),
     );
     if (response.statusCode != 200) {
       throw Exception('Failed to clear cart');

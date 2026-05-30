@@ -30,8 +30,8 @@ class _EventCategoryScreenState extends State<EventCategoryScreen> {
   String? _error;
   String _query = '';
 
-  String? _filterEventType; // 'Online', 'InPerson', null = sve
-  String? _filterPrice;     // 'free', 'under20', 'over20', null = sve
+  String? _filterEventType; 
+  String? _filterPrice; 
 
   static const int _pageSize = 12;
   int _currentPage = 0;

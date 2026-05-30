@@ -19,10 +19,9 @@ class Order {
 
   static const _statusLabels = {
     0: 'Pending',
-    1: 'Processing',
-    2: 'Shipped',
-    3: 'Delivered',
-    4: 'Cancelled',
+    1: 'Shipped',
+    2: 'Delivered',
+    3: 'Cancelled',
   };
 
   static String _parseStatus(dynamic raw) {
@@ -33,7 +32,9 @@ class Order {
 
   factory Order.fromJson(Map<String, dynamic> json) {
     final items = json['orderItems'] as List<dynamic>? ?? [];
-    final itemsCount = (json['itemsCount'] as num?)?.toInt() ?? items.length;
+    final itemsCount = items.isNotEmpty
+        ? items.fold<int>(0, (sum, item) => sum + ((item['quantity'] as num?)?.toInt() ?? 1))
+        : (json['itemsCount'] as num?)?.toInt() ?? 0;
     return Order(
       id: json['id'],
       userId: json['userId'] ?? 0,
