@@ -140,9 +140,7 @@ cd BookNest
 
 **2. Set Up Environment Configuration**
 
-Locate the `.env-tajne.zip` archive in the root folder and extract the `.env` file to the same location.
-
-Password: `fit`
+Locate the `.env-tajne.zip` archive in the root folder and extract the `.env` file to the same location using the password provided on DLWMS.
 
 The extracted `.env` file must be placed at:
 
@@ -316,7 +314,7 @@ fit-build-2026-05-31.zip
 
 ```
 
-> The `.env` file is not included in the release. It is provided separately as `.env-tajne.zip` (password: `fit`) located in the root of the repository.
+> The `.env` file is not included in the release. It is provided separately as `.env-tajne.zip` located in the root of the repository. The password is submitted separately on DLWMS.
 
 ---
 
