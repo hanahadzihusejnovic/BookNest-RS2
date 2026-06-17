@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Services.Database.Entities;
@@ -13,6 +13,8 @@ namespace BookNest.Services.Mapping
                 .ForMember(dest => dest.UserFullName, opt => opt.MapFrom(src => src.User.FirstName + " " + src.User.LastName))
                 .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User.EmailAddress))
                 .ForMember(dest => dest.UserPhoneNumber, opt => opt.MapFrom(src => src.User.PhoneNumber))
+                .ForMember(dest => dest.OrderStatusId, opt => opt.MapFrom(src => src.OrderStatusId))
+                .ForMember(dest => dest.OrderStatusName, opt => opt.MapFrom(src => src.OrderStatus.Name))
                 .ForMember(dest => dest.Shipping, opt => opt.MapFrom(src => src.Shipping))
                 .ForMember(dest => dest.Payment, opt => opt.MapFrom(src => src.Payment))
                 .ForMember(dest => dest.OrderItems, opt => opt.MapFrom(src => src.OrderItems));
@@ -29,7 +31,9 @@ namespace BookNest.Services.Mapping
                 .ForMember(dest => dest.CountryId, opt => opt.MapFrom(src => src.CountryId))
                 .ForMember(dest => dest.CountryName, opt => opt.MapFrom(src => src.Country != null ? src.Country.Name : null));
 
-            CreateMap<Payment, PaymentResponse>();
+            CreateMap<Payment, PaymentResponse>()
+                .ForMember(dest => dest.PaymentMethodId, opt => opt.MapFrom(src => src.PaymentMethodId))
+                .ForMember(dest => dest.PaymentMethodName, opt => opt.MapFrom(src => src.PaymentMethod.Name));
 
             CreateMap<OrderInsertRequest, Order>();
 

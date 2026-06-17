@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using BookNest.Model.Enums;
+using AutoMapper;
 using BookNest.Model.Exceptions;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
@@ -26,6 +25,7 @@ namespace BookNest.Services.Services
             var query = _dbContext.TBRLists
                          .Include(t => t.Book)
                          .ThenInclude(b => b.Author)
+                         .Include(t => t.ReadingStatus)
                          .AsQueryable();
 
             int? totalCount = null;
@@ -60,6 +60,7 @@ namespace BookNest.Services.Services
             var tbrItem = await _dbContext.TBRLists
                                .Include(t => t.Book)
                                .ThenInclude(b => b.Author)
+                               .Include(t => t.ReadingStatus)
                                .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
 
             if (tbrItem == null)
@@ -70,16 +71,17 @@ namespace BookNest.Services.Services
             return _mapper.Map<TBRListResponse>(tbrItem);
         }
 
-        public async Task<List<TBRListResponse>> GetUserTBRListAsync(int userId, ReadingStatus? status = null, CancellationToken cancellationToken = default)
+        public async Task<List<TBRListResponse>> GetUserTBRListAsync(int userId, int? readingStatusId = null, CancellationToken cancellationToken = default)
         {
             var query = _dbContext.TBRLists
                 .Include(t => t.Book)
                     .ThenInclude(b => b.Author)
+                .Include(t => t.ReadingStatus)
                 .Where(t => t.UserId == userId);
 
-            if (status.HasValue)
+            if (readingStatusId.HasValue)
             {
-                query = query.Where(t => t.ReadingStatus == status.Value);
+                query = query.Where(t => t.ReadingStatusId == readingStatusId.Value);
             }
 
             var tbrList = await query
@@ -109,7 +111,7 @@ namespace BookNest.Services.Services
             {
                 UserId = userId,
                 BookId = request.BookId,
-                ReadingStatus = request.ReadingStatus,
+                ReadingStatusId = request.ReadingStatusId,
                 AddedAt = DateTime.UtcNow
             };
 
@@ -119,16 +121,18 @@ namespace BookNest.Services.Services
             var created = await _dbContext.TBRLists
                 .Include(t => t.Book)
                     .ThenInclude(b => b.Author)
+                .Include(t => t.ReadingStatus)
                 .FirstOrDefaultAsync(t => t.Id == tbrItem.Id, cancellationToken);
 
             return _mapper.Map<TBRListResponse>(created!);
         }
 
-        public async Task<TBRListResponse> UpdateTBRListStatusAsync(int userId, int bookId, ReadingStatus status, CancellationToken cancellationToken = default)
+        public async Task<TBRListResponse> UpdateTBRListStatusAsync(int userId, int bookId, int readingStatusId, CancellationToken cancellationToken = default)
         {
             var tbrItem = await _dbContext.TBRLists
                 .Include(t => t.Book)
                     .ThenInclude(b => b.Author)
+                .Include(t => t.ReadingStatus)
                 .FirstOrDefaultAsync(t => t.UserId == userId && t.BookId == bookId, cancellationToken);
 
             if (tbrItem == null)
@@ -136,7 +140,7 @@ namespace BookNest.Services.Services
                 throw new NotFoundException("Book not found in TBR list.");
             }
 
-            tbrItem.ReadingStatus = status;
+            tbrItem.ReadingStatusId = readingStatusId;
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             return _mapper.Map<TBRListResponse>(tbrItem);

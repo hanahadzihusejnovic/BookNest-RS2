@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../layouts/constants.dart';
 import '../screens/dashboard_screen.dart';
@@ -9,6 +10,7 @@ import '../screens/reservations_screen.dart';
 import '../screens/locations_screen.dart';
 import '../screens/login_screen.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 
 class AppLayout extends StatelessWidget {
   final String pageTitle;
@@ -97,6 +99,7 @@ class AppLayout extends StatelessWidget {
                           ),
                         ),
                       ),
+                      const NotificationBell(),
                     ],
                   ),
                 ],
@@ -245,6 +248,7 @@ class _AdminDrawer extends StatelessWidget {
               child: InkWell(
                 onTap: () async {
                   Navigator.pop(context);
+                  await NotificationService().disconnect();
                   await AuthService().logout();
                   if (context.mounted) {
                     Navigator.pushAndRemoveUntil(
@@ -328,6 +332,274 @@ class _DrawerDivider extends StatelessWidget {
         color: AppColors.pageBg.withValues(alpha: 0.35),
         thickness: 1,
         height: 1,
+      ),
+    );
+  }
+}
+
+/* ----------------------- NOTIFICATION BELL ----------------------- */
+
+class NotificationBell extends StatefulWidget {
+  const NotificationBell({super.key});
+
+  @override
+  State<NotificationBell> createState() => _NotificationBellState();
+}
+
+class _NotificationBellState extends State<NotificationBell> {
+  final _service = NotificationService();
+  int _unread = 0;
+  OverlayEntry? _overlayEntry;
+  StateSetter? _panelSetState;
+  final LayerLink _layerLink = LayerLink();
+  Timer? _refreshTimer;
+
+  String _formatNotificationDate(dynamic raw) {
+    if (raw == null) return '';
+    try {
+      final dt = DateTime.parse(raw.toString()).toLocal();
+      final h = dt.hour.toString().padLeft(2, '0');
+      final m = dt.minute.toString().padLeft(2, '0');
+      return '${dt.day}.${dt.month}.${dt.year}  $h:$m';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _unread = _service.unreadCount;
+    _service.addListener(_onNotification);
+    _refreshTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (!mounted) return;
+      final count = _service.unreadCount;
+      if (count != _unread) setState(() => _unread = count);
+    });
+  }
+
+  void _onNotification(Map<String, dynamic> notification) {
+    if (!mounted) return;
+    setState(() => _unread = _service.unreadCount);
+    _panelSetState?.call(() {});
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _panelSetState = null;
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    _service.removeListener(_onNotification);
+    super.dispose();
+  }
+
+  void _closePanel() {
+    _panelSetState = null;
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    setState(() => _unread = _service.unreadCount);
+  }
+
+  Future<void> _markAllAsRead(StateSetter panelSetState) async {
+    await _service.markAllRead();
+    if (!mounted) return;
+    setState(() => _unread = 0);
+    panelSetState(() {});
+  }
+
+  void _togglePanel() {
+    if (_overlayEntry != null) {
+      _closePanel();
+      return;
+    }
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) => StatefulBuilder(
+        builder: (context, panelSetState) {
+          _panelSetState = panelSetState;
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  onTap: _closePanel,
+                  behavior: HitTestBehavior.translucent,
+                ),
+              ),
+              CompositedTransformFollower(
+                link: _layerLink,
+                showWhenUnlinked: false,
+                offset: const Offset(-240, 28),
+                child: Material(
+                  elevation: 8,
+                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.darkBrown,
+                  child: Container(
+                    width: 260,
+                    constraints: const BoxConstraints(maxHeight: 320),
+                    decoration: BoxDecoration(
+                      color: AppColors.darkBrown,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_service.notificationsEnabled &&
+                            _service.notifications.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: _unread == 0
+                                    ? null
+                                    : () => _markAllAsRead(panelSetState),
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  'Mark all as read',
+                                  style: TextStyle(
+                                    color: _unread == 0
+                                        ? Colors.white38
+                                        : const Color(0xFF7EB8F7),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        Flexible(
+                          child: !_service.notificationsEnabled
+                              ? Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Text(
+                                    'Notifications disabled.',
+                                    style: TextStyle(color: AppColors.pageBg, fontSize: 14),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                )
+                              : _service.notifications.isEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Text(
+                                    'No notifications yet.',
+                                    style: TextStyle(color: AppColors.pageBg, fontSize: 14),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                )
+                        : ListView.separated(
+                            shrinkWrap: true,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            itemCount: _service.notifications.length,
+                            separatorBuilder: (_, __) =>
+                                const Divider(color: Colors.white, height: 1),
+                            itemBuilder: (_, i) {
+                              final n = _service.notifications[i];
+                              final isUnread = !(n['isRead'] ?? false);
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        if (isUnread)
+                                          Container(
+                                            width: 7,
+                                            height: 7,
+                                            margin: const EdgeInsets.only(right: 6, top: 1),
+                                            decoration: const BoxDecoration(
+                                              color: Color(0xFF7EB8F7),
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                        Expanded(
+                                          child: Text(
+                                            n['title'] ?? '',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      n['message'] ?? '',
+                                      style: TextStyle(
+                                        color: Colors.white.withValues(alpha: 0.8),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    if (n['sendAt'] != null) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        _formatNotificationDate(n['sendAt']),
+                                        style: TextStyle(
+                                          color: Colors.white.withValues(alpha: 0.5),
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: GestureDetector(
+        onTap: _togglePanel,
+        child: Stack(
+          children: [
+            Icon(Icons.notifications_none,
+                color: AppColors.darkBrown, size: 26),
+            if (_unread > 0)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '$_unread',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

@@ -113,6 +113,24 @@ namespace BookNest.API.Controllers
             await _eventReservationService.SendReminderAsync(id);
             return Ok(new { message = "Reminder sent successfully." });
         }
+
+        [HttpGet("validate-ticket/{token}")]
+        [Authorize(Roles = Roles.Admin)]
+        public async Task<ActionResult<TicketValidationResponse>> ValidateTicket(string token)
+        {
+            var result = await _eventReservationService.ValidateTicketAsync(token);
+            return Ok(result);
+        }
+
+        [HttpPost("create-payment-intent")]
+        public async Task<ActionResult<PaymentIntentResponse>> CreateEventPaymentIntent([FromBody] EventPaymentIntentRequest request)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0) return Unauthorized();
+
+            var result = await _eventReservationService.CreateEventPaymentIntentAsync(userId, request);
+            return Ok(result);
+        }
     }
 }
 

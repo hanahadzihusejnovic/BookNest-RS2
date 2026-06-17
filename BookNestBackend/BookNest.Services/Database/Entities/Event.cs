@@ -1,4 +1,3 @@
-﻿using BookNest.Model.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -35,8 +34,10 @@ namespace BookNest.Services.Database.Entities
         public TimeSpan EventTime { get; set; }
 
         [Required]
-        [Column(TypeName = "nvarchar(50)")]
-        public EventType EventType { get; set; }
+        public int EventTypeId { get; set; }
+
+        [ForeignKey(nameof(EventTypeId))]
+        public EventType EventType { get; set; } = null!;
 
         public string? Address { get; set; }
 
@@ -64,6 +65,9 @@ namespace BookNest.Services.Database.Entities
 
         [Required]
         public int ReservedSeats { get; set; }
+
+        [NotMapped]
+        public DateTime EventDateTime => EventDate.Date + EventTime;
 
         public ICollection<EventReservation> EventReservations { get; set; } = new List<EventReservation>();
         public ICollection<Review> Reviews { get; set; } = new List<Review>();

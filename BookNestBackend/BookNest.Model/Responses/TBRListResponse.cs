@@ -1,5 +1,3 @@
-﻿using BookNest.Model.Enums;
-
 namespace BookNest.Model.Responses
 {
     public class TBRListResponse
@@ -11,7 +9,8 @@ namespace BookNest.Model.Responses
         public string BookAuthor { get; set; } = string.Empty;
         public string BookImageUrl { get; set; } = string.Empty;
         public decimal BookPrice { get; set; }
-        public ReadingStatus ReadingStatus { get; set; }
+        public int ReadingStatusId { get; set; }
+        public string ReadingStatusName { get; set; } = string.Empty;
         public DateTime AddedAt { get; set; }
     }
 }

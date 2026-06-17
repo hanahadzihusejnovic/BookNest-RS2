@@ -1,12 +1,12 @@
-﻿using BookNest.Services.Database.Entities;
+using BookNest.Services.Database.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace BookNest.Services.Database
 {
     public class BookNestDbContext : DbContext
     {
-        public BookNestDbContext(DbContextOptions<BookNestDbContext> options) : base(options) 
-        {    
+        public BookNestDbContext(DbContextOptions<BookNestDbContext> options) : base(options)
+        {
         }
 
         public DbSet<Author> Authors { get; set; }
@@ -18,12 +18,18 @@ namespace BookNest.Services.Database
         public DbSet<Event> Events { get; set; }
         public DbSet<EventCategory> EventCategories { get; set; }
         public DbSet<EventReservation> EventReservations { get; set; }
+        public DbSet<EventType> EventTypes { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<NotificationType> NotificationTypes { get; set; }
         public DbSet<Order> Orders { get; set; }
         public DbSet<OrderItem> OrderItems { get; set; }
+        public DbSet<OrderStatus> OrderStatuses { get; set; }
         public DbSet<Organizer> Organizers { get; set; }
         public DbSet<Payment> Payments { get; set; }
+        public DbSet<PaymentMethod> PaymentMethods { get; set; }
+        public DbSet<ReadingStatus> ReadingStatuses { get; set; }
+        public DbSet<ReservationStatus> ReservationStatuses { get; set; }
         public DbSet<Review> Reviews { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<Shipping> Shippings { get; set; }
@@ -38,6 +44,43 @@ namespace BookNest.Services.Database
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Lookup FK relationships
+            modelBuilder.Entity<EventReservation>()
+                .HasOne(er => er.ReservationStatus)
+                .WithMany(rs => rs.EventReservations)
+                .HasForeignKey(er => er.ReservationStatusId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Order>()
+                .HasOne(o => o.OrderStatus)
+                .WithMany(os => os.Orders)
+                .HasForeignKey(o => o.OrderStatusId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Payment>()
+                .HasOne(p => p.PaymentMethod)
+                .WithMany(pm => pm.Payments)
+                .HasForeignKey(p => p.PaymentMethodId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Event>()
+                .HasOne(e => e.EventType)
+                .WithMany(et => et.Events)
+                .HasForeignKey(e => e.EventTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<TBRList>()
+                .HasOne(t => t.ReadingStatus)
+                .WithMany(rs => rs.TBRLists)
+                .HasForeignKey(t => t.ReadingStatusId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.NotificationType)
+                .WithMany(nt => nt.Notifications)
+                .HasForeignKey(n => n.NotificationTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Shipping>()
                 .HasOne(s => s.City)
@@ -72,7 +115,6 @@ namespace BookNest.Services.Database
             modelBuilder.Entity<User>()
                 .HasOne(u => u.Country).WithMany(c => c.Users)
                 .HasForeignKey(u => u.CountryId).OnDelete(DeleteBehavior.Restrict);
-
 
             modelBuilder.Entity<Book>()
                 .HasOne(b => b.Author)
@@ -199,6 +241,16 @@ namespace BookNest.Services.Database
                 .WithMany(e => e.Reviews)
                 .HasForeignKey(r => r.EventId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Review>()
+                .HasIndex(r => new { r.UserId, r.BookId })
+                .IsUnique()
+                .HasFilter("[BookId] IS NOT NULL");
+
+            modelBuilder.Entity<Review>()
+                .HasIndex(r => new { r.UserId, r.EventId })
+                .IsUnique()
+                .HasFilter("[EventId] IS NOT NULL");
 
             modelBuilder.Entity<Order>()
                 .HasOne(o => o.User)

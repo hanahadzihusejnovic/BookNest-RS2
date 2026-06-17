@@ -1,3 +1,4 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/login_request.dart';
 import '../models/login_response.dart';
@@ -8,6 +9,7 @@ import '../layouts/constants.dart';
 
 class AuthService {
   final ApiService _apiService = ApiService();
+  static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
 
   static const String _tokenKey = 'auth_token';
   static const String _userIdKey = 'user_id';
@@ -20,7 +22,6 @@ class AuthService {
 
   static const String _rememberMeKey = 'remember_me';
   static const String _savedUsernameKey = 'saved_username';
-  static const String _savedPasswordKey = 'saved_password';
 
   Future<LoginResponse> login(String username, String password) async {
     final request = LoginRequest(username: username, password: password);
@@ -45,45 +46,41 @@ class AuthService {
           },
         );
       }
-    } catch (e) {
+    } catch (_) {
+      // logout proceeds regardless of server response
     }
 
     final prefs = await SharedPreferences.getInstance();
-
     final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
     final savedUsername = prefs.getString(_savedUsernameKey);
-    final savedPassword = prefs.getString(_savedPasswordKey);
 
+    await _secureStorage.delete(key: _tokenKey);
     await prefs.clear();
 
-    if (rememberMe && savedUsername != null && savedPassword != null) {
+    if (rememberMe && savedUsername != null) {
       await prefs.setBool(_rememberMeKey, true);
       await prefs.setString(_savedUsernameKey, savedUsername);
-      await prefs.setString(_savedPasswordKey, savedPassword);
     }
-
   }
 
   Future<bool> isLoggedIn() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_tokenKey);
-
+    final token = await _secureStorage.read(key: _tokenKey);
     if (token == null || token.isEmpty) return false;
 
+    final prefs = await SharedPreferences.getInstance();
     final expiresAtStr = prefs.getString(_expiresAtKey);
     if (expiresAtStr != null) {
       final expiresAt = DateTime.parse(expiresAtStr);
       if (DateTime.now().isAfter(expiresAt)) {
         final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
         final savedUsername = prefs.getString(_savedUsernameKey);
-        final savedPassword = prefs.getString(_savedPasswordKey);
 
+        await _secureStorage.delete(key: _tokenKey);
         await prefs.clear();
 
-        if (rememberMe && savedUsername != null && savedPassword != null) {
+        if (rememberMe && savedUsername != null) {
           await prefs.setBool(_rememberMeKey, true);
           await prefs.setString(_savedUsernameKey, savedUsername);
-          await prefs.setString(_savedPasswordKey, savedPassword);
         }
 
         return false;
@@ -94,8 +91,7 @@ class AuthService {
   }
 
   Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
+    return await _secureStorage.read(key: _tokenKey);
   }
 
   Future<int?> getUserId() async {
@@ -109,10 +105,10 @@ class AuthService {
   }
 
   Future<Map<String, dynamic>?> getUserInfo() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_tokenKey);
+    final token = await _secureStorage.read(key: _tokenKey);
     if (token == null) return null;
 
+    final prefs = await SharedPreferences.getInstance();
     return {
       'userId': prefs.getInt(_userIdKey),
       'username': prefs.getString(_usernameKey),
@@ -125,8 +121,9 @@ class AuthService {
   }
 
   Future<void> _saveUserData(LoginResponse response) async {
+    await _secureStorage.write(key: _tokenKey, value: response.token);
+
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, response.token);
     await prefs.setInt(_userIdKey, response.userId);
     await prefs.setString(_usernameKey, response.username);
     await prefs.setString(_firstNameKey, response.firstName);
@@ -134,22 +131,18 @@ class AuthService {
     await prefs.setString(_emailKey, response.emailAddress);
     await prefs.setStringList(_rolesKey, response.roles);
     await prefs.setString(_expiresAtKey, response.expiresAt.toIso8601String());
-
   }
 
-
-  Future<void> saveRememberMe(String username, String password) async {
+  Future<void> saveRememberMe(String username) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_rememberMeKey, true);
     await prefs.setString(_savedUsernameKey, username);
-    await prefs.setString(_savedPasswordKey, password);
   }
 
   Future<void> clearRememberMe() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_rememberMeKey, false);
     await prefs.remove(_savedUsernameKey);
-    await prefs.remove(_savedPasswordKey);
   }
 
   Future<bool> isRememberMeEnabled() async {
@@ -157,16 +150,11 @@ class AuthService {
     return prefs.getBool(_rememberMeKey) ?? false;
   }
 
-  Future<Map<String, String>?> getSavedCredentials() async {
+  Future<String?> getSavedUsername() async {
     final prefs = await SharedPreferences.getInstance();
     final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
     if (!rememberMe) return null;
-
-    final username = prefs.getString(_savedUsernameKey);
-    final password = prefs.getString(_savedPasswordKey);
-    if (username == null || password == null) return null;
-
-    return {'username': username, 'password': password};
+    return prefs.getString(_savedUsernameKey);
   }
 
   Future<List<String>> getRoles() async {

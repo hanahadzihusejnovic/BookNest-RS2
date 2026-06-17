@@ -1,4 +1,3 @@
-﻿using BookNest.Model.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -39,8 +38,10 @@ namespace BookNest.Services.Database.Entities
         public decimal TotalPrice { get; set; }
 
         [Required]
-        [Column(TypeName = "nvarchar(20)")]
-        public ReservationStatus ReservationStatus { get; set; }
+        public int ReservationStatusId { get; set; }
+
+        [ForeignKey(nameof(ReservationStatusId))]
+        public ReservationStatus ReservationStatus { get; set; } = null!;
 
         public DateTime? StatusChangedAt { get; set; }
 

@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Services.Database.Entities;
@@ -16,7 +16,9 @@ namespace BookNest.Services.Mapping
                         ? src.Book.Author.FirstName + " " + src.Book.Author.LastName
                         : "Unknown"))
                 .ForMember(dest => dest.BookImageUrl, opt => opt.MapFrom(src => src.Book.CoverImageUrl ?? string.Empty))
-                .ForMember(dest => dest.BookPrice, opt => opt.MapFrom(src => src.Book.Price));
+                .ForMember(dest => dest.BookPrice, opt => opt.MapFrom(src => src.Book.Price))
+                .ForMember(dest => dest.ReadingStatusId, opt => opt.MapFrom(src => src.ReadingStatusId))
+                .ForMember(dest => dest.ReadingStatusName, opt => opt.MapFrom(src => src.ReadingStatus.Name));
 
             CreateMap<TBRListInsertRequest, TBRList>();
 

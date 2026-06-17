@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using BookNest.Model.Constants;
 using BookNest.Model.Exceptions;
 using BookNest.Model.Messages;
@@ -14,6 +14,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace BookNest.Services.Services
@@ -47,19 +48,9 @@ namespace BookNest.Services.Services
                 .ThenInclude(ur => ur.Role)
                 .FirstOrDefaultAsync(u => u.Username == request.Username, cancellationToken);
 
-            if (user == null)
-            {
-                throw new NotFoundException("User not found.");
-            }
-
-            if (!_hasher.Verify(request.Password, user.PasswordHash))
+            if (user == null || !_hasher.Verify(request.Password, user.PasswordHash) || !user.IsActive)
             {
                 throw new BusinessException("Invalid username or password.");
-            }
-
-            if (!user.IsActive)
-            {
-                throw new BusinessException("User account is deactivated.");
             }
 
             var token = GenerateJwtToken(user);
@@ -171,6 +162,12 @@ namespace BookNest.Services.Services
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        private static string HashToken(string rawToken)
+        {
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawToken));
+            return Convert.ToHexString(bytes).ToLowerInvariant();
+        }
+
         public async Task<User?> GetByEmailAsync(string email)
         {
             return await _dbContext.Users
@@ -179,10 +176,16 @@ namespace BookNest.Services.Services
 
         public async Task CreatePasswordResetTokenAsync(int userId, string token, DateTime expiresAt)
         {
+            var oldTokens = await _dbContext.PasswordResetTokens
+                .Where(t => t.UserId == userId && !t.IsUsed && t.ExpiresAt > DateTime.UtcNow)
+                .ToListAsync();
+            foreach (var old in oldTokens)
+                old.IsUsed = true;
+
             var resetToken = new PasswordResetToken
             {
                 UserId = userId,
-                Token = token,
+                Token = HashToken(token),
                 ExpiresAt = expiresAt,
                 IsUsed = false,
                 CreatedAt = DateTime.UtcNow
@@ -197,9 +200,11 @@ namespace BookNest.Services.Services
             if (request.NewPassword != request.ConfirmPassword)
                 throw new BusinessException("Passwords do not match.");
 
+            var tokenHash = HashToken(request.Token);
+
             var resetToken = await _dbContext.PasswordResetTokens
                 .Include(t => t.User)
-                .FirstOrDefaultAsync(t => t.Token == request.Token
+                .FirstOrDefaultAsync(t => t.Token == tokenHash
                                         && !t.IsUsed
                                         && t.ExpiresAt > DateTime.UtcNow);
 
@@ -221,13 +226,19 @@ namespace BookNest.Services.Services
             if (user == null)
                 return;
 
-            var token = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+            var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
             var expiresAt = DateTime.UtcNow.AddHours(1);
+
+            var oldTokens = await _dbContext.PasswordResetTokens
+                .Where(t => t.UserId == user.Id && !t.IsUsed && t.ExpiresAt > DateTime.UtcNow)
+                .ToListAsync();
+            foreach (var old in oldTokens)
+                old.IsUsed = true;
 
             var resetToken = new PasswordResetToken
             {
                 UserId = user.Id,
-                Token = token,
+                Token = HashToken(rawToken),
                 ExpiresAt = expiresAt,
                 IsUsed = false,
                 CreatedAt = DateTime.UtcNow
@@ -239,7 +250,7 @@ namespace BookNest.Services.Services
             var message = new PasswordResetEmailMessage
             {
                 Email = user.EmailAddress,
-                Token = token,
+                Token = rawToken,
                 UserName = $"{user.FirstName} {user.LastName}",
                 ExpiresAt = expiresAt
             };

@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using BookNest.Model.Enums;
+using BookNest.Model.Constants;
 using BookNest.Model.Exceptions;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
@@ -61,23 +61,26 @@ namespace BookNest.Services.Services
 
             query = ApplyFilter(query, search);
 
+            query = query.OrderByDescending(r => r.CreatedAt).ThenByDescending(r => r.Id);
+
             int? totalCount = null;
             if (search.IncludeTotalCount)
             {
                 totalCount = await query.CountAsync(cancellationToken);
             }
 
-            if (!search.RetrieveAll)
+            if (search.RetrieveAll)
+            {
+                query = query.Take(500);
+            }
+            else
             {
                 int skip = (search.Page ?? 0) * (search.PageSize ?? 20);
                 int take = search.PageSize ?? 20;
-
                 query = query.Skip(skip).Take(take);
             }
 
-            var list = await query
-                .OrderByDescending(r => r.CreatedAt)
-                .ToListAsync(cancellationToken);
+            var list = await query.ToListAsync(cancellationToken);
 
             var mapped = _mapper.Map<List<ReviewResponse>>(list);
 
@@ -205,25 +208,34 @@ namespace BookNest.Services.Services
                 var ev = await _dbContext.Events.FindAsync(new object[] { request.EventId.Value }, cancellationToken)
                          ?? throw new NotFoundException("Event not found.");
 
-                var eventDateTime = ev.EventDate.Date + ev.EventTime;
-                if (eventDateTime > DateTime.UtcNow)
+                if (ev.EventDateTime > DateTime.UtcNow)
                     throw new BusinessException("You cannot review an event that has not yet taken place.");
 
                 var hasConfirmedReservation = await _dbContext.EventReservations.AnyAsync(
-                    r => r.UserId == userId && r.EventId == request.EventId.Value && r.ReservationStatus == ReservationStatus.Confirmed,
+                    r => r.UserId == userId && r.EventId == request.EventId.Value && r.ReservationStatusId == ReservationStatuses.Confirmed,
                     cancellationToken);
                 if (!hasConfirmedReservation)
                     throw new BusinessException("You must have a confirmed reservation to review this event.");
+
+                var alreadyReviewedEvent = await _dbContext.Reviews.AnyAsync(
+                    r => r.UserId == userId && r.EventId == request.EventId.Value, cancellationToken);
+                if (alreadyReviewedEvent)
+                    throw new BusinessException("You have already reviewed this event.");
             }
 
             if (request.BookId.HasValue)
             {
                 var hasDeliveredOrder = await _dbContext.Orders.AnyAsync(
-                    o => o.UserId == userId && o.Status == OrderStatus.Delivered &&
+                    o => o.UserId == userId && o.OrderStatusId == OrderStatuses.Delivered &&
                          o.OrderItems.Any(oi => oi.BookId == request.BookId.Value),
                     cancellationToken);
                 if (!hasDeliveredOrder)
                     throw new BusinessException("You can only review books you have received.");
+
+                var alreadyReviewedBook = await _dbContext.Reviews.AnyAsync(
+                    r => r.UserId == userId && r.BookId == request.BookId.Value, cancellationToken);
+                if (alreadyReviewedBook)
+                    throw new BusinessException("You have already reviewed this book.");
             }
 
             var review = new Review

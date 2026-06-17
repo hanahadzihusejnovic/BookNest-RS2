@@ -1,4 +1,4 @@
-﻿namespace BookNest.Model.Responses
+namespace BookNest.Model.Responses
 {
     public class EventResponse
     {
@@ -11,7 +11,8 @@
         public string OrganizerName { get; set; } = string.Empty;
         public DateTime EventDate { get; set; }
         public TimeSpan EventTime { get; set; }
-        public string EventType { get; set; } = string.Empty;
+        public int EventTypeId { get; set; }
+        public string EventTypeName { get; set; } = string.Empty;
         public string? Address { get; set; }
         public int? CityId { get; set; }
         public string? CityName { get; set; }

@@ -1,4 +1,3 @@
-﻿using BookNest.Model.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -16,8 +15,10 @@ namespace BookNest.Services.Database.Entities
         public User User { get; set; } = null!;
 
         [Required]
-        [Column(TypeName = "nvarchar(20)")]
-        public PaymentMethod PaymentMethod { get; set; }
+        public int PaymentMethodId { get; set; }
+
+        [ForeignKey(nameof(PaymentMethodId))]
+        public PaymentMethod PaymentMethod { get; set; } = null!;
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
@@ -32,7 +33,6 @@ namespace BookNest.Services.Database.Entities
 
         [ForeignKey(nameof(EventReservationId))]
         public EventReservation? EventReservation { get; set; }
-
 
         public DateTime PaymentDate { get; set; } = DateTime.UtcNow;
 

@@ -4,7 +4,7 @@ class TBRItemModel {
   final String bookTitle;
   final String? bookImageUrl;
   final String? bookAuthor;
-  final int readingStatus;
+  final String readingStatus;
 
   TBRItemModel({
     required this.id,
@@ -22,7 +22,7 @@ class TBRItemModel {
       bookTitle: json['bookTitle'] ?? '',
       bookImageUrl: json['bookImageUrl'],
       bookAuthor: json['bookAuthor'],
-      readingStatus: json['readingStatus'] ?? 0,
+      readingStatus: json['readingStatusName'] ?? '',
     );
   }
 }

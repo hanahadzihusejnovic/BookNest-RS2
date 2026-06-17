@@ -181,8 +181,8 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
   }
 
   static const _orderTransitions = {
-    'Pending': [('Shipped', 1), ('Cancelled', 3)],
-    'Shipped': [('Delivered', 2), ('Cancelled', 3)],
+    'Pending': [('Shipped', 2), ('Cancelled', 4)],
+    'Shipped': [('Delivered', 3), ('Cancelled', 4)],
   };
 
   Future<void> _changeOrderStatus(Order o) async {

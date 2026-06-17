@@ -22,16 +22,16 @@ class _TBRScreenState extends State<TBRScreen> {
   List<TBRItemModel> _filteredItems = [];
   bool _isLoading = true;
   String? _error;
-  int? _selectedStatus;
+  String? _selectedStatus;
 
   static const int _pageSize = 12;
   int _currentPage = 0;
 
   final List<Map<String, dynamic>> _statusOptions = [
     {'label': 'All', 'value': null},
-    {'label': 'To Be Read', 'value': 0},
-    {'label': 'Reading', 'value': 1},
-    {'label': 'Read', 'value': 2},
+    {'label': 'To Be Read', 'value': 'To Be Read'},
+    {'label': 'Reading', 'value': 'Reading'},
+    {'label': 'Read', 'value': 'Read'},
   ];
 
   List<TBRItemModel> get _currentPageItems {
@@ -64,7 +64,7 @@ class _TBRScreenState extends State<TBRScreen> {
     }
   }
 
-  void _applyFilter(int? status) {
+  void _applyFilter(String? status) {
     setState(() {
       _selectedStatus = status;
       _currentPage = 0;
@@ -111,15 +111,6 @@ class _TBRScreenState extends State<TBRScreen> {
     }
   }
 
-  String _statusLabel(int status) {
-    switch (status) {
-      case 0: return 'To Be Read';
-      case 1: return 'Reading';
-      case 2: return 'Read';
-      default: return '';
-    }
-  }
-
   void _showFilterMenu(BuildContext buttonContext) {
     final RenderBox? button =
         buttonContext.findRenderObject() as RenderBox?;
@@ -161,7 +152,7 @@ class _TBRScreenState extends State<TBRScreen> {
       if (selected == 'all') {
         _applyFilter(null);
       } else {
-        _applyFilter(int.parse(selected));
+        _applyFilter(selected);
       }
     });
   }
@@ -223,8 +214,7 @@ class _TBRScreenState extends State<TBRScreen> {
                                       Text(
                                         _selectedStatus == null
                                             ? 'ALL'
-                                            : _statusLabel(_selectedStatus!)
-                                                .toUpperCase(),
+                                            : _selectedStatus!.toUpperCase(),
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 12,
@@ -279,7 +269,7 @@ class _TBRScreenState extends State<TBRScreen> {
                                           author: item.bookAuthor,
                                           imageUrl: item.bookImageUrl,
                                           style: BookCardStyle.remove,
-                                          statusLabel: _statusLabel(item.readingStatus),
+                                          statusLabel: item.readingStatus,
                                           onCardTap: () => _openBookDetails(item),
                                           onTap: () => _removeItem(item),
                                         );

@@ -1,4 +1,3 @@
-﻿using BookNest.Model.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -22,9 +21,11 @@ namespace BookNest.Services.Database.Entities
         public Book Book { get; set; } = null!;
 
         [Required]
-        public ReadingStatus ReadingStatus { get; set; } = ReadingStatus.ToBeRead;
+        public int ReadingStatusId { get; set; }
+
+        [ForeignKey(nameof(ReadingStatusId))]
+        public ReadingStatus ReadingStatus { get; set; } = null!;
 
         public DateTime AddedAt { get; set; } = DateTime.UtcNow;
-
     }
 }

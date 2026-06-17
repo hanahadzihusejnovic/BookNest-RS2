@@ -9,21 +9,17 @@ class HttpClient {
   static const _tokenKey = 'auth_token';
   static const _rememberMeKey = 'remember_me';
   static const _savedUsernameKey = 'saved_username';
-  static const _savedPasswordKey = 'saved_password';
 
   static Future<void> _handleUnauthorized() async {
     final prefs = await SharedPreferences.getInstance();
-
     final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
     final savedUsername = prefs.getString(_savedUsernameKey);
-    final savedPassword = prefs.getString(_savedPasswordKey);
 
     await prefs.clear();
 
-    if (rememberMe && savedUsername != null && savedPassword != null) {
+    if (rememberMe && savedUsername != null) {
       await prefs.setBool(_rememberMeKey, true);
       await prefs.setString(_savedUsernameKey, savedUsername);
-      await prefs.setString(_savedPasswordKey, savedPassword);
     }
 
     navigatorKey.currentState?.pushAndRemoveUntil(

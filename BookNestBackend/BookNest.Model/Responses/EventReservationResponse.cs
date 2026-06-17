@@ -1,5 +1,3 @@
-﻿using BookNest.Model.Enums;
-
 namespace BookNest.Model.Responses
 {
     public class EventReservationResponse
@@ -16,7 +14,8 @@ namespace BookNest.Model.Responses
         public DateTime ReservationDate { get; set; }
         public int Quantity { get; set; }
         public decimal TotalPrice { get; set; }
-        public ReservationStatus ReservationStatus { get; set; }
+        public int ReservationStatusId { get; set; }
+        public string ReservationStatusName { get; set; } = string.Empty;
         public DateTime? StatusChangedAt { get; set; }
         public string? CancellationReason { get; set; }
         public string? TicketQRCodeLink { get; set; }

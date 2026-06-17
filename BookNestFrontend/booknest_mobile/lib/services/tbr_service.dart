@@ -8,9 +8,9 @@ enum ReadingStatus { toBeRead, reading, read }
 extension ReadingStatusExtension on ReadingStatus {
   int get value {
     switch (this) {
-      case ReadingStatus.toBeRead: return 0;
-      case ReadingStatus.reading: return 1;
-      case ReadingStatus.read: return 2;
+      case ReadingStatus.toBeRead: return 1;
+      case ReadingStatus.reading: return 2;
+      case ReadingStatus.read: return 3;
     }
   }
 
@@ -39,7 +39,7 @@ class TBRService {
       Uri.parse('${AppConstants.baseUrl}/TBRList/add'),
       body: jsonEncode({
         'bookId': bookId,
-        'readingStatus': status.value,
+        'readingStatusId': status.value,
       }),
     );
     if (response.statusCode != 200) {
@@ -79,7 +79,11 @@ class TBRService {
         orElse: () => null,
       );
       if (item != null) {
-        return ReadingStatus.values[item['readingStatus'] as int];
+        final id = item['readingStatusId'] as int;
+        return ReadingStatus.values.firstWhere(
+          (s) => s.value == id,
+          orElse: () => ReadingStatus.toBeRead,
+        );
       }
     }
     return null;
@@ -87,7 +91,7 @@ class TBRService {
 
   Future<List<TBRItemModel>> getMyTBRList({int? statusFilter}) async {
     final url = statusFilter != null
-        ? '${AppConstants.baseUrl}/TBRList/my-tbr-list?status=$statusFilter'
+        ? '${AppConstants.baseUrl}/TBRList/my-tbr-list?readingStatusId=$statusFilter'
         : '${AppConstants.baseUrl}/TBRList/my-tbr-list';
     final response = await HttpClient.get(Uri.parse(url));
     if (response.statusCode == 200) {

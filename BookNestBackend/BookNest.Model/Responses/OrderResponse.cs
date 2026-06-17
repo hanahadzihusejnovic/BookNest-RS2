@@ -1,5 +1,3 @@
-﻿using BookNest.Model.Enums;
-
 namespace BookNest.Model.Responses
 {
     public class OrderResponse
@@ -11,7 +9,8 @@ namespace BookNest.Model.Responses
         public string? UserPhoneNumber { get; set; }
         public DateTime OrderDate { get; set; }
         public DateTime? ShippedDate { get; set; }
-        public OrderStatus Status { get; set; }
+        public int OrderStatusId { get; set; }
+        public string OrderStatusName { get; set; } = string.Empty;
         public DateTime? StatusChangedAt { get; set; }
         public string? CancellationReason { get; set; }
         public decimal TotalPrice { get; set; }

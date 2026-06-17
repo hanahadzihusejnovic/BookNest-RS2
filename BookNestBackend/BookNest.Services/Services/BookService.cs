@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using BookNest.Model.Constants;
 using BookNest.Model.Exceptions;
 using BookNest.Model.Messages;
 using BookNest.Model.Requests;
@@ -86,6 +87,10 @@ namespace BookNest.Services.Services
                     .OrderByDescending(b => b.Reviews.Any() ? b.Reviews.Average(r => r.Rating) : 0)
                     .ThenByDescending(b => b.Id);
             }
+            else
+            {
+                query = query.OrderByDescending(b => b.Id);
+            }
 
             int? totalCount = null;
             if (search.IncludeTotalCount)
@@ -93,11 +98,14 @@ namespace BookNest.Services.Services
                 totalCount = await query.CountAsync(cancellationToken);
             }
 
-            if (!search.RetrieveAll)
+            if (search.RetrieveAll)
+            {
+                query = query.Take(500);
+            }
+            else
             {
                 int skip = (search.Page ?? 0) * (search.PageSize ?? 20);
                 int take = search.PageSize ?? 20;
-
                 query = query.Skip(skip).Take(take);
             }
 
@@ -246,6 +254,7 @@ namespace BookNest.Services.Services
 
             var similarUserIds = await _dbContext.Orders
                 .Where(o => o.UserId != userId &&
+                            o.OrderStatusId == OrderStatuses.Delivered &&
                             o.OrderItems.Any(oi => myBookIds.Contains(oi.BookId)))
                 .Select(o => o.UserId)
                 .Union(
@@ -262,7 +271,7 @@ namespace BookNest.Services.Services
                 .ToListAsync(cancellationToken);
 
             var collaborativeBookIds = await _dbContext.Orders
-                .Where(o => similarUserIds.Contains(o.UserId))
+                .Where(o => similarUserIds.Contains(o.UserId) && o.OrderStatusId == OrderStatuses.Delivered)
                 .SelectMany(o => o.OrderItems.Select(oi => oi.BookId))
                 .Union(
                     _dbContext.Favorites
@@ -310,7 +319,7 @@ namespace BookNest.Services.Services
         private async Task<List<int>> GetUserInteractedBookIds(int userId, CancellationToken cancellationToken)
         {
             var purchased = await _dbContext.Orders
-                .Where(o => o.UserId == userId)
+                .Where(o => o.UserId == userId && o.OrderStatusId == OrderStatuses.Delivered)
                 .SelectMany(o => o.OrderItems.Select(oi => oi.BookId))
                 .ToListAsync(cancellationToken);
 

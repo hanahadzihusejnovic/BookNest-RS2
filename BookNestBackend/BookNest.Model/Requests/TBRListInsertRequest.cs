@@ -1,4 +1,3 @@
-﻿using BookNest.Model.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace BookNest.Model.Requests
@@ -9,6 +8,7 @@ namespace BookNest.Model.Requests
         public int BookId { get; set; }
 
         [Required]
-        public ReadingStatus ReadingStatus { get; set; } = ReadingStatus.ToBeRead;
+        [Range(1, int.MaxValue, ErrorMessage = "ReadingStatusId must be a valid ID.")]
+        public int ReadingStatusId { get; set; }
     }
 }

@@ -20,19 +20,6 @@ class ReservationDetail {
   final String? cancellationReason;
   final OrderPayment payment;
 
-  static const _statusLabels = {
-    0: 'Pending',
-    1: 'Confirmed',
-    2: 'Cancelled',
-    3: 'Attended',
-  };
-
-  static String _parseStatus(dynamic raw) {
-    final n = int.tryParse(raw?.toString() ?? '');
-    if (n != null) return _statusLabels[n] ?? raw.toString();
-    return raw?.toString() ?? '';
-  }
-
   ReservationDetail({
     required this.id,
     required this.userId,
@@ -70,7 +57,7 @@ class ReservationDetail {
       reservationDate: DateTime.tryParse(json['reservationDate']?.toString() ?? '') ?? DateTime.now(),
       quantity: (json['quantity'] as num?)?.toInt() ?? 0,
       totalPrice: (json['totalPrice'] as num?)?.toDouble() ?? 0,
-      reservationStatus: _parseStatus(json['reservationStatus']),
+      reservationStatus: json['reservationStatusName'] ?? '',
       ticketQRCodeLink: json['ticketQRCodeLink'],
       cancellationReason: json['cancellationReason'],
       payment: OrderPayment.fromJson(json['payment'] as Map<String, dynamic>? ?? {}),

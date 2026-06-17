@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../layouts/app_layout.dart';
 import '../layouts/constants.dart';
 import '../models/order.dart';
@@ -11,6 +12,9 @@ import '../services/order_service.dart';
 import '../widgets/pagination_bar.dart';
 import '../widgets/admin_table.dart';
 import 'order_detail_screen.dart';
+import 'lookup_manage_screen.dart';
+import '../services/order_status_service.dart';
+import '../services/payment_method_service.dart';
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -81,7 +85,61 @@ class _OrdersScreenState extends State<OrdersScreen> {
   String _formatDate(DateTime date) =>
       '${date.day}.${date.month}.${date.year}';
 
-  Future<void> _generatePdf() async {
+  void _showManageDataDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => ManageDataModal(
+        options: [
+          ManageDataOption(
+            label: 'Order Status',
+            onTap: () {
+              Navigator.pop(ctx);
+              final svc = OrderStatusService();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LookupManageScreen(
+                    title: 'Order Status',
+                    getAll: () async => (await svc.getAll())
+                        .map((e) => LookupItem(id: e.id, name: e.name))
+                        .toList(),
+                    create: (name) => svc.create(name),
+                    update: (id, name) => svc.update(id, name),
+                    delete: svc.delete,
+                    backScreen: () => const OrdersScreen(),
+                  ),
+                ),
+              );
+            },
+          ),
+          ManageDataOption(
+            label: 'Payment Method',
+            onTap: () {
+              Navigator.pop(ctx);
+              final svc = PaymentMethodService();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LookupManageScreen(
+                    title: 'Payment Method',
+                    getAll: () async => (await svc.getAll())
+                        .map((e) => LookupItem(id: e.id, name: e.name))
+                        .toList(),
+                    create: (name) => svc.create(name),
+                    update: (id, name) => svc.update(id, name),
+                    delete: svc.delete,
+                    backScreen: () => const OrdersScreen(),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Document _buildOrdersDoc() {
     final doc = pw.Document();
     final now = DateTime.now();
     final orders = _filteredOrders;
@@ -163,7 +221,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           pw.Align(
             alignment: pw.Alignment.centerRight,
             child: pw.Text(
-              'Total revenue: ${orders.fold(0.0, (s, o) => s + o.totalPrice).toStringAsFixed(2)} BAM',
+              'Total revenue: ${orders.where((o) => o.status != 'Cancelled').fold(0.0, (s, o) => s + o.totalPrice).toStringAsFixed(2)} BAM',
               style: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold, fontSize: 10),
             ),
@@ -172,6 +230,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
       ),
     );
 
+    return doc;
+  }
+
+  Future<void> _generatePdf() async {
+    final doc = _buildOrdersDoc();
+    final now = DateTime.now();
     final downloadsPath = '${Platform.environment['USERPROFILE']}\\Downloads';
     final filename = 'orders_report_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.pdf';
     final file = File('$downloadsPath\\$filename');
@@ -179,6 +243,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
     if (mounted) {
       AppSnackBar.show(context, 'Report saved to Downloads\\$filename');
     }
+  }
+
+  Future<void> _printPdf() async {
+    final doc = _buildOrdersDoc();
+    await Printing.layoutPdf(
+      onLayout: (_) async => doc.save(),
+      name: 'Orders Report',
+    );
   }
 
   Color _statusColor(String status) {
@@ -208,6 +280,24 @@ class _OrdersScreenState extends State<OrdersScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 ElevatedButton(
+                  onPressed: _showManageDataDialog,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.darkBrown,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                  ),
+                  child: const Text(
+                    'Manage Data',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
                   onPressed: _generatePdf,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.darkBrown,
@@ -222,6 +312,25 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: _printPdf,
+                  icon: const Icon(Icons.print, color: Colors.white, size: 18),
+                  label: const Text(
+                    'Print Report',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.darkBrown,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
                   ),
                 ),
               ],

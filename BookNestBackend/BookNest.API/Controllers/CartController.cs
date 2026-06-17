@@ -28,6 +28,21 @@ namespace BookNest.API.Controllers
             return await base.Get(search);
         }
 
+        public override async Task<CartResponse?> GetById(int id)
+        {
+            var userId = GetCurrentUserId();
+            if (userId == 0) return null;
+
+            var cart = await base.GetById(id);
+            if (cart == null) return null;
+
+            var isAdmin = User.IsInRole(Roles.Admin);
+            if (!isAdmin && cart.UserId != userId)
+                throw new UnauthorizedAccessException("You do not have access to this cart.");
+
+            return cart;
+        }
+
         [HttpGet("my-cart")]
         public async Task<ActionResult<CartResponse>> GetMyCart()
         {

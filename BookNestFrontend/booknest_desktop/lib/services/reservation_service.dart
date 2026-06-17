@@ -30,7 +30,7 @@ class ReservationService {
   }
 
   Future<void> updateStatus(int id, int status, {String? cancellationReason}) async {
-    final body = <String, dynamic>{'reservationStatus': status};
+    final body = <String, dynamic>{'reservationStatusId': status};
     if (cancellationReason != null) body['cancellationReason'] = cancellationReason;
     final response = await HttpClient.put(
       Uri.parse('${AppConstants.baseUrl}/EventReservation/$id'),

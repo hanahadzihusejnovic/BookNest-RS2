@@ -52,9 +52,12 @@ namespace BookNest.API.Controllers
         }
 
         [HttpPost("create-payment-intent")]
-        public async Task<ActionResult> CreatePaymentIntent([FromBody] PaymentIntentRequest request)
+        public async Task<ActionResult> CreatePaymentIntent()
         {
-            var result = await _orderService.CreatePaymentIntentAsync(request);
+            var userId = GetCurrentUserId();
+            if (userId == 0) return Unauthorized();
+
+            var result = await _orderService.CreatePaymentIntentAsync(userId);
             return Ok(result);
         }
 

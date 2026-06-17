@@ -30,8 +30,8 @@ class OrderService {
   }
 
   Future<void> updateStatus(int id, int status, {String? cancellationReason}) async {
-    final body = <String, dynamic>{'status': status};
-    if (status == 1) body['shippedDate'] = DateTime.now().toIso8601String();
+    final body = <String, dynamic>{'orderStatusId': status};
+    if (status == 2) body['shippedDate'] = DateTime.now().toIso8601String();
     if (cancellationReason != null) body['cancellationReason'] = cancellationReason;
     final response = await HttpClient.put(
       Uri.parse('${AppConstants.baseUrl}/Order/$id'),

@@ -268,9 +268,8 @@ namespace BookNest.Services.Migrations
                     b.Property<TimeSpan>("EventTime")
                         .HasColumnType("time");
 
-                    b.Property<string>("EventType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("EventTypeId")
+                        .HasColumnType("int");
 
                     b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(max)");
@@ -299,6 +298,8 @@ namespace BookNest.Services.Migrations
                     b.HasIndex("CountryId");
 
                     b.HasIndex("EventCategoryId");
+
+                    b.HasIndex("EventTypeId");
 
                     b.HasIndex("OrganizerId");
 
@@ -352,9 +353,8 @@ namespace BookNest.Services.Migrations
                     b.Property<DateTime>("ReservationDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("ReservationStatus")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(20)");
+                    b.Property<int>("ReservationStatusId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("StatusChangedAt")
                         .HasColumnType("datetime2");
@@ -375,11 +375,31 @@ namespace BookNest.Services.Migrations
 
                     b.HasIndex("EventId");
 
+                    b.HasIndex("ReservationStatusId");
+
                     b.HasIndex("StatusChangedByUserId");
 
                     b.HasIndex("UserId");
 
                     b.ToTable("EventReservations");
+                });
+
+            modelBuilder.Entity("BookNest.Services.Database.Entities.EventType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("EventTypes");
                 });
 
             modelBuilder.Entity("BookNest.Services.Database.Entities.Favorite", b =>
@@ -427,7 +447,7 @@ namespace BookNest.Services.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<int>("NotificationType")
+                    b.Property<int>("NotificationTypeId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("SendAt")
@@ -447,9 +467,29 @@ namespace BookNest.Services.Migrations
 
                     b.HasIndex("EventId");
 
+                    b.HasIndex("NotificationTypeId");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("Notifications");
+                });
+
+            modelBuilder.Entity("BookNest.Services.Database.Entities.NotificationType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("NotificationTypes");
                 });
 
             modelBuilder.Entity("BookNest.Services.Database.Entities.Order", b =>
@@ -467,15 +507,14 @@ namespace BookNest.Services.Migrations
                     b.Property<DateTime>("OrderDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("OrderStatusId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("ShippedDate")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("ShippingId")
                         .HasColumnType("int");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(20)");
 
                     b.Property<DateTime?>("StatusChangedAt")
                         .HasColumnType("datetime2");
@@ -490,6 +529,8 @@ namespace BookNest.Services.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrderStatusId");
 
                     b.HasIndex("ShippingId");
 
@@ -527,6 +568,24 @@ namespace BookNest.Services.Migrations
                     b.HasIndex("OrderId");
 
                     b.ToTable("OrderItems");
+                });
+
+            modelBuilder.Entity("BookNest.Services.Database.Entities.OrderStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OrderStatuses");
                 });
 
             modelBuilder.Entity("BookNest.Services.Database.Entities.Organizer", b =>
@@ -615,9 +674,8 @@ namespace BookNest.Services.Migrations
                     b.Property<DateTime>("PaymentDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("PaymentMethod")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(20)");
+                    b.Property<int>("PaymentMethodId")
+                        .HasColumnType("int");
 
                     b.Property<string>("TransactionId")
                         .HasColumnType("nvarchar(max)");
@@ -635,9 +693,65 @@ namespace BookNest.Services.Migrations
                         .IsUnique()
                         .HasFilter("[OrderId] IS NOT NULL");
 
+                    b.HasIndex("PaymentMethodId");
+
                     b.HasIndex("UserId");
 
                     b.ToTable("Payments");
+                });
+
+            modelBuilder.Entity("BookNest.Services.Database.Entities.PaymentMethod", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PaymentMethods");
+                });
+
+            modelBuilder.Entity("BookNest.Services.Database.Entities.ReadingStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ReadingStatuses");
+                });
+
+            modelBuilder.Entity("BookNest.Services.Database.Entities.ReservationStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ReservationStatuses");
                 });
 
             modelBuilder.Entity("BookNest.Services.Database.Entities.Review", b =>
@@ -673,7 +787,13 @@ namespace BookNest.Services.Migrations
 
                     b.HasIndex("EventId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "BookId")
+                        .IsUnique()
+                        .HasFilter("[BookId] IS NOT NULL");
+
+                    b.HasIndex("UserId", "EventId")
+                        .IsUnique()
+                        .HasFilter("[EventId] IS NOT NULL");
 
                     b.ToTable("Reviews");
                 });
@@ -769,7 +889,7 @@ namespace BookNest.Services.Migrations
                     b.Property<int>("BookId")
                         .HasColumnType("int");
 
-                    b.Property<int>("ReadingStatus")
+                    b.Property<int>("ReadingStatusId")
                         .HasColumnType("int");
 
                     b.Property<int>("UserId")
@@ -778,6 +898,8 @@ namespace BookNest.Services.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BookId");
+
+                    b.HasIndex("ReadingStatusId");
 
                     b.HasIndex("UserId");
 
@@ -970,6 +1092,12 @@ namespace BookNest.Services.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("BookNest.Services.Database.Entities.EventType", "EventType")
+                        .WithMany("Events")
+                        .HasForeignKey("EventTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("BookNest.Services.Database.Entities.Organizer", "Organizer")
                         .WithMany("Events")
                         .HasForeignKey("OrganizerId")
@@ -982,6 +1110,8 @@ namespace BookNest.Services.Migrations
 
                     b.Navigation("EventCategory");
 
+                    b.Navigation("EventType");
+
                     b.Navigation("Organizer");
                 });
 
@@ -990,6 +1120,12 @@ namespace BookNest.Services.Migrations
                     b.HasOne("BookNest.Services.Database.Entities.Event", "Event")
                         .WithMany("EventReservations")
                         .HasForeignKey("EventId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("BookNest.Services.Database.Entities.ReservationStatus", "ReservationStatus")
+                        .WithMany("EventReservations")
+                        .HasForeignKey("ReservationStatusId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -1004,6 +1140,8 @@ namespace BookNest.Services.Migrations
                         .IsRequired();
 
                     b.Navigation("Event");
+
+                    b.Navigation("ReservationStatus");
 
                     b.Navigation("StatusChangedByUser");
 
@@ -1041,6 +1179,12 @@ namespace BookNest.Services.Migrations
                         .HasForeignKey("EventId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("BookNest.Services.Database.Entities.NotificationType", "NotificationType")
+                        .WithMany("Notifications")
+                        .HasForeignKey("NotificationTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("BookNest.Services.Database.Entities.User", "User")
                         .WithMany("Notifications")
                         .HasForeignKey("UserId")
@@ -1051,11 +1195,19 @@ namespace BookNest.Services.Migrations
 
                     b.Navigation("Event");
 
+                    b.Navigation("NotificationType");
+
                     b.Navigation("User");
                 });
 
             modelBuilder.Entity("BookNest.Services.Database.Entities.Order", b =>
                 {
+                    b.HasOne("BookNest.Services.Database.Entities.OrderStatus", "OrderStatus")
+                        .WithMany("Orders")
+                        .HasForeignKey("OrderStatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("BookNest.Services.Database.Entities.Shipping", "Shipping")
                         .WithMany("Orders")
                         .HasForeignKey("ShippingId")
@@ -1071,6 +1223,8 @@ namespace BookNest.Services.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("OrderStatus");
 
                     b.Navigation("Shipping");
 
@@ -1121,6 +1275,12 @@ namespace BookNest.Services.Migrations
                         .HasForeignKey("BookNest.Services.Database.Entities.Payment", "OrderId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("BookNest.Services.Database.Entities.PaymentMethod", "PaymentMethod")
+                        .WithMany("Payments")
+                        .HasForeignKey("PaymentMethodId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("BookNest.Services.Database.Entities.User", "User")
                         .WithMany("Payments")
                         .HasForeignKey("UserId")
@@ -1130,6 +1290,8 @@ namespace BookNest.Services.Migrations
                     b.Navigation("EventReservation");
 
                     b.Navigation("Order");
+
+                    b.Navigation("PaymentMethod");
 
                     b.Navigation("User");
                 });
@@ -1186,6 +1348,12 @@ namespace BookNest.Services.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("BookNest.Services.Database.Entities.ReadingStatus", "ReadingStatus")
+                        .WithMany("TBRLists")
+                        .HasForeignKey("ReadingStatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("BookNest.Services.Database.Entities.User", "User")
                         .WithMany("TBRLists")
                         .HasForeignKey("UserId")
@@ -1193,6 +1361,8 @@ namespace BookNest.Services.Migrations
                         .IsRequired();
 
                     b.Navigation("Book");
+
+                    b.Navigation("ReadingStatus");
 
                     b.Navigation("User");
                 });
@@ -1301,6 +1471,16 @@ namespace BookNest.Services.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BookNest.Services.Database.Entities.EventType", b =>
+                {
+                    b.Navigation("Events");
+                });
+
+            modelBuilder.Entity("BookNest.Services.Database.Entities.NotificationType", b =>
+                {
+                    b.Navigation("Notifications");
+                });
+
             modelBuilder.Entity("BookNest.Services.Database.Entities.Order", b =>
                 {
                     b.Navigation("OrderItems");
@@ -1309,9 +1489,29 @@ namespace BookNest.Services.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("BookNest.Services.Database.Entities.OrderStatus", b =>
+                {
+                    b.Navigation("Orders");
+                });
+
             modelBuilder.Entity("BookNest.Services.Database.Entities.Organizer", b =>
                 {
                     b.Navigation("Events");
+                });
+
+            modelBuilder.Entity("BookNest.Services.Database.Entities.PaymentMethod", b =>
+                {
+                    b.Navigation("Payments");
+                });
+
+            modelBuilder.Entity("BookNest.Services.Database.Entities.ReadingStatus", b =>
+                {
+                    b.Navigation("TBRLists");
+                });
+
+            modelBuilder.Entity("BookNest.Services.Database.Entities.ReservationStatus", b =>
+                {
+                    b.Navigation("EventReservations");
                 });
 
             modelBuilder.Entity("BookNest.Services.Database.Entities.Role", b =>

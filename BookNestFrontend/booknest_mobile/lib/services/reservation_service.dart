@@ -13,16 +13,6 @@ class ReservationModel {
   final String reservationStatus;
   final String? ticketQRCodeLink;
 
-  static String _parseStatus(dynamic value) {
-    switch (value) {
-      case 0: return 'Pending';
-      case 1: return 'Confirmed';
-      case 2: return 'Cancelled';
-      case 3: return 'Attended';
-      default: return value?.toString() ?? '';
-    }
-  }
-
   ReservationModel({
     required this.id,
     required this.eventId,
@@ -44,7 +34,7 @@ class ReservationModel {
       eventDateTime: DateTime.parse(json['eventDateTime']),
       quantity: json['quantity'],
       totalPrice: (json['totalPrice'] as num).toDouble(),
-      reservationStatus: _parseStatus(json['reservationStatus']),
+      reservationStatus: json['reservationStatusName'] ?? '',
       ticketQRCodeLink: json['ticketQRCodeLink'],
     );
   }
@@ -62,7 +52,7 @@ class ReservationService {
       body: jsonEncode({
         'eventId': eventId,
         'quantity': quantity,
-        'paymentMethod': paymentMethod,
+        'paymentMethodId': paymentMethod,
         if (transactionId != null) 'transactionId': transactionId,
       }),
     );

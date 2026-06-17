@@ -205,7 +205,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
           },
-          body: jsonEncode({'amount': widget.cart.totalPrice}),
+          body: jsonEncode({}),
         );
 
         if (intentResponse.statusCode != 200) {
@@ -232,7 +232,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           'countryId': _selectedCountry!.id,
           'postalCode': _postalCode,
         },
-        'paymentMethod': _paymentMethod == 'CashOnDelivery' ? 0 : 1,
+        'paymentMethodId': _paymentMethod == 'CashOnDelivery' ? 1 : 2,
         if (paymentIntentId != null) 'paymentIntentId': paymentIntentId,
       };
 

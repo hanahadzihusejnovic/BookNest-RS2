@@ -17,6 +17,8 @@ namespace BookNest.Subscriber.Services
         private const int MaxRetries = 5;
         private readonly string _apiUrl;
 
+        private readonly string _internalApiKey;
+
         public NotificationConsumerService(
             ILogger<NotificationConsumerService> logger,
             IHttpClientFactory httpClientFactory)
@@ -24,6 +26,7 @@ namespace BookNest.Subscriber.Services
             _logger = logger;
             _httpClientFactory = httpClientFactory;
             _apiUrl = Environment.GetEnvironmentVariable("API_URL") ?? "http://localhost:7110";
+            _internalApiKey = Environment.GetEnvironmentVariable("INTERNAL_API_KEY") ?? string.Empty;
         }
 
         public async Task StartConsumingAsync()
@@ -64,20 +67,22 @@ namespace BookNest.Subscriber.Services
                         if (message != null)
                         {
                             var httpClient = _httpClientFactory.CreateClient();
-                            using var content = new StringContent(json, Encoding.UTF8, "application/json");
-                            using var response = await httpClient.PostAsync($"{_apiUrl}/api/Notification/send", content);
+                            using var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{_apiUrl}/api/Notification/send");
+                            httpRequest.Content = new StringContent(json, Encoding.UTF8, "application/json");
+                            httpRequest.Headers.Add("X-Internal-Api-Key", _internalApiKey);
+                            using var response = await httpClient.SendAsync(httpRequest);
 
                             if (response.IsSuccessStatusCode)
                             {
                                 _logger.LogInformation("Notification forwarded for user {UserId}", message.UserId);
+                                await _channel.BasicAckAsync(ea.DeliveryTag, false);
+                                return;
                             }
                             else
                             {
-                                _logger.LogWarning("API returned {StatusCode} for notification", response.StatusCode);
+                                var responseBody = await response.Content.ReadAsStringAsync();
+                                throw new Exception($"API returned {(int)response.StatusCode}: {responseBody}");
                             }
-
-                            await _channel.BasicAckAsync(ea.DeliveryTag, false);
-                            return;
                         }
                         else
                         {

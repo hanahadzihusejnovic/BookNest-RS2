@@ -49,8 +49,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   static const _orderTransitions = {
-    'Pending': [('Shipped', 1),   ('Cancelled', 3)],
-    'Shipped': [('Delivered', 2), ('Cancelled', 3)],
+    'Pending': [('Shipped', 2),   ('Cancelled', 4)],
+    'Shipped': [('Delivered', 3), ('Cancelled', 4)],
   };
 
   Color _statusColor(String status) {
@@ -94,7 +94,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     if (chosen == null || !mounted) return;
 
     String? cancellationReason;
-    if (chosen == 3) {
+    if (chosen == 4) {
       final reasonController = TextEditingController();
       final confirmed = await showDialog<bool>(
         context: context,

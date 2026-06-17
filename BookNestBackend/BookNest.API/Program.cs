@@ -1,3 +1,4 @@
+using BookNest.API.Authentication;
 using BookNest.API.Hubs;
 using BookNest.Services.Seeder;
 using BookNest.API.Middleware;
@@ -9,6 +10,7 @@ using BookNest.Services.MessageQueue;
 using BookNest.Services.Security;
 using BookNest.Services.Services;
 using DotNetEnv;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -59,6 +61,7 @@ namespace BookNest.API
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
+            .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>("ApiKey", null)
             .AddJwtBearer(options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters
@@ -108,6 +111,12 @@ namespace BookNest.API
             builder.Services.AddScoped<ICityService, CityService>();
             builder.Services.AddScoped<ICountryService, CountryService>();
             builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<IReservationStatusService, ReservationStatusService>();
+            builder.Services.AddScoped<IOrderStatusService, OrderStatusService>();
+            builder.Services.AddScoped<IPaymentMethodService, PaymentMethodService>();
+            builder.Services.AddScoped<IEventTypeService, EventTypeService>();
+            builder.Services.AddScoped<IReadingStatusService, ReadingStatusService>();
+            builder.Services.AddScoped<INotificationTypeService, NotificationTypeService>();
 
             builder.Services.AddSingleton<IPasswordHasher, Pbkdf2PasswordHasher>();
             builder.Services.AddSingleton<IRabbitMqPublisher, RabbitMqPublisher>();
@@ -126,7 +135,13 @@ namespace BookNest.API
                 typeof(FavoriteProfile).Assembly,
                 typeof(TBRListProfile).Assembly,  
                 typeof(ReviewProfile).Assembly,
-                typeof(EventReservationProfile).Assembly);     
+                typeof(EventReservationProfile).Assembly,
+                typeof(ReservationStatusProfile).Assembly,
+                typeof(OrderStatusProfile).Assembly,
+                typeof(PaymentMethodProfile).Assembly,
+                typeof(EventTypeProfile).Assembly,
+                typeof(ReadingStatusProfile).Assembly,
+                typeof(NotificationTypeProfile).Assembly);
 
 
             builder.Services.AddDbContext<BookNestDbContext>(options => 

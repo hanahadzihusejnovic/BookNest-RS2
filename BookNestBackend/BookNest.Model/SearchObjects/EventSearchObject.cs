@@ -1,5 +1,3 @@
-﻿using BookNest.Model.Enums;
-
 namespace BookNest.Model.SearchObjects
 {
     public class EventSearchObject : BaseSearchObject
@@ -10,7 +8,7 @@ namespace BookNest.Model.SearchObjects
         public string? CategoryName { get; set; }
         public int? OrganizerId { get; set; }
         public string? OrganizerName { get; set; }
-        public EventType? EventType { get; set; }
+        public int? EventTypeId { get; set; }
         public string? City { get; set; }
         public string? Country { get; set; }
         public bool? IsActive { get; set; }

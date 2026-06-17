@@ -31,12 +31,11 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _checkRememberMe() async {
-    final credentials = await _authService.getSavedCredentials();
+    final savedUsername = await _authService.getSavedUsername();
 
-    if (credentials != null && mounted) {
+    if (savedUsername != null && mounted) {
       setState(() {
-        _usernameController.text = credentials['username']!;
-        _passwordController.text = credentials['password']!;
+        _usernameController.text = savedUsername;
         _rememberMe = true;
       });
     }
@@ -113,10 +112,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     if (_rememberMe) {
-      await _authService.saveRememberMe(
-        _usernameController.text,
-        _passwordController.text,
-      );
+      await _authService.saveRememberMe(_usernameController.text);
     } else {
       await _authService.clearRememberMe();
     }

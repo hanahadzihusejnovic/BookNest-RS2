@@ -25,7 +25,7 @@ namespace BookNest.API.Controllers
         }
 
         [HttpPost("send")]
-        [AllowAnonymous]
+        [Authorize(AuthenticationSchemes = "ApiKey")]
         public async Task<IActionResult> Send([FromBody] NotificationMessage message)
         {
             await _notificationService.SaveAsync(message);

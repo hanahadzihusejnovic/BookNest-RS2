@@ -232,7 +232,24 @@ namespace BookNest.Services.Services
                     throw new BusinessException("Username already exists.");
             }
 
-            _mapper.Map(request, user);
+            if (request.EmailAddress != user.EmailAddress)
+            {
+                var existingEmail = await _dbContext.Users
+                    .FirstOrDefaultAsync(u => u.EmailAddress == request.EmailAddress && u.Id != userId, cancellationToken);
+
+                if (existingEmail != null)
+                    throw new BusinessException("Email address already exists.");
+            }
+
+            user.FirstName = request.FirstName;
+            user.LastName = request.LastName;
+            user.EmailAddress = request.EmailAddress;
+            if (request.Username != null) user.Username = request.Username;
+            if (request.PhoneNumber != null) user.PhoneNumber = request.PhoneNumber;
+            if (request.Address != null) user.Address = request.Address;
+            if (request.CityId.HasValue) user.CityId = request.CityId;
+            if (request.CountryId.HasValue) user.CountryId = request.CountryId;
+            if (request.ImageUrl != null) user.ImageUrl = request.ImageUrl;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 

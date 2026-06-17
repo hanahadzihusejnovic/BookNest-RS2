@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../layouts/app_layout.dart';
 import '../layouts/constants.dart';
 import '../models/reservation_detail.dart';
 import '../services/reservation_service.dart';
+import '../services/http_client.dart';
 import '../widgets/admin_table.dart';
 import 'reservations_screen.dart';
 
@@ -20,6 +22,8 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
   final _reservationService = ReservationService();
   ReservationDetail? _reservation;
   bool _isLoading = true;
+  bool _isValidating = false;
+  Map<String, dynamic>? _validationResult;
 
   @override
   void initState() {
@@ -54,8 +58,8 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
   }
 
   static const _reservationTransitions = {
-    'Pending':   [('Confirmed', 1), ('Cancelled', 2)],
-    'Confirmed': [('Cancelled', 2)],
+    'Pending':   [('Confirmed', 2), ('Cancelled', 3)],
+    'Confirmed': [('Cancelled', 3)],
   };
 
   Color _statusColor(String status) {
@@ -63,6 +67,28 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
       case 'confirmed': return const Color(0xFF4CAF50);
       case 'cancelled': return const Color(0xFFE53935);
       default:          return AppColors.mediumBrown;
+    }
+  }
+
+  Future<void> _validateTicket(String token) async {
+    setState(() {
+      _isValidating = true;
+      _validationResult = null;
+    });
+    try {
+      final response = await HttpClient.get(
+        Uri.parse('${AppConstants.baseUrl}/EventReservation/validate-ticket/$token'),
+      );
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        setState(() => _validationResult = jsonDecode(response.body));
+      } else {
+        AppSnackBar.show(context, 'Validation request failed.', isError: true);
+      }
+    } catch (e) {
+      if (mounted) AppSnackBar.show(context, 'Error: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _isValidating = false);
     }
   }
 
@@ -98,7 +124,7 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
     if (chosen == null || !mounted) return;
 
     String? cancellationReason;
-    if (chosen == 2) {
+    if (chosen == 3) {
       final reasonController = TextEditingController();
       final confirmed = await showDialog<bool>(
         context: context,
@@ -293,6 +319,41 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
                       color: AppColors.mediumBrown,
                       fontSize: 11,
                       fontWeight: FontWeight.w500)),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: 185,
+                child: ElevatedButton.icon(
+                  onPressed: _isValidating
+                      ? null
+                      : () => _validateTicket(r.ticketQRCodeLink!),
+                  icon: _isValidating
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                              color: Colors.white, strokeWidth: 2))
+                      : const Icon(Icons.qr_code_scanner,
+                          size: 16, color: Colors.white),
+                  label: Text(
+                    _isValidating ? 'Validating...' : 'Validate Ticket',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.darkBrown,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ),
+              if (_validationResult != null) ...[
+                const SizedBox(height: 10),
+                _TicketValidationCard(_validationResult!),
+              ],
             ],
           ],
         ),
@@ -338,6 +399,93 @@ class _ReservationDetailScreenState extends State<ReservationDetailScreen> {
         ),
         Divider(color: AppColors.darkBrown.withValues(alpha: 0.25), thickness: 1, height: 12),
       ],
+    );
+  }
+}
+
+class _TicketValidationCard extends StatelessWidget {
+  final Map<String, dynamic> result;
+
+  const _TicketValidationCard(this.result);
+
+  @override
+  Widget build(BuildContext context) {
+    final isValid = result['isValid'] == true;
+    final color = isValid ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+    final bg = isValid ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE);
+    final border = isValid ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
+
+    return Container(
+      width: 185,
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border, width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(isValid ? Icons.check_circle : Icons.cancel,
+                  color: color, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                isValid ? 'VALID' : 'INVALID',
+                style: TextStyle(
+                    color: color,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            result['message'] ?? '',
+            style: TextStyle(color: color, fontSize: 11),
+          ),
+          if (result['userFullName'] != null) ...[
+            const SizedBox(height: 6),
+            _VRow('Guest', result['userFullName']),
+          ],
+          if (result['quantity'] != null)
+            _VRow('Tickets', '${result['quantity']}'),
+          if (result['reservationStatus'] != null)
+            _VRow('Status', result['reservationStatus']),
+        ],
+      ),
+    );
+  }
+}
+
+class _VRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _VRow(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 3),
+      child: RichText(
+        text: TextSpan(
+          style: const TextStyle(fontSize: 11),
+          children: [
+            TextSpan(
+                text: '$label: ',
+                style: TextStyle(
+                    color: AppColors.darkBrown.withValues(alpha: 0.6),
+                    fontWeight: FontWeight.w600)),
+            TextSpan(
+                text: value,
+                style: TextStyle(
+                    color: AppColors.darkBrown,
+                    fontWeight: FontWeight.w700)),
+          ],
+        ),
+      ),
     );
   }
 }

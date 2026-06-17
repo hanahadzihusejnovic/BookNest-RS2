@@ -93,7 +93,7 @@ namespace BookNest.Subscriber.Services
 
                             if (retryCount >= MaxRetries)
                             {
-                                _logger.LogError(ex, "Max retries reached. Discarding message: {Message}", messageJson);
+                                _logger.LogError(ex, "Max retries reached. Discarding password-reset-queue message after {MaxRetries} attempts.", MaxRetries);
                                 await _channel!.BasicNackAsync(ea.DeliveryTag, false, requeue: false);
                                 return;
                             }

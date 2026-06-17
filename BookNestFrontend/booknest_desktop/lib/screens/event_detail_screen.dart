@@ -497,7 +497,7 @@ class _EditEventDialogState extends State<_EditEventDialog> {
     _addressController = TextEditingController(text: e.address ?? '');
     _selectedDate = e.eventDate;
     _isActive = e.isActive;
-    _selectedEventType = e.eventType.toLowerCase() == 'online' ? 0 : 1;
+    _selectedEventType = e.eventType.toLowerCase() == 'online' ? 1 : 2;
     final parts = e.eventTime.split(':');
     if (parts.length >= 2) {
       _selectedTime = TimeOfDay(
@@ -699,8 +699,8 @@ class _EditEventDialogState extends State<_EditEventDialog> {
     if (_eventTypeOpen) { _closeEventTypeDropdown(); return; }
     _closeAll();
     _eventTypeOverlay = _showOverlay<int>(
-      link: _eventTypeLink, items: [0, 1], selected: _selectedEventType,
-      labelFn: (i) => _eventTypeLabels[i],
+      link: _eventTypeLink, items: [1, 2], selected: _selectedEventType,
+      labelFn: (i) => _eventTypeLabels[i - 1],
       onSelect: (i) => setState(() { _selectedEventType = i; _eventTypeError = null; }),
       onClose: _closeEventTypeDropdown,
     );
@@ -766,7 +766,7 @@ class _EditEventDialogState extends State<_EditEventDialog> {
   }
 
   Future<void> _submit() async {
-    final isInPerson = _selectedEventType == 1;
+    final isInPerson = _selectedEventType == 2;
     setState(() {
       _nameError = _nameController.text.isEmpty ? 'Required' : null;
       _categoryError = _selectedCategory == null ? 'Required' : null;
@@ -807,11 +807,10 @@ class _EditEventDialogState extends State<_EditEventDialog> {
         'organizerId': _selectedOrganizer!.id,
         'eventDate': _selectedDate!.toIso8601String(),
         'eventTime': '$h:$m:00',
-        'eventType': _selectedEventType!,
+        'eventTypeId': _selectedEventType!,
         'ticketPrice': price,
         'capacity': capacity,
         'isActive': _isActive,
-        'reservedSeats': widget.event.reservedSeats,
         if (_descriptionController.text.isNotEmpty) 'description': _descriptionController.text.trim(),
         if (isInPerson && _addressController.text.isNotEmpty) 'address': _addressController.text.trim(),
         if (isInPerson && _selectedCountry != null) 'countryId': _selectedCountry!.id,
@@ -876,7 +875,7 @@ class _EditEventDialogState extends State<_EditEventDialog> {
                               const SizedBox(height: 14),
                               BookFormDropdownTrigger(link: _organizerLink, hint: 'Organizer', selectedLabel: _selectedOrganizer?.name, isOpen: _organizerOpen, error: _organizerError, onTap: _toggleOrganizer),
                               const SizedBox(height: 14),
-                              BookFormDropdownTrigger(link: _eventTypeLink, hint: 'Event Type', selectedLabel: _selectedEventType != null ? _eventTypeLabels[_selectedEventType!] : null, isOpen: _eventTypeOpen, error: _eventTypeError, onTap: _toggleEventType),
+                              BookFormDropdownTrigger(link: _eventTypeLink, hint: 'Event Type', selectedLabel: _selectedEventType != null ? _eventTypeLabels[_selectedEventType! - 1] : null, isOpen: _eventTypeOpen, error: _eventTypeError, onTap: _toggleEventType),
                               const SizedBox(height: 14),
 
                               Builder(builder: (_) {
@@ -948,11 +947,11 @@ class _EditEventDialogState extends State<_EditEventDialog> {
                               const SizedBox(height: 14),
                               BookFormField(controller: _capacityController, hint: 'Capacity', error: _capacityError, keyboardType: TextInputType.number, onChanged: (_) => setState(() => _capacityError = null)),
                               const SizedBox(height: 14),
-                              BookFormField(controller: _addressController, hint: _selectedEventType == 1 ? 'Address' : 'Address (optional)', onChanged: (_) {}),
+                              BookFormField(controller: _addressController, hint: _selectedEventType == 2 ? 'Address' : 'Address (optional)', onChanged: (_) {}),
                               const SizedBox(height: 14),
-                              BookFormDropdownTrigger(link: _countryLink, hint: _selectedEventType == 1 ? 'Country' : 'Country (optional)', selectedLabel: _selectedCountry?.name, isOpen: _countryOpen, onTap: _toggleCountryDropdown),
+                              BookFormDropdownTrigger(link: _countryLink, hint: _selectedEventType == 2 ? 'Country' : 'Country (optional)', selectedLabel: _selectedCountry?.name, isOpen: _countryOpen, onTap: _toggleCountryDropdown),
                               const SizedBox(height: 14),
-                              BookFormDropdownTrigger(link: _cityLink, hint: _selectedCountry == null ? 'Select country first' : (_selectedEventType == 1 ? 'City' : 'City (optional)'), selectedLabel: _selectedCity?.name, isOpen: _cityOpen, onTap: _toggleCityDropdown),
+                              BookFormDropdownTrigger(link: _cityLink, hint: _selectedCountry == null ? 'Select country first' : (_selectedEventType == 2 ? 'City' : 'City (optional)'), selectedLabel: _selectedCity?.name, isOpen: _cityOpen, onTap: _toggleCityDropdown),
                               const SizedBox(height: 14),
                               Row(children: [
                                 Switch(value: _isActive, onChanged: (v) => setState(() => _isActive = v), activeThumbColor: AppColors.lightBrown),

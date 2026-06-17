@@ -63,6 +63,7 @@ services:
       JWT_EXPIRATION_MINUTES: "${JWT_EXPIRATION_MINUTES}"
       STRIPE_SECRET_KEY: "${STRIPE_SECRET_KEY}"
       AZURE_STORAGE_CONNECTION: "${AZURE_STORAGE_CONNECTION}"
+      INTERNAL_API_KEY: "${INTERNAL_API_KEY}"
     depends_on:
       sqlserver:
         condition: service_healthy
@@ -83,6 +84,7 @@ services:
       RABBITMQ_USERNAME: "${RABBITMQ_DEFAULT_USER}"
       RABBITMQ_PASSWORD: "${RABBITMQ_DEFAULT_PASS}"
       API_URL: "http://booknest-api:7110"
+      INTERNAL_API_KEY: "${INTERNAL_API_KEY}"
       SMTP_HOST: "${SMTP_HOST}"
       SMTP_PORT: "${SMTP_PORT}"
       SMTP_USERNAME: "${SMTP_USERNAME}"

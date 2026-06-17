@@ -16,6 +16,8 @@ import '../widgets/book_form_widgets.dart';
 import 'book_detail_screen.dart';
 import 'authors_screen.dart';
 import 'categories_screen.dart';
+import 'lookup_manage_screen.dart';
+import '../services/reading_status_service.dart';
 
 class BooksScreen extends StatefulWidget {
   const BooksScreen({super.key});
@@ -115,6 +117,54 @@ class _BooksScreenState extends State<BooksScreen> {
     );
   }
 
+  void _showManageDataDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => ManageDataModal(
+        options: [
+          ManageDataOption(
+            label: 'Authors',
+            onTap: () {
+              Navigator.pop(ctx);
+              Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const AuthorsScreen()));
+            },
+          ),
+          ManageDataOption(
+            label: 'Categories',
+            onTap: () {
+              Navigator.pop(ctx);
+              Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const CategoriesScreen()));
+            },
+          ),
+          ManageDataOption(
+            label: 'Reading Status',
+            onTap: () {
+              Navigator.pop(ctx);
+              final svc = ReadingStatusService();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LookupManageScreen(
+                    title: 'Reading Status',
+                    getAll: () async => (await svc.getAll())
+                        .map((e) => LookupItem(id: e.id, name: e.name))
+                        .toList(),
+                    create: (name) => svc.create(name),
+                    update: (id, name) => svc.update(id, name),
+                    delete: svc.delete,
+                    backScreen: () => const BooksScreen(),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppLayout(
@@ -161,9 +211,7 @@ class _BooksScreenState extends State<BooksScreen> {
                 ),
                 const Spacer(),
                 ElevatedButton(
-                  onPressed: () => Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const CategoriesScreen())),
+                  onPressed: _showManageDataDialog,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.darkBrown,
                     shape: RoundedRectangleBorder(
@@ -172,27 +220,7 @@ class _BooksScreenState extends State<BooksScreen> {
                         horizontal: 20, vertical: 14),
                   ),
                   child: const Text(
-                    'Categories',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: () => Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AuthorsScreen())),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.darkBrown,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 14),
-                  ),
-                  child: const Text(
-                    'Authors',
+                    'Manage Data',
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,

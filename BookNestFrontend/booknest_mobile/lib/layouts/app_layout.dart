@@ -368,7 +368,6 @@ class _NotificationBellState extends State<NotificationBell> {
     _panelSetState = null;
     _overlayEntry?.remove();
     _overlayEntry = null;
-    _service.markAllRead();
     _service.removeListener(_onNotification);
     super.dispose();
   }
@@ -377,8 +376,14 @@ class _NotificationBellState extends State<NotificationBell> {
     _panelSetState = null;
     _overlayEntry?.remove();
     _overlayEntry = null;
-    _service.markAllRead();
+    setState(() => _unread = _service.unreadCount);
+  }
+
+  Future<void> _markAllAsRead(StateSetter panelSetState) async {
+    await _service.markAllRead();
+    if (!mounted) return;
     setState(() => _unread = 0);
+    panelSetState(() {});
   }
 
   void _togglePanel() {
@@ -414,24 +419,56 @@ class _NotificationBellState extends State<NotificationBell> {
                       color: AppColors.darkBrown,
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: !_service.notificationsEnabled
-                        ? Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Text(
-                              'Notifications disabled.',
-                              style: TextStyle(color: AppColors.pageBg, fontSize: 14),
-                              textAlign: TextAlign.center,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_service.notificationsEnabled &&
+                            _service.notifications.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: _unread == 0
+                                    ? null
+                                    : () => _markAllAsRead(panelSetState),
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                child: Text(
+                                  'Mark all as read',
+                                  style: TextStyle(
+                                    color: _unread == 0
+                                        ? Colors.white38
+                                        : const Color(0xFF7EB8F7),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
                             ),
-                          )
-                        : _service.notifications.isEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Text(
-                              'No notifications yet.',
-                              style: TextStyle(color: AppColors.pageBg, fontSize: 14),
-                              textAlign: TextAlign.center,
-                            ),
-                          )
+                          ),
+                        Flexible(
+                          child: !_service.notificationsEnabled
+                              ? Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Text(
+                                    'Notifications disabled.',
+                                    style: TextStyle(color: AppColors.pageBg, fontSize: 14),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                )
+                              : _service.notifications.isEmpty
+                              ? Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: Text(
+                                    'No notifications yet.',
+                                    style: TextStyle(color: AppColors.pageBg, fontSize: 14),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                )
                         : ListView.separated(
                             shrinkWrap: true,
                             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -494,6 +531,9 @@ class _NotificationBellState extends State<NotificationBell> {
                               );
                             },
                           ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),

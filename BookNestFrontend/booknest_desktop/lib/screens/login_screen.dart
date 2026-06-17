@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import '../layouts/constants.dart';
 import 'dashboard_screen.dart';
 
@@ -28,11 +29,10 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _checkRememberMe() async {
-    final credentials = await _authService.getSavedCredentials();
-    if (credentials != null) {
+    final savedUsername = await _authService.getSavedUsername();
+    if (savedUsername != null) {
       setState(() {
-        _usernameController.text = credentials['username']!;
-        _passwordController.text = credentials['password']!;
+        _usernameController.text = savedUsername;
         _rememberMe = true;
       });
     }
@@ -81,12 +81,14 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       if (_rememberMe) {
-        await _authService.saveRememberMe(
-          _usernameController.text,
-          _passwordController.text,
-        );
+        await _authService.saveRememberMe(_usernameController.text);
       } else {
         await _authService.clearRememberMe();
+      }
+
+      final userId = await _authService.getUserId();
+      if (userId != null) {
+        await NotificationService().connect(userId);
       }
 
       if (mounted) {

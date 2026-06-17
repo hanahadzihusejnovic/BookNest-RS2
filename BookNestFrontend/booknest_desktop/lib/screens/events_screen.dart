@@ -20,6 +20,8 @@ import '../widgets/book_form_widgets.dart';
 import 'event_detail_screen.dart';
 import 'event_categories_screen.dart';
 import 'organizers_screen.dart';
+import 'lookup_manage_screen.dart';
+import '../services/event_type_service.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -112,6 +114,54 @@ class _EventsScreenState extends State<EventsScreen> {
       builder: (context) => _AddEventDialog(
         categories: _categories,
         onCreated: _loadData,
+      ),
+    );
+  }
+
+  void _showManageDataDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => ManageDataModal(
+        options: [
+          ManageDataOption(
+            label: 'Categories',
+            onTap: () {
+              Navigator.pop(ctx);
+              Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const EventCategoriesScreen()));
+            },
+          ),
+          ManageDataOption(
+            label: 'Organizers',
+            onTap: () {
+              Navigator.pop(ctx);
+              Navigator.pushReplacement(context,
+                  MaterialPageRoute(builder: (_) => const OrganizersScreen()));
+            },
+          ),
+          ManageDataOption(
+            label: 'Event Type',
+            onTap: () {
+              Navigator.pop(ctx);
+              final svc = EventTypeService();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LookupManageScreen(
+                    title: 'Event Type',
+                    getAll: () async => (await svc.getAll())
+                        .map((e) => LookupItem(id: e.id, name: e.name))
+                        .toList(),
+                    create: (name) => svc.create(name),
+                    update: (id, name) => svc.update(id, name),
+                    delete: svc.delete,
+                    backScreen: () => const EventsScreen(),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -269,11 +319,7 @@ class _EventsScreenState extends State<EventsScreen> {
                 ),
                 const Spacer(),
                 ElevatedButton(
-                  onPressed: () => Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) =>
-                              const EventCategoriesScreen())),
+                  onPressed: _showManageDataDialog,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.darkBrown,
                     shape: RoundedRectangleBorder(
@@ -282,28 +328,7 @@ class _EventsScreenState extends State<EventsScreen> {
                         horizontal: 20, vertical: 14),
                   ),
                   child: const Text(
-                    'Categories',
-                    style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton(
-                  onPressed: () => Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const OrganizersScreen())),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.darkBrown,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8)),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 14),
-                  ),
-                  child: const Text(
-                    'Organizers',
+                    'Manage Data',
                     style: TextStyle(
                         color: Colors.white,
                         fontSize: 14,
@@ -641,9 +666,9 @@ class _AddEventDialogState extends State<_AddEventDialog> {
     _closeAll();
     _eventTypeOverlay = _showOverlayDropdown<int>(
       link: _eventTypeLink,
-      items: [0, 1],
+      items: [1, 2],
       selected: _selectedEventType,
-      labelFn: (i) => _eventTypeLabels[i],
+      labelFn: (i) => _eventTypeLabels[i - 1],
       onSelect: (i) => setState(() { _selectedEventType = i; _eventTypeError = null; }),
       onClose: _closeEventTypeDropdown,
     );
@@ -812,7 +837,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
   }
 
   Future<void> _submit() async {
-    final isInPerson = _selectedEventType == 1;
+    final isInPerson = _selectedEventType == 2;
     setState(() {
       _nameError = _nameController.text.isEmpty ? 'Event name is required.' : null;
       _categoryError = _selectedCategory == null ? 'Please select a category.' : null;
@@ -859,11 +884,10 @@ class _AddEventDialogState extends State<_AddEventDialog> {
         'organizerId': _selectedOrganizer!.id,
         'eventDate': _selectedDate!.toIso8601String(),
         'eventTime': '$h:$m:00',
-        'eventType': _selectedEventType!,
+        'eventTypeId': _selectedEventType!,
         'ticketPrice': price,
         'capacity': capacity,
         'isActive': _isActive,
-        'reservedSeats': 0,
         if (_descriptionController.text.isNotEmpty)
           'description': _descriptionController.text.trim(),
         if (_addressController.text.isNotEmpty)
@@ -1023,7 +1047,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                           link: _eventTypeLink,
                           hint: 'Event Type',
                           selectedLabel: _selectedEventType != null
-                              ? _eventTypeLabels[_selectedEventType!]
+                              ? _eventTypeLabels[_selectedEventType! - 1]
                               : null,
                           isOpen: _eventTypeOpen,
                           error: _eventTypeError,
@@ -1132,7 +1156,7 @@ class _AddEventDialogState extends State<_AddEventDialog> {
                         const SizedBox(height: 14),
                         BookFormField(
                           controller: _addressController,
-                          hint: _selectedEventType == 1 ? 'Address' : 'Address (optional)',
+                          hint: _selectedEventType == 2 ? 'Address' : 'Address (optional)',
                           error: _addressError,
                           onChanged: (_) => setState(() => _addressError = null),
                         ),

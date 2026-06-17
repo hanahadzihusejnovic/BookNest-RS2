@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
@@ -9,21 +10,19 @@ class HttpClient {
   static const _tokenKey = 'auth_token';
   static const _rememberMeKey = 'remember_me';
   static const _savedUsernameKey = 'saved_username';
-  static const _savedPasswordKey = 'saved_password';
+  static const _secureStorage = FlutterSecureStorage();
 
   static Future<void> _handleUnauthorized() async {
     final prefs = await SharedPreferences.getInstance();
-
     final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
     final savedUsername = prefs.getString(_savedUsernameKey);
-    final savedPassword = prefs.getString(_savedPasswordKey);
 
+    await _secureStorage.delete(key: _tokenKey);
     await prefs.clear();
 
-    if (rememberMe && savedUsername != null && savedPassword != null) {
+    if (rememberMe && savedUsername != null) {
       await prefs.setBool(_rememberMeKey, true);
       await prefs.setString(_savedUsernameKey, savedUsername);
-      await prefs.setString(_savedPasswordKey, savedPassword);
     }
 
     navigatorKey.currentState?.pushAndRemoveUntil(
@@ -33,8 +32,7 @@ class HttpClient {
   }
 
   static Future<Map<String, String>> _authHeaders([Map<String, String>? extra]) async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(_tokenKey);
+    final token = await _secureStorage.read(key: _tokenKey);
     return {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',

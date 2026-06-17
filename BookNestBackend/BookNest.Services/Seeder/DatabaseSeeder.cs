@@ -1,4 +1,4 @@
-using BookNest.Model.Enums;
+using BookNest.Model.Constants;
 using BookNest.Services.Database;
 using BookNest.Services.Database.Entities;
 using BookNest.Services.Security;
@@ -33,7 +33,89 @@ namespace BookNest.Services.Seeder
                         new Role { Id = 1, Name = "Admin" },
                         new Role { Id = 2, Name = "User"  }
                     );
+                    await context.SaveChangesAsync(ct);
+                });
 
+            await InsertWithIdentityAsync(
+                context,
+                "ReservationStatuses",
+                async () =>
+                {
+                    context.ReservationStatuses.AddRange(
+                        new ReservationStatus { Id = ReservationStatuses.Pending,   Name = "Pending"   },
+                        new ReservationStatus { Id = ReservationStatuses.Confirmed, Name = "Confirmed" },
+                        new ReservationStatus { Id = ReservationStatuses.Cancelled, Name = "Cancelled" }
+                    );
+                    await context.SaveChangesAsync(ct);
+                });
+
+            await InsertWithIdentityAsync(
+                context,
+                "OrderStatuses",
+                async () =>
+                {
+                    context.OrderStatuses.AddRange(
+                        new OrderStatus { Id = OrderStatuses.Pending,   Name = "Pending"   },
+                        new OrderStatus { Id = OrderStatuses.Shipped,   Name = "Shipped"   },
+                        new OrderStatus { Id = OrderStatuses.Delivered, Name = "Delivered" },
+                        new OrderStatus { Id = OrderStatuses.Cancelled, Name = "Cancelled" }
+                    );
+                    await context.SaveChangesAsync(ct);
+                });
+
+            await InsertWithIdentityAsync(
+                context,
+                "PaymentMethods",
+                async () =>
+                {
+                    context.PaymentMethods.AddRange(
+                        new PaymentMethod { Id = PaymentMethods.CashOnDelivery, Name = "CashOnDelivery" },
+                        new PaymentMethod { Id = PaymentMethods.Card,           Name = "Card"           }
+                    );
+                    await context.SaveChangesAsync(ct);
+                });
+
+            await InsertWithIdentityAsync(
+                context,
+                "EventTypes",
+                async () =>
+                {
+                    context.EventTypes.AddRange(
+                        new EventType { Id = EventTypes.Online,   Name = "Online"   },
+                        new EventType { Id = EventTypes.InPerson, Name = "InPerson" }
+                    );
+                    await context.SaveChangesAsync(ct);
+                });
+
+            await InsertWithIdentityAsync(
+                context,
+                "ReadingStatuses",
+                async () =>
+                {
+                    context.ReadingStatuses.AddRange(
+                        new ReadingStatus { Id = ReadingStatuses.ToBeRead, Name = "ToBeRead" },
+                        new ReadingStatus { Id = ReadingStatuses.Reading,  Name = "Reading"  },
+                        new ReadingStatus { Id = ReadingStatuses.Read,     Name = "Read"     }
+                    );
+                    await context.SaveChangesAsync(ct);
+                });
+
+            await InsertWithIdentityAsync(
+                context,
+                "NotificationTypes",
+                async () =>
+                {
+                    context.NotificationTypes.AddRange(
+                        new NotificationType { Id = NotificationTypes.OrderStatusChanged,            Name = "OrderStatusChanged"            },
+                        new NotificationType { Id = NotificationTypes.ReservationStatusChanged,      Name = "ReservationStatusChanged"      },
+                        new NotificationType { Id = NotificationTypes.EventReminder,                 Name = "EventReminder"                 },
+                        new NotificationType { Id = NotificationTypes.BookUnavailable,               Name = "BookUnavailable"               },
+                        new NotificationType { Id = NotificationTypes.EventCancelled,                Name = "EventCancelled"                },
+                        new NotificationType { Id = NotificationTypes.NewOrder,                      Name = "NewOrder"                      },
+                        new NotificationType { Id = NotificationTypes.NewReservation,                Name = "NewReservation"                },
+                        new NotificationType { Id = NotificationTypes.OrderCancelledByUser,          Name = "OrderCancelledByUser"          },
+                        new NotificationType { Id = NotificationTypes.ReservationCancelledByUser,    Name = "ReservationCancelledByUser"    }
+                    );
                     await context.SaveChangesAsync(ct);
                 });
         }
@@ -342,8 +424,8 @@ namespace BookNest.Services.Seeder
                 Name = "Mystery Readers Circle",
                 Description = "Join fellow mystery lovers for an evening of discussion, theory, and suspense. This month we explore the best whodunits of the year over drinks and great conversation.",
                 EventCategoryId = evCatBookClub.Id, OrganizerId = org1.Id,
-                EventDate = new DateTime(2026, 6, 5), EventTime = new TimeSpan(18, 0, 0),
-                EventType = EventType.InPerson,
+                EventDate = new DateTime(2026, 6, 19), EventTime = new TimeSpan(18, 0, 0),
+                EventTypeId = EventTypes.InPerson,
                 Address = "Vijećnica, Obala Kulina bana 4",
                 CityId = citySarajevo.Id, CountryId = countryBiH.Id,
                 TicketPrice = 10.00m, Capacity = 10, IsActive = true, ReservedSeats = 0,
@@ -355,8 +437,8 @@ namespace BookNest.Services.Seeder
                 Name = "SciFi Book Club",
                 Description = "An online gathering for science fiction enthusiasts to discuss the latest and greatest in sci-fi literature. This session focuses on space opera and dystopian fiction.",
                 EventCategoryId = evCatBookClub.Id, OrganizerId = org2.Id,
-                EventDate = new DateTime(2026, 6, 10), EventTime = new TimeSpan(19, 0, 0),
-                EventType = EventType.Online,
+                EventDate = new DateTime(2026, 6, 22), EventTime = new TimeSpan(19, 0, 0),
+                EventTypeId = EventTypes.Online,
                 TicketPrice = 0.00m, Capacity = 15, IsActive = true, ReservedSeats = 0,
                 ImageUrl = "https://booknestimages.blob.core.windows.net/event-images/bookClub/BookClub_SciFi_Book_Club.png"
             };
@@ -366,8 +448,8 @@ namespace BookNest.Services.Seeder
                 Name = "The Great Gatsby Reading Club",
                 Description = "Revisit the jazz age and the American dream in this intimate reading club session dedicated to F. Scott Fitzgerald's timeless classic. Come dressed in your best 1920s style!",
                 EventCategoryId = evCatBookClub.Id, OrganizerId = org3.Id,
-                EventDate = new DateTime(2026, 6, 15), EventTime = new TimeSpan(17, 0, 0),
-                EventType = EventType.InPerson,
+                EventDate = new DateTime(2026, 6, 25), EventTime = new TimeSpan(17, 0, 0),
+                EventTypeId = EventTypes.InPerson,
                 Address = "Stari Most, Mostar",
                 CityId = cityMostar.Id, CountryId = countryBiH.Id,
                 TicketPrice = 8.00m, Capacity = 10, IsActive = true, ReservedSeats = 0,
@@ -379,8 +461,8 @@ namespace BookNest.Services.Seeder
                 Name = "Cleopatra Book Promotion",
                 Description = "An exclusive promotion event celebrating the launch of a stunning new biography of Cleopatra. Meet the author, hear behind-the-scenes stories, and get your copy signed.",
                 EventCategoryId = evCatPromotions.Id, OrganizerId = org4.Id,
-                EventDate = new DateTime(2026, 6, 8), EventTime = new TimeSpan(11, 0, 0),
-                EventType = EventType.InPerson,
+                EventDate = new DateTime(2026, 6, 28), EventTime = new TimeSpan(11, 0, 0),
+                EventTypeId = EventTypes.InPerson,
                 Address = "Trg bana Josipa Jelačića 1",
                 CityId = cityZagreb.Id, CountryId = countryCroatia.Id,
                 TicketPrice = 0.00m, Capacity = 20, IsActive = true, ReservedSeats = 0,
@@ -392,8 +474,8 @@ namespace BookNest.Services.Seeder
                 Name = "The Fourth Princess Launch",
                 Description = "Join us online for the official launch of The Fourth Princess, a gripping royal thriller. The author will discuss the inspiration behind the story, followed by a live Q&A session.",
                 EventCategoryId = evCatPromotions.Id, OrganizerId = org5.Id,
-                EventDate = new DateTime(2026, 6, 18), EventTime = new TimeSpan(16, 0, 0),
-                EventType = EventType.Online,
+                EventDate = new DateTime(2026, 7, 1), EventTime = new TimeSpan(16, 0, 0),
+                EventTypeId = EventTypes.Online,
                 TicketPrice = 12.00m, Capacity = 15, IsActive = true, ReservedSeats = 0,
                 ImageUrl = "https://booknestimages.blob.core.windows.net/event-images/bookPromotions/BookPromotions_The_Fourth_Princess.png"
             };
@@ -403,8 +485,8 @@ namespace BookNest.Services.Seeder
                 Name = "Weavingshaw Book Promotion",
                 Description = "An online celebration for the release of Weavingshaw, a debut fantasy novel set in a world of woven magic and ancient secrets. Don't miss the author interview and giveaway!",
                 EventCategoryId = evCatPromotions.Id, OrganizerId = org6.Id,
-                EventDate = new DateTime(2026, 6, 25), EventTime = new TimeSpan(14, 0, 0),
-                EventType = EventType.Online,
+                EventDate = new DateTime(2026, 7, 4), EventTime = new TimeSpan(14, 0, 0),
+                EventTypeId = EventTypes.Online,
                 TicketPrice = 0.00m, Capacity = 15, IsActive = true, ReservedSeats = 0,
                 ImageUrl = "https://booknestimages.blob.core.windows.net/event-images/bookPromotions/BookPromotions_Weavingshaw.png"
             };
@@ -414,8 +496,8 @@ namespace BookNest.Services.Seeder
                 Name = "Cozy Corner Afternoon",
                 Description = "A relaxed afternoon of reading in a warm and welcoming space. Bring your current read, a blanket, and enjoy hot drinks in great company. Perfect for unwinding after a long week.",
                 EventCategoryId = evCatReadAndRelax.Id, OrganizerId = org7.Id,
-                EventDate = new DateTime(2026, 6, 12), EventTime = new TimeSpan(15, 0, 0),
-                EventType = EventType.InPerson,
+                EventDate = new DateTime(2026, 7, 7), EventTime = new TimeSpan(15, 0, 0),
+                EventTypeId = EventTypes.InPerson,
                 Address = "Knez Mihailova 5",
                 CityId = cityBelgrade.Id, CountryId = countrySerbia.Id,
                 TicketPrice = 5.00m, Capacity = 10, IsActive = true, ReservedSeats = 0,
@@ -427,8 +509,8 @@ namespace BookNest.Services.Seeder
                 Name = "Read By The River",
                 Description = "Enjoy a peaceful afternoon of reading beside the river. Bring your favourite book and settle in for a few hours of quiet reading surrounded by nature and like-minded book lovers.",
                 EventCategoryId = evCatReadAndRelax.Id, OrganizerId = org8.Id,
-                EventDate = new DateTime(2026, 6, 20), EventTime = new TimeSpan(14, 0, 0),
-                EventType = EventType.InPerson,
+                EventDate = new DateTime(2026, 7, 10), EventTime = new TimeSpan(14, 0, 0),
+                EventTypeId = EventTypes.InPerson,
                 Address = "Obala Kulina bana 2",
                 CityId = citySarajevo.Id, CountryId = countryBiH.Id,
                 TicketPrice = 0.00m, Capacity = 15, IsActive = true, ReservedSeats = 0,
@@ -440,8 +522,8 @@ namespace BookNest.Services.Seeder
                 Name = "Sunday Morning Read",
                 Description = "Start your Sunday right with a virtual read-along session. Join readers from all over for a slow, mindful morning of reading, sharing thoughts, and enjoying your morning coffee.",
                 EventCategoryId = evCatReadAndRelax.Id, OrganizerId = org9.Id,
-                EventDate = new DateTime(2026, 6, 28), EventTime = new TimeSpan(10, 0, 0),
-                EventType = EventType.Online,
+                EventDate = new DateTime(2026, 7, 13), EventTime = new TimeSpan(10, 0, 0),
+                EventTypeId = EventTypes.Online,
                 TicketPrice = 7.00m, Capacity = 20, IsActive = true, ReservedSeats = 0,
                 ImageUrl = "https://booknestimages.blob.core.windows.net/event-images/read&Relax/Read&Relax_Sunday_Morning_Read.png"
             };
@@ -464,13 +546,13 @@ namespace BookNest.Services.Seeder
             await context.SaveChangesAsync(ct);
 
             context.TBRLists.AddRange(
-                new TBRList { UserId = userMobile.Id, BookId = bookHawthorneLegacy.Id, ReadingStatus = ReadingStatus.Read     },
-                new TBRList { UserId = userMobile.Id, BookId = bookAndNowBackToYou.Id, ReadingStatus = ReadingStatus.Reading  },
-                new TBRList { UserId = userMobile.Id, BookId = bookMixedMarriage.Id,   ReadingStatus = ReadingStatus.ToBeRead },
-                new TBRList { UserId = user2.Id,      BookId = bookOnMorrison.Id,      ReadingStatus = ReadingStatus.Reading  },
-                new TBRList { UserId = user2.Id,      BookId = bookWeTheWomen.Id,      ReadingStatus = ReadingStatus.ToBeRead },
-                new TBRList { UserId = user3.Id,      BookId = bookSunAndStarmaker.Id, ReadingStatus = ReadingStatus.Read     },
-                new TBRList { UserId = user3.Id,      BookId = bookRacingHearts.Id,    ReadingStatus = ReadingStatus.Reading  }
+                new TBRList { UserId = userMobile.Id, BookId = bookHawthorneLegacy.Id, ReadingStatusId = ReadingStatuses.Read     },
+                new TBRList { UserId = userMobile.Id, BookId = bookAndNowBackToYou.Id, ReadingStatusId = ReadingStatuses.Reading  },
+                new TBRList { UserId = userMobile.Id, BookId = bookMixedMarriage.Id,   ReadingStatusId = ReadingStatuses.ToBeRead },
+                new TBRList { UserId = user2.Id,      BookId = bookOnMorrison.Id,      ReadingStatusId = ReadingStatuses.Reading  },
+                new TBRList { UserId = user2.Id,      BookId = bookWeTheWomen.Id,      ReadingStatusId = ReadingStatuses.ToBeRead },
+                new TBRList { UserId = user3.Id,      BookId = bookSunAndStarmaker.Id, ReadingStatusId = ReadingStatuses.Read     },
+                new TBRList { UserId = user3.Id,      BookId = bookRacingHearts.Id,    ReadingStatusId = ReadingStatuses.Reading  }
             );
             await context.SaveChangesAsync(ct);
 
@@ -481,10 +563,10 @@ namespace BookNest.Services.Seeder
             context.Shippings.AddRange(ship1, ship2, ship3, ship4);
             await context.SaveChangesAsync(ct);
 
-            var order1 = new Order { UserId = userMobile.Id, OrderDate = new DateTime(2026, 3, 1),  ShippedDate = new DateTime(2026, 3, 5),  Status = OrderStatus.Delivered, TotalPrice = 41.98m, ShippingId = ship1.Id };
-            var order2 = new Order { UserId = user2.Id,      OrderDate = new DateTime(2026, 3, 15), ShippedDate = new DateTime(2026, 3, 20), Status = OrderStatus.Shipped,   TotalPrice = 44.98m, ShippingId = ship2.Id };
-            var order3 = new Order { UserId = user3.Id,      OrderDate = new DateTime(2026, 4, 10),                                          Status = OrderStatus.Pending,   TotalPrice = 42.98m, ShippingId = ship3.Id };
-            var order4 = new Order { UserId = userMobile.Id, OrderDate = new DateTime(2026, 5, 1),                                           Status = OrderStatus.Pending,   TotalPrice = 19.99m, ShippingId = ship4.Id };
+            var order1 = new Order { UserId = userMobile.Id, OrderDate = new DateTime(2026, 3, 1),  ShippedDate = new DateTime(2026, 3, 5),  OrderStatusId = OrderStatuses.Delivered, TotalPrice = 41.98m, ShippingId = ship1.Id };
+            var order2 = new Order { UserId = user2.Id,      OrderDate = new DateTime(2026, 3, 15), ShippedDate = new DateTime(2026, 3, 20), OrderStatusId = OrderStatuses.Shipped,   TotalPrice = 44.98m, ShippingId = ship2.Id };
+            var order3 = new Order { UserId = user3.Id,      OrderDate = new DateTime(2026, 4, 10),                                          OrderStatusId = OrderStatuses.Pending,   TotalPrice = 42.98m, ShippingId = ship3.Id };
+            var order4 = new Order { UserId = userMobile.Id, OrderDate = new DateTime(2026, 5, 1),                                           OrderStatusId = OrderStatuses.Pending,   TotalPrice = 19.99m, ShippingId = ship4.Id };
             context.Orders.AddRange(order1, order2, order3, order4);
             await context.SaveChangesAsync(ct);
 
@@ -500,58 +582,58 @@ namespace BookNest.Services.Seeder
             await context.SaveChangesAsync(ct);
 
             context.Payments.AddRange(
-                new Payment { UserId = userMobile.Id, OrderId = order1.Id, PaymentMethod = PaymentMethod.Card,           Amount = 41.98m, PaymentDate = new DateTime(2026, 3, 1),  IsSuccessful = true, TransactionId = "txn_seed_001" },
-                new Payment { UserId = user2.Id,      OrderId = order2.Id, PaymentMethod = PaymentMethod.CashOnDelivery,  Amount = 44.98m, PaymentDate = new DateTime(2026, 3, 20), IsSuccessful = true, TransactionId = "txn_seed_002" }
+                new Payment { UserId = userMobile.Id, OrderId = order1.Id, PaymentMethodId = PaymentMethods.Card,            Amount = 41.98m, PaymentDate = new DateTime(2026, 3, 1),  IsSuccessful = true, TransactionId = "txn_seed_001" },
+                new Payment { UserId = user2.Id,      OrderId = order2.Id, PaymentMethodId = PaymentMethods.CashOnDelivery,   Amount = 44.98m, PaymentDate = new DateTime(2026, 3, 20), IsSuccessful = true, TransactionId = "txn_seed_002" }
             );
             await context.SaveChangesAsync(ct);
 
             var res1 = new EventReservation
             {
                 UserId = userMobile.Id, EventId = eventMysteryReadersCircle.Id,
-                EventDateTime = new DateTime(2026, 6, 5, 18, 0, 0),
+                EventDateTime = new DateTime(2026, 6, 19, 18, 0, 0),
                 ReservationDate = new DateTime(2026, 5, 20),
                 Quantity = 1, TotalPrice = 10.00m,
-                ReservationStatus = ReservationStatus.Confirmed,
+                ReservationStatusId = ReservationStatuses.Confirmed,
                 TicketQRCodeLink = "https://api.qrserver.com/v1/create-qr-code/?data=RES-BOOKNEST-001&size=200x200"
             };
 
             var res2 = new EventReservation
             {
                 UserId = user2.Id, EventId = eventSciFiBookClub.Id,
-                EventDateTime = new DateTime(2026, 6, 10, 19, 0, 0),
+                EventDateTime = new DateTime(2026, 6, 22, 19, 0, 0),
                 ReservationDate = new DateTime(2026, 5, 22),
                 Quantity = 1, TotalPrice = 0.00m,
-                ReservationStatus = ReservationStatus.Confirmed,
+                ReservationStatusId = ReservationStatuses.Confirmed,
                 TicketQRCodeLink = "https://api.qrserver.com/v1/create-qr-code/?data=RES-BOOKNEST-002&size=200x200"
             };
 
             var res3 = new EventReservation
             {
                 UserId = user3.Id, EventId = eventCleopatra.Id,
-                EventDateTime = new DateTime(2026, 6, 8, 11, 0, 0),
+                EventDateTime = new DateTime(2026, 6, 28, 11, 0, 0),
                 ReservationDate = new DateTime(2026, 5, 25),
                 Quantity = 2, TotalPrice = 0.00m,
-                ReservationStatus = ReservationStatus.Pending,
+                ReservationStatusId = ReservationStatuses.Pending,
                 TicketQRCodeLink = "https://api.qrserver.com/v1/create-qr-code/?data=RES-BOOKNEST-003&size=200x200"
             };
 
             var res4 = new EventReservation
             {
                 UserId = user2.Id, EventId = eventMysteryReadersCircle.Id,
-                EventDateTime = new DateTime(2026, 6, 5, 18, 0, 0),
+                EventDateTime = new DateTime(2026, 6, 19, 18, 0, 0),
                 ReservationDate = new DateTime(2026, 5, 21),
                 Quantity = 1, TotalPrice = 10.00m,
-                ReservationStatus = ReservationStatus.Confirmed,
+                ReservationStatusId = ReservationStatuses.Confirmed,
                 TicketQRCodeLink = "https://api.qrserver.com/v1/create-qr-code/?data=RES-BOOKNEST-004&size=200x200"
             };
 
             var res5 = new EventReservation
             {
                 UserId = user3.Id, EventId = eventMysteryReadersCircle.Id,
-                EventDateTime = new DateTime(2026, 6, 5, 18, 0, 0),
+                EventDateTime = new DateTime(2026, 6, 19, 18, 0, 0),
                 ReservationDate = new DateTime(2026, 5, 23),
                 Quantity = 1, TotalPrice = 10.00m,
-                ReservationStatus = ReservationStatus.Confirmed,
+                ReservationStatusId = ReservationStatuses.Confirmed,
                 TicketQRCodeLink = "https://api.qrserver.com/v1/create-qr-code/?data=RES-BOOKNEST-005&size=200x200"
             };
 
@@ -564,11 +646,11 @@ namespace BookNest.Services.Seeder
             await context.SaveChangesAsync(ct);
 
             context.Payments.AddRange(
-                new Payment { UserId = userMobile.Id, EventReservationId = res1.Id, PaymentMethod = PaymentMethod.Card,         Amount = 10.00m, PaymentDate = new DateTime(2026, 5, 20), IsSuccessful = true, TransactionId = "txn_seed_003" },
-                new Payment { UserId = user2.Id,      EventReservationId = res2.Id, PaymentMethod = PaymentMethod.CashOnDelivery, Amount = 0.00m,  PaymentDate = new DateTime(2026, 5, 22), IsSuccessful = true, TransactionId = "txn_seed_004" },
-                new Payment { UserId = user3.Id,      EventReservationId = res3.Id, PaymentMethod = PaymentMethod.CashOnDelivery, Amount = 0.00m,  PaymentDate = new DateTime(2026, 5, 25), IsSuccessful = true, TransactionId = "txn_seed_005" },
-                new Payment { UserId = user2.Id,      EventReservationId = res4.Id, PaymentMethod = PaymentMethod.Card,         Amount = 10.00m, PaymentDate = new DateTime(2026, 5, 21), IsSuccessful = true, TransactionId = "txn_seed_006" },
-                new Payment { UserId = user3.Id,      EventReservationId = res5.Id, PaymentMethod = PaymentMethod.Card,         Amount = 10.00m, PaymentDate = new DateTime(2026, 5, 23), IsSuccessful = true, TransactionId = "txn_seed_007" }
+                new Payment { UserId = userMobile.Id, EventReservationId = res1.Id, PaymentMethodId = PaymentMethods.Card,           Amount = 10.00m, PaymentDate = new DateTime(2026, 5, 20), IsSuccessful = true, TransactionId = "txn_seed_003" },
+                new Payment { UserId = user2.Id,      EventReservationId = res2.Id, PaymentMethodId = PaymentMethods.CashOnDelivery,  Amount = 0.00m,  PaymentDate = new DateTime(2026, 5, 22), IsSuccessful = true, TransactionId = "txn_seed_004" },
+                new Payment { UserId = user3.Id,      EventReservationId = res3.Id, PaymentMethodId = PaymentMethods.CashOnDelivery,  Amount = 0.00m,  PaymentDate = new DateTime(2026, 5, 25), IsSuccessful = true, TransactionId = "txn_seed_005" },
+                new Payment { UserId = user2.Id,      EventReservationId = res4.Id, PaymentMethodId = PaymentMethods.Card,           Amount = 10.00m, PaymentDate = new DateTime(2026, 5, 21), IsSuccessful = true, TransactionId = "txn_seed_006" },
+                new Payment { UserId = user3.Id,      EventReservationId = res5.Id, PaymentMethodId = PaymentMethods.Card,           Amount = 10.00m, PaymentDate = new DateTime(2026, 5, 23), IsSuccessful = true, TransactionId = "txn_seed_007" }
             );
             await context.SaveChangesAsync(ct);
 

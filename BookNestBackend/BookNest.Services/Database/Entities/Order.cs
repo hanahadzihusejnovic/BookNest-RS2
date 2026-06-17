@@ -1,4 +1,3 @@
-﻿using BookNest.Model.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -6,7 +5,7 @@ namespace BookNest.Services.Database.Entities
 {
     public class Order
     {
-        [Key] 
+        [Key]
         public int Id { get; set; }
 
         [Required]
@@ -21,8 +20,10 @@ namespace BookNest.Services.Database.Entities
         public DateTime? ShippedDate { get; set; }
 
         [Required]
-        [Column(TypeName = "nvarchar(20)")]
-        public OrderStatus Status { get; set; } = OrderStatus.Pending;
+        public int OrderStatusId { get; set; }
+
+        [ForeignKey(nameof(OrderStatusId))]
+        public OrderStatus OrderStatus { get; set; } = null!;
 
         public DateTime? StatusChangedAt { get; set; }
 

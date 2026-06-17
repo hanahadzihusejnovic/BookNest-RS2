@@ -45,6 +45,9 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.event.eventType == 'Online' && widget.event.ticketPrice > 0) {
+      _paymentMethod = 'Card';
+    }
     _loadUserInfo();
   }
 
@@ -124,12 +127,12 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
 
       if (_paymentMethod == 'Card') {
         final intentResponse = await HttpClient.post(
-          Uri.parse('${AppConstants.baseUrl}/Order/create-payment-intent'),
+          Uri.parse('${AppConstants.baseUrl}/EventReservation/create-payment-intent'),
           headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Bearer $token',
           },
-          body: jsonEncode({'amount': _totalPrice}),
+          body: jsonEncode({'eventId': widget.event.id, 'quantity': widget.quantity}),
         );
 
         if (intentResponse.statusCode != 200) {
@@ -151,7 +154,7 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
       final reservation = await _reservationService.reserveEvent(
         eventId: widget.event.id,
         quantity: widget.quantity,
-        paymentMethod: _paymentMethod == 'CashOnArrival' ? 0 : 1,
+        paymentMethod: _paymentMethod == 'CashOnArrival' ? 1 : 2,
         transactionId: paymentIntentId,
       );
 
@@ -305,8 +308,10 @@ class _EventReservationScreenState extends State<EventReservationScreen> {
                             label: 'Cash upon arrival',
                             value: 'CashOnArrival',
                             groupValue: _paymentMethod,
-                            onChanged: (v) =>
-                                setState(() => _paymentMethod = v!),
+                            onChanged: event.eventType == 'Online'
+                                ? null
+                                : (v) => setState(() => _paymentMethod = v!),
+                            disabled: event.eventType == 'Online',
                           ),
                           _PaymentOption(
                             label: 'Card',
@@ -502,13 +507,15 @@ class _PaymentOption extends StatelessWidget {
   final String label;
   final String value;
   final String groupValue;
-  final ValueChanged<String?> onChanged;
+  final ValueChanged<String?>? onChanged;
+  final bool disabled;
 
   const _PaymentOption({
     required this.label,
     required this.value,
     required this.groupValue,
     required this.onChanged,
+    this.disabled = false,
   });
 
   @override
@@ -523,7 +530,9 @@ class _PaymentOption extends StatelessWidget {
         ),
         Text(label,
             style: TextStyle(
-                color: AppColors.darkBrown,
+                color: disabled
+                    ? AppColors.darkBrown.withValues(alpha: 0.35)
+                    : AppColors.darkBrown,
                 fontSize: 16,
                 fontWeight: FontWeight.w500)),
       ],

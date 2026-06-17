@@ -1,4 +1,3 @@
-﻿using BookNest.Model.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace BookNest.Model.Requests
@@ -9,7 +8,8 @@ namespace BookNest.Model.Requests
         public ShippingInsertRequest Shipping { get; set; } = null!;
 
         [Required]
-        public PaymentMethod PaymentMethod { get; set; }
+        [Range(1, int.MaxValue, ErrorMessage = "PaymentMethodId must be a valid ID.")]
+        public int PaymentMethodId { get; set; }
 
         public string? PaymentIntentId { get; set; }
     }

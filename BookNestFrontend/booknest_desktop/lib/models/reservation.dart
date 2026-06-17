@@ -27,19 +27,6 @@ class Reservation {
     required this.reservationStatus,
   });
 
-  static const _statusLabels = {
-    0: 'Pending',
-    1: 'Confirmed',
-    2: 'Cancelled',
-    3: 'Attended',
-  };
-
-  static String _parseStatus(dynamic raw) {
-    final n = int.tryParse(raw?.toString() ?? '');
-    if (n != null) return _statusLabels[n] ?? raw.toString();
-    return raw?.toString() ?? '';
-  }
-
   factory Reservation.fromJson(Map<String, dynamic> json) {
     return Reservation(
       id: json['id'],
@@ -53,7 +40,7 @@ class Reservation {
       reservationDate: DateTime.tryParse(json['reservationDate']?.toString() ?? '') ?? DateTime.now(),
       quantity: (json['quantity'] as num?)?.toInt() ?? 0,
       totalPrice: (json['totalPrice'] as num?)?.toDouble() ?? 0,
-      reservationStatus: _parseStatus(json['reservationStatus']),
+      reservationStatus: json['reservationStatusName'] ?? '',
     );
   }
 }

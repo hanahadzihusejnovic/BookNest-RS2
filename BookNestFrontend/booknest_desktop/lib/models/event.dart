@@ -51,7 +51,7 @@ class Event {
       organizerName: json['organizerName'] ?? '',
       eventDate: DateTime.tryParse(json['eventDate']?.toString() ?? '') ?? DateTime.now(),
       eventTime: json['eventTime'] ?? '00:00:00',
-      eventType: json['eventType'] ?? '',
+      eventType: json['eventTypeName'] ?? '',
       address: json['address'],
       cityId: json['cityId'] as int?,
       city: json['cityName'],

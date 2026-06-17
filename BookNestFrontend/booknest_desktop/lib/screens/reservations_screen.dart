@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 import '../layouts/app_layout.dart';
 import '../layouts/constants.dart';
 import 'dashboard_screen.dart';
@@ -11,6 +12,9 @@ import '../services/reservation_service.dart';
 import '../widgets/pagination_bar.dart';
 import '../widgets/admin_table.dart';
 import 'reservation_detail_screen.dart';
+import 'lookup_manage_screen.dart';
+import '../services/reservation_status_service.dart';
+import '../services/notification_type_service.dart';
 
 class ReservationsScreen extends StatefulWidget {
   const ReservationsScreen({super.key});
@@ -82,7 +86,61 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
   String _formatDate(DateTime date) =>
       '${date.day}.${date.month}.${date.year}';
 
-  Future<void> _generatePdf() async {
+  void _showManageDataDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => ManageDataModal(
+        options: [
+          ManageDataOption(
+            label: 'Reservation Status',
+            onTap: () {
+              Navigator.pop(ctx);
+              final svc = ReservationStatusService();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LookupManageScreen(
+                    title: 'Reservation Status',
+                    getAll: () async => (await svc.getAll())
+                        .map((e) => LookupItem(id: e.id, name: e.name))
+                        .toList(),
+                    create: (name) => svc.create(name),
+                    update: (id, name) => svc.update(id, name),
+                    delete: svc.delete,
+                    backScreen: () => const ReservationsScreen(),
+                  ),
+                ),
+              );
+            },
+          ),
+          ManageDataOption(
+            label: 'Notification Type',
+            onTap: () {
+              Navigator.pop(ctx);
+              final svc = NotificationTypeService();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => LookupManageScreen(
+                    title: 'Notification Type',
+                    getAll: () async => (await svc.getAll())
+                        .map((e) => LookupItem(id: e.id, name: e.name))
+                        .toList(),
+                    create: (name) => svc.create(name),
+                    update: (id, name) => svc.update(id, name),
+                    delete: svc.delete,
+                    backScreen: () => const ReservationsScreen(),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  pw.Document _buildReservationsDoc() {
     final doc = pw.Document();
     final now = DateTime.now();
     final reservations = _filteredReservations;
@@ -164,7 +222,7 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
           pw.Align(
             alignment: pw.Alignment.centerRight,
             child: pw.Text(
-              'Total revenue: ${reservations.fold(0.0, (s, r) => s + r.totalPrice).toStringAsFixed(2)} BAM',
+              'Total revenue: ${reservations.where((r) => r.reservationStatus != 'Cancelled').fold(0.0, (s, r) => s + r.totalPrice).toStringAsFixed(2)} BAM',
               style: pw.TextStyle(
                   fontWeight: pw.FontWeight.bold, fontSize: 10),
             ),
@@ -173,6 +231,12 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
       ),
     );
 
+    return doc;
+  }
+
+  Future<void> _generatePdf() async {
+    final doc = _buildReservationsDoc();
+    final now = DateTime.now();
     final downloadsPath = '${Platform.environment['USERPROFILE']}\\Downloads';
     final filename = 'reservations_report_${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}.pdf';
     final file = File('$downloadsPath\\$filename');
@@ -182,14 +246,20 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
     }
   }
 
+  Future<void> _printPdf() async {
+    final doc = _buildReservationsDoc();
+    await Printing.layoutPdf(
+      onLayout: (_) async => doc.save(),
+      name: 'Reservations Report',
+    );
+  }
+
   Color _statusColor(String status) {
     switch (status.toLowerCase()) {
       case 'confirmed':
         return const Color(0xFF4CAF50);
       case 'cancelled':
         return const Color(0xFFE53935);
-      case 'attended':
-        return const Color(0xFF2196F3);
       default:
         return AppColors.darkBrown;
     }
@@ -209,6 +279,24 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 ElevatedButton(
+                  onPressed: _showManageDataDialog,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.darkBrown,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
+                  ),
+                  child: const Text(
+                    'Manage Data',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton(
                   onPressed: _generatePdf,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.darkBrown,
@@ -223,6 +311,25 @@ class _ReservationsScreenState extends State<ReservationsScreen> {
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w600),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: _printPdf,
+                  icon: const Icon(Icons.print, color: Colors.white, size: 18),
+                  label: const Text(
+                    'Print Report',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.darkBrown,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
                   ),
                 ),
               ],

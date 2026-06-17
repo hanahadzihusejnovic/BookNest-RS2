@@ -1,4 +1,3 @@
-﻿using BookNest.Model.Enums;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -19,7 +18,7 @@ namespace BookNest.Services.Database.Entities
 
         public Book? Book { get; set; }
 
-        public int? EventId {  get; set; }
+        public int? EventId { get; set; }
 
         public Event? Event { get; set; }
 
@@ -38,6 +37,9 @@ namespace BookNest.Services.Database.Entities
         public DateTime SendAt { get; set; } = DateTime.UtcNow;
 
         [Required]
-        public NotificationType NotificationType { get; set; }
+        public int NotificationTypeId { get; set; }
+
+        [ForeignKey(nameof(NotificationTypeId))]
+        public NotificationType NotificationType { get; set; } = null!;
     }
 }

@@ -13,19 +13,6 @@ class OrderDetail {
   final OrderPayment payment;
   final List<OrderItem> orderItems;
 
-  static const _statusLabels = {
-    0: 'Pending',
-    1: 'Shipped',
-    2: 'Delivered',
-    3: 'Cancelled',
-  };
-
-  static String _parseStatus(dynamic raw) {
-    final n = int.tryParse(raw?.toString() ?? '');
-    if (n != null) return _statusLabels[n] ?? raw.toString();
-    return raw?.toString() ?? '';
-  }
-
   OrderDetail({
     required this.id,
     required this.userId,
@@ -53,7 +40,7 @@ class OrderDetail {
       shippedDate: json['shippedDate'] != null
           ? DateTime.tryParse(json['shippedDate'].toString())
           : null,
-      status: _parseStatus(json['status']),
+      status: json['orderStatusName'] ?? '',
       cancellationReason: json['cancellationReason'],
       totalPrice: (json['totalPrice'] as num?)?.toDouble() ?? 0,
       shipping: OrderShipping.fromJson(json['shipping'] as Map<String, dynamic>? ?? {}),
@@ -100,20 +87,6 @@ class OrderPayment {
   final bool isSuccessful;
   final String? transactionId;
 
-  static const _methodLabels = {
-    0: 'Credit Card',
-    1: 'Debit Card',
-    2: 'PayPal',
-    3: 'Bank Transfer',
-    4: 'Cash',
-  };
-
-  static String _parseMethod(dynamic raw) {
-    final n = int.tryParse(raw?.toString() ?? '');
-    if (n != null) return _methodLabels[n] ?? raw.toString();
-    return raw?.toString() ?? '';
-  }
-
   OrderPayment({
     required this.paymentMethod,
     required this.amount,
@@ -124,7 +97,7 @@ class OrderPayment {
 
   factory OrderPayment.fromJson(Map<String, dynamic> json) {
     return OrderPayment(
-      paymentMethod: _parseMethod(json['paymentMethod']),
+      paymentMethod: json['paymentMethodName'] ?? '',
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
       paymentDate: DateTime.tryParse(json['paymentDate']?.toString() ?? '') ?? DateTime.now(),
       isSuccessful: json['isSuccessful'] ?? false,

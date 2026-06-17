@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using BookNest.Model.Enums;
+using BookNest.Model.Constants;
 using BookNest.Model.Exceptions;
 using BookNest.Model.Messages;
 using BookNest.Model.Requests;
@@ -24,6 +24,7 @@ namespace BookNest.Services.Services
         {
             _dbContext = dbContext;
             _publisher = publisher;
+            Stripe.StripeConfiguration.ApiKey = Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
         }
 
         protected override IQueryable<Event> ApplyFilter(IQueryable<Event> query, EventSearchObject search)
@@ -69,9 +70,9 @@ namespace BookNest.Services.Services
                                          e.Organizer.FirstName.ToLower().Contains(search.OrganizerName.ToLower()));
             }
 
-            if (search.EventType.HasValue)
+            if (search.EventTypeId.HasValue)
             {
-                query = query.Where(e => e.EventType == search.EventType.Value);
+                query = query.Where(e => e.EventTypeId == search.EventTypeId.Value);
             }
 
             if (!string.IsNullOrWhiteSpace(search.City))
@@ -109,11 +110,14 @@ namespace BookNest.Services.Services
             var query = _dbContext.Events
                          .Include(e => e.EventCategory)
                          .Include(e => e.Organizer)
+                         .Include(e => e.EventType)
                          .Include(e => e.City)
                          .Include(e => e.Country)
                          .AsQueryable();
 
             query = ApplyFilter(query, search);
+
+            query = query.OrderByDescending(e => e.EventDate).ThenByDescending(e => e.Id);
 
             int? totalCount = null;
             if (search.IncludeTotalCount)
@@ -121,11 +125,14 @@ namespace BookNest.Services.Services
                 totalCount = await query.CountAsync(cancellationToken);
             }
 
-            if (!search.RetrieveAll)
+            if (search.RetrieveAll)
+            {
+                query = query.Take(500);
+            }
+            else
             {
                 int skip = (search.Page ?? 0) * (search.PageSize ?? 20);
                 int take = search.PageSize ?? 20;
-
                 query = query.Skip(skip).Take(take);
             }
 
@@ -145,6 +152,7 @@ namespace BookNest.Services.Services
             var eventEntity = await _dbContext.Events
                                    .Include(e => e.EventCategory)
                                    .Include(e => e.Organizer)
+                                   .Include(e => e.EventType)
                                    .Include(e => e.City)
                                    .Include(e => e.Country)
                                    .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
@@ -160,6 +168,18 @@ namespace BookNest.Services.Services
 
         public override async Task<EventResponse> CreateAsync(EventInsertRequest request, CancellationToken cancellationToken = default)
         {
+            var eventTypeExists = await _dbContext.EventTypes.AnyAsync(et => et.Id == request.EventTypeId, cancellationToken);
+            if (!eventTypeExists)
+                throw new BusinessException("Invalid event type.");
+
+            var categoryExists = await _dbContext.EventCategories.AnyAsync(c => c.Id == request.EventCategoryId, cancellationToken);
+            if (!categoryExists)
+                throw new NotFoundException("Event category not found.");
+
+            var organizerExists = await _dbContext.Organizers.AnyAsync(o => o.Id == request.OrganizerId, cancellationToken);
+            if (!organizerExists)
+                throw new NotFoundException("Organizer not found.");
+
             var eventEntity = _mapper.Map<Event>(request);
 
             _dbContext.Events.Add(eventEntity);
@@ -172,36 +192,39 @@ namespace BookNest.Services.Services
         public async Task<List<EventRecommendationResponse>> GetRecommendedEventsAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
         {
             var myEventIds = await _dbContext.EventReservations
-                .Where(r => r.UserId == userId)
+                .Where(r => r.UserId == userId && r.ReservationStatusId == ReservationStatuses.Confirmed)
                 .Select(r => r.EventId)
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
             var similarUserIds = await _dbContext.EventReservations
-                .Where(r => r.UserId != userId && myEventIds.Contains(r.EventId))
+                .Where(r => r.UserId != userId && r.ReservationStatusId == ReservationStatuses.Confirmed && myEventIds.Contains(r.EventId))
                 .Select(r => r.UserId)
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
             var collaborativeEventIds = await _dbContext.EventReservations
-                .Where(r => similarUserIds.Contains(r.UserId) && !myEventIds.Contains(r.EventId))
+                .Where(r => similarUserIds.Contains(r.UserId) && r.ReservationStatusId == ReservationStatuses.Confirmed && !myEventIds.Contains(r.EventId))
                 .Select(r => r.EventId)
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
             var now = DateTime.UtcNow;
+            var today = now.Date;
 
             var events = await _dbContext.Events
                 .Include(e => e.EventCategory)
                 .Include(e => e.Organizer)
                 .Where(e => collaborativeEventIds.Contains(e.Id) &&
                             e.IsActive &&
-                            e.EventDate > now)
+                            e.EventDate >= today)
                 .ToListAsync(cancellationToken);
 
-            var result = events.Select(e =>
+            var result = events
+            .Where(e => e.EventDateTime > now)
+            .Select(e =>
             {
-                var daysUntilEvent = (e.EventDate - now).TotalDays;
+                var daysUntilEvent = (e.EventDateTime - now).TotalDays;
                 var score = Math.Max(0, 1 - (daysUntilEvent / 365.0));
 
                 return (ev: e, score, daysUntilEvent);
@@ -222,7 +245,7 @@ namespace BookNest.Services.Services
         public async Task<List<EventRecommendationResponse>> GetContentBasedRecommendationsAsync(int userId, int count = 6, CancellationToken cancellationToken = default)
         {
             var myEventIds = await _dbContext.EventReservations
-                .Where(r => r.UserId == userId)
+                .Where(r => r.UserId == userId && r.ReservationStatusId == ReservationStatuses.Confirmed)
                 .Select(r => r.EventId)
                 .Distinct()
                 .ToListAsync(cancellationToken);
@@ -231,7 +254,7 @@ namespace BookNest.Services.Services
                 return new List<EventRecommendationResponse>();
 
             var preferredCategories = await _dbContext.EventReservations
-                .Where(r => r.UserId == userId)
+                .Where(r => r.UserId == userId && r.ReservationStatusId == ReservationStatuses.Confirmed)
                 .Include(r => r.Event)
                     .ThenInclude(e => e.EventCategory)
                 .Select(r => new { r.Event.EventCategoryId, r.Event.EventCategory.Name })
@@ -242,12 +265,13 @@ namespace BookNest.Services.Services
             var preferredCategoryNames = preferredCategories.Select(c => c.Name).ToList();
 
             var now = DateTime.UtcNow;
+            var today = now.Date;
 
             IQueryable<Event> query = _dbContext.Events
                 .Include(e => e.EventCategory)
                 .Include(e => e.Organizer)
                 .Where(e => e.IsActive &&
-                            e.EventDate > now &&
+                            e.EventDate >= today &&
                             !myEventIds.Contains(e.Id));
 
             if (preferredCategoryIds.Any())
@@ -257,9 +281,11 @@ namespace BookNest.Services.Services
 
             var events = await query.ToListAsync(cancellationToken);
 
-            var result = events.Select(e =>
+            var result = events
+            .Where(e => e.EventDateTime > now)
+            .Select(e =>
             {
-                var daysUntilEvent = (e.EventDate - now).TotalDays;
+                var daysUntilEvent = (e.EventDateTime - now).TotalDays;
 
                 return (ev: e, daysUntilEvent);
             })
@@ -284,6 +310,18 @@ namespace BookNest.Services.Services
             if (eventEntity == null)
                 throw new NotFoundException("Event not found.");
 
+            var eventTypeExists = await _dbContext.EventTypes.AnyAsync(et => et.Id == request.EventTypeId, cancellationToken);
+            if (!eventTypeExists)
+                throw new BusinessException("Invalid event type.");
+
+            var categoryExists = await _dbContext.EventCategories.AnyAsync(c => c.Id == request.EventCategoryId, cancellationToken);
+            if (!categoryExists)
+                throw new NotFoundException("Event category not found.");
+
+            var organizerExists = await _dbContext.Organizers.AnyAsync(o => o.Id == request.OrganizerId, cancellationToken);
+            if (!organizerExists)
+                throw new NotFoundException("Organizer not found.");
+
             bool wasActive = eventEntity.IsActive;
 
             _mapper.Map(request, eventEntity);
@@ -292,20 +330,59 @@ namespace BookNest.Services.Services
             if (wasActive && !request.IsActive)
             {
                 var affectedReservations = await _dbContext.EventReservations
+                    .Include(r => r.Payment)
                     .Where(r => r.EventId == id &&
-                                r.ReservationStatus != ReservationStatus.Cancelled)
+                                r.ReservationStatusId != ReservationStatuses.Cancelled)
                     .ToListAsync(cancellationToken);
+
+                var now = DateTime.UtcNow;
+
+                // Snapshot pre-cancellation state per reservation before we overwrite ReservationStatusId below.
+                var wasPendingByReservationId = affectedReservations.ToDictionary(
+                    r => r.Id, r => r.ReservationStatusId == ReservationStatuses.Pending);
 
                 foreach (var reservation in affectedReservations)
                 {
+                    var wasPending = wasPendingByReservationId[reservation.Id];
+                    var isPaidByCard = reservation.Payment?.PaymentMethodId == PaymentMethods.Card;
+                    var hasTransactionId = !string.IsNullOrEmpty(reservation.Payment?.TransactionId);
+
+                    if (wasPending && isPaidByCard && hasTransactionId)
+                    {
+                        // Payment was only authorized (manual capture), never charged — release the hold.
+                        var cancelIntentService = new Stripe.PaymentIntentService();
+                        await cancelIntentService.CancelAsync(reservation.Payment!.TransactionId, cancellationToken: cancellationToken);
+                    }
+
+                    reservation.ReservationStatusId = ReservationStatuses.Cancelled;
+                    reservation.CancellationReason = "Event cancelled by administrator.";
+                    reservation.StatusChangedAt = now;
+                }
+
+                eventEntity.ReservedSeats = 0;
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                foreach (var reservation in affectedReservations)
+                {
+                    var wasPending = wasPendingByReservationId[reservation.Id];
+                    var isPaidByCard = reservation.Payment?.PaymentMethodId == PaymentMethods.Card;
+
+                    string message;
+                    if (isPaidByCard && wasPending)
+                        message = $"Unfortunately, the event '{eventEntity.Name}' has been cancelled. No charge was made to your card.";
+                    else if (isPaidByCard)
+                        message = $"Unfortunately, the event '{eventEntity.Name}' has been cancelled. Your card payment requires a manual refund — please contact support.";
+                    else
+                        message = $"Unfortunately, the event '{eventEntity.Name}' has been cancelled.";
+
                     await _publisher.PublishAsync("notifications-queue", new NotificationMessage
                     {
                         UserId = reservation.UserId,
                         EventId = id,
                         Title = "Event cancelled",
-                        Message = $"Unfortunately, the event '{eventEntity.Name}' has been cancelled.",
+                        Message = message,
                         NotificationType = "EventCancelled",
-                        SendAt = DateTime.UtcNow
+                        SendAt = now
                     });
                 }
             }

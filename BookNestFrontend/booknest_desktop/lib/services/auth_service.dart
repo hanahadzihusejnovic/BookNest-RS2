@@ -19,7 +19,6 @@ class AuthService {
 
   static const String _rememberMeKey = 'remember_me';
   static const String _savedUsernameKey = 'saved_username';
-  static const String _savedPasswordKey = 'saved_password';
 
   Future<LoginResponse> login(String username, String password) async {
     final request = LoginRequest(username: username, password: password);
@@ -43,24 +42,20 @@ class AuthService {
     } catch (_) {}
 
     final prefs = await SharedPreferences.getInstance();
-
     final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
     final savedUsername = prefs.getString(_savedUsernameKey);
-    final savedPassword = prefs.getString(_savedPasswordKey);
 
     await prefs.clear();
 
-    if (rememberMe && savedUsername != null && savedPassword != null) {
+    if (rememberMe && savedUsername != null) {
       await prefs.setBool(_rememberMeKey, true);
       await prefs.setString(_savedUsernameKey, savedUsername);
-      await prefs.setString(_savedPasswordKey, savedPassword);
     }
   }
 
   Future<bool> isLoggedIn() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(_tokenKey);
-
     if (token == null || token.isEmpty) return false;
 
     final expiresAtStr = prefs.getString(_expiresAtKey);
@@ -69,14 +64,12 @@ class AuthService {
       if (DateTime.now().isAfter(expiresAt)) {
         final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
         final savedUsername = prefs.getString(_savedUsernameKey);
-        final savedPassword = prefs.getString(_savedPasswordKey);
 
         await prefs.clear();
 
-        if (rememberMe && savedUsername != null && savedPassword != null) {
+        if (rememberMe && savedUsername != null) {
           await prefs.setBool(_rememberMeKey, true);
           await prefs.setString(_savedUsernameKey, savedUsername);
-          await prefs.setString(_savedPasswordKey, savedPassword);
         }
 
         return false;
@@ -129,30 +122,23 @@ class AuthService {
     await prefs.setString(_expiresAtKey, response.expiresAt.toIso8601String());
   }
 
-  Future<void> saveRememberMe(String username, String password) async {
+  Future<void> saveRememberMe(String username) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_rememberMeKey, true);
     await prefs.setString(_savedUsernameKey, username);
-    await prefs.setString(_savedPasswordKey, password);
   }
 
   Future<void> clearRememberMe() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_rememberMeKey, false);
     await prefs.remove(_savedUsernameKey);
-    await prefs.remove(_savedPasswordKey);
   }
 
-  Future<Map<String, String>?> getSavedCredentials() async {
+  Future<String?> getSavedUsername() async {
     final prefs = await SharedPreferences.getInstance();
     final rememberMe = prefs.getBool(_rememberMeKey) ?? false;
     if (!rememberMe) return null;
-
-    final username = prefs.getString(_savedUsernameKey);
-    final password = prefs.getString(_savedPasswordKey);
-    if (username == null || password == null) return null;
-
-    return {'username': username, 'password': password};
+    return prefs.getString(_savedUsernameKey);
   }
 
   Future<List<String>> getRoles() async {
@@ -164,5 +150,4 @@ class AuthService {
     final roles = await getRoles();
     return roles.contains('Admin');
   }
-
 }

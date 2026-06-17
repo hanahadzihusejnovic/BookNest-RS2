@@ -21,6 +21,16 @@ namespace BookNest.API.Middleware
             {
                 await _next(context);
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex,
+                    "Forbidden access | {Method} {Path} | User: {UserId} | {Message}",
+                    context.Request.Method,
+                    context.Request.Path,
+                    context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "anonymous",
+                    ex.Message);
+                await WriteErrorResponse(context, HttpStatusCode.Forbidden, ex.Message);
+            }
             catch (NotFoundException ex)
             {
                 _logger.LogWarning(ex,

@@ -48,24 +48,11 @@ class OrderModel {
     required this.orderItems,
   });
 
-  static const _statusLabels = {
-    0: 'Pending',
-    1: 'Shipped',
-    2: 'Delivered',
-    3: 'Cancelled',
-  };
-
-  static String _parseStatus(dynamic raw) {
-    final n = int.tryParse(raw?.toString() ?? '');
-    if (n != null) return _statusLabels[n] ?? raw.toString();
-    return raw?.toString() ?? '';
-  }
-
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     return OrderModel(
       id: json['id'],
       orderDate: DateTime.parse(json['orderDate']),
-      status: _parseStatus(json['status']),
+      status: json['orderStatusName'] ?? '',
       totalPrice: (json['totalPrice'] as num).toDouble(),
       orderItems: (json['orderItems'] as List<dynamic>?)
               ?.map((e) => OrderItemModel.fromJson(e))

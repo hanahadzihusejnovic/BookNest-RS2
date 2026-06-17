@@ -1,4 +1,3 @@
-﻿using BookNest.Model.Enums;
 using BookNest.Model.Exceptions;
 using BookNest.Model.Messages;
 using BookNest.Model.Responses;
@@ -20,6 +19,11 @@ namespace BookNest.Services.Services
 
         public async Task SaveAsync(NotificationMessage message)
         {
+            var notificationType = await _dbContext.NotificationTypes
+                .FirstOrDefaultAsync(nt => nt.Name == message.NotificationType);
+            if (notificationType == null)
+                throw new ArgumentException($"Invalid notification type: '{message.NotificationType}'.");
+
             var notification = new Notification
             {
                 UserId = message.UserId,
@@ -27,7 +31,7 @@ namespace BookNest.Services.Services
                 EventId = message.EventId,
                 Title = message.Title,
                 Message = message.Message,
-                NotificationType = Enum.Parse<NotificationType>(message.NotificationType),
+                NotificationTypeId = notificationType.Id,
                 IsRead = false,
                 SendAt = message.SendAt
             };
@@ -39,6 +43,7 @@ namespace BookNest.Services.Services
         public async Task<List<NotificationResponse>> GetForUserAsync(int userId)
         {
             var notifications = await _dbContext.Notifications
+                .Include(n => n.NotificationType)
                 .Where(n => n.UserId == userId)
                 .OrderByDescending(n => n.SendAt)
                 .ToListAsync();
@@ -51,7 +56,8 @@ namespace BookNest.Services.Services
                 EventId = n.EventId,
                 Title = n.Title,
                 Message = n.Message,
-                NotificationType = n.NotificationType.ToString(),
+                NotificationTypeId = n.NotificationTypeId,
+                NotificationTypeName = n.NotificationType?.Name ?? string.Empty,
                 IsRead = n.IsRead,
                 SendAt = n.SendAt
             }).ToList();

@@ -1,6 +1,5 @@
 ﻿using BookNest.API.BaseControllers;
 using BookNest.Model.Constants;
-using BookNest.Model.Enums;
 using BookNest.Model.Requests;
 using BookNest.Model.Responses;
 using BookNest.Model.SearchObjects;
@@ -36,7 +35,7 @@ namespace BookNest.API.Controllers
         }
 
         [HttpGet("my-tbr-list")]
-        public async Task<ActionResult<List<TBRListResponse>>> GetMyTBRList([FromQuery] ReadingStatus? status = null)
+        public async Task<ActionResult<List<TBRListResponse>>> GetMyTBRList([FromQuery] int? readingStatusId = null)
         {
             var userId = GetCurrentUserId();
 
@@ -45,7 +44,7 @@ namespace BookNest.API.Controllers
                 return Unauthorized(new { message = "User not authenticated." });
             }
 
-            var tbrList = await _tbrListService.GetUserTBRListAsync(userId, status);
+            var tbrList = await _tbrListService.GetUserTBRListAsync(userId, readingStatusId);
             return Ok(tbrList);
         }
 
@@ -64,7 +63,7 @@ namespace BookNest.API.Controllers
         }
 
         [HttpPut("update-status/{bookId}")]
-        public async Task<ActionResult<TBRListResponse>> UpdateStatus(int bookId, [FromBody] ReadingStatus status)
+        public async Task<ActionResult<TBRListResponse>> UpdateStatus(int bookId, [FromBody] int readingStatusId)
         {
             var userId = GetCurrentUserId();
 
@@ -73,7 +72,7 @@ namespace BookNest.API.Controllers
                 return Unauthorized(new { message = "User not authenticated." });
             }
 
-            var tbrItem = await _tbrListService.UpdateTBRListStatusAsync(userId, bookId, status);
+            var tbrItem = await _tbrListService.UpdateTBRListStatusAsync(userId, bookId, readingStatusId);
             return Ok(tbrItem);
         }
 
